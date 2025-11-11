@@ -43,8 +43,7 @@ import { FormsModule } from '@angular/forms';
                         <input [(ngModel)]="editTitle" type="text" placeholder="New Title" 
                             class="w-full border border-gray-300 rounded-md p-1.5 text-sm focus:ring-primary focus:border-primary"
                         >
-                        <textarea [(ngModel)
-                        ]="editDescription" rows="2" placeholder="New Description" 
+                        <textarea [(ngModel)]="editDescription" rows="2" placeholder="New Description" 
                             class="w-full border border-gray-300 rounded-md p-1.5 text-sm focus:ring-primary focus:border-primary"
                         ></textarea>
                         <div class="flex justify-end space-x-2">
