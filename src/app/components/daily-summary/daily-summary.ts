@@ -32,6 +32,9 @@ import { Observable } from 'rxjs';
                 <span class="text-2xl font-bold text-primary block">
                   {{ formatDuration(summary.totalDurationMs) }}
                 </span>
+                <span class="text-m text-secondary block">
+                  Queden: {{ formatDuration(28800000-summary.totalDurationMs) }}
+                </span>
               </div>
             </div>
           }
@@ -40,6 +43,7 @@ import { Observable } from 'rxjs';
     </div>
   `,
 })
+
 export class DailySummaryComponent {
   private timeEntryService = inject(TimeEntryService);
   
