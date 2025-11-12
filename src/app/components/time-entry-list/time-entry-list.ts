@@ -3,7 +3,7 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TimeEntryService } from '../../services/time-entry';
 import { TimeEntry } from '../../models/time-entry.model';
-import { Observable } from 'rxjs';
+import { Observable, take } from 'rxjs';
 import { formatDuration } from '../../utils/format';
 import { FormsModule } from '@angular/forms';
 
@@ -113,10 +113,17 @@ export class TimeEntryListComponent {
     this.cancelEdit();
   }
 
+  // src/app/components/time-entry-list/time-entry-list.component.ts
+
   downloadCSV(): void {
-    this.entries$.subscribe(entries => {
+    // Ens subscrivim i ens desubscrivim immediatament per obtenir les dades actuals
+    this.entries$.pipe(take(1)).subscribe(entries => {
+      if (!entries.length) return;
+
+      // --- (Generació del CSV, es manté igual) ---
       const headers = ['Title', 'Description', 'Start Time', 'End Time', 'Duration (HH:MM:SS)', 'Duration (ms)'];
       const rows = entries.map(e => [
+        // ... (mapeig de files)
         `"${e.title || 'No Title'}"`,
         `"${e.description || 'No Description'}"`,
         new Date(e.startTime).toLocaleString(),
@@ -137,10 +144,17 @@ export class TimeEntryListComponent {
       link.setAttribute('href', url);
       link.setAttribute('download', 'time_tracker_export.csv');
       link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+
+      // 💥 NOU: Utilitzem setTimeout(..., 0) per assegurar que la neteja es fa després de la descàrrega
+      // Això desencobla l'acció del cicle de l'esdeveniment actual
+      setTimeout(() => {
+        document.body.appendChild(link);
+        link.click();
+
+        // Neteja immediata de la referència i el DOM
+        URL.revokeObjectURL(url);
+        document.body.removeChild(link);
+      }, 0);
     });
   }
 }
