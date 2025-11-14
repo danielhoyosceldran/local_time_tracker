@@ -36,14 +36,14 @@ import { DailySummaryComponent } from './components/daily-summary/daily-summary'
           <app-manual-entry-form />
         </div>
       </div>
+
+      <div class="lg:col-span-3">
+        <app-daily-summary />
+      </div>
       
       <div class="lg:col-span-3">
         <app-time-entry-list />
       </div>
-
-      <div class="lg:col-span-3">
-  <app-daily-summary />
-</div>
     </main>
   `,
 })
