@@ -11,7 +11,7 @@ import { Observable } from 'rxjs';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="p-6 bg-white shadow-xl rounded-lg border border-gray-100 mt-8">
+    <div class="p-6 bg-white shadow-xl rounded-lg border border-gray-100">
       <h2 class="text-2xl font-bold mb-4 text-gray-800">Daily Hours Summary</h2>
       
       @if ((dailySummary$ | async)?.length === 0) {
