@@ -288,15 +288,28 @@ export class IntervalsPageComponent {
     this.timeEntryService.entries$.pipe(take(1)).subscribe(entries => {
       if (!entries.length) return;
 
-      const headers = ['Title', 'Description', 'Start Time', 'End Time', 'Duration (HH:MM:SS)', 'Duration (ms)'];
-      const rows = entries.map(e => [
-        `"${e.title || 'No Title'}"`,
-        `"${e.description || 'No Description'}"`,
-        new Date(e.startTime).toLocaleString(),
-        new Date(e.endTime).toLocaleString(),
-        formatDuration(e.duration),
-        e.duration.toString(),
-      ]);
+      // Agrupar entradas por día
+      const dailyMap = new Map<string, number>();
+      entries.forEach(e => {
+        const date = new Date(e.startTime).toISOString().split('T')[0];
+        const current = dailyMap.get(date) || 0;
+        dailyMap.set(date, current + e.duration);
+      });
+
+      // Convertir a array y ordenar por fecha (más antigua primero)
+      const dailyData = Array.from(dailyMap.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]));
+
+      // Formatear datos
+      const headers = ['Date', 'Day of Week', 'Hours Worked'];
+      const rows = dailyData.map(([dateStr, durationMs]) => {
+        const date = new Date(dateStr);
+        const dayMonth = date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+        const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
+        const hoursWorked = formatDuration(durationMs);
+
+        return [dayMonth, dayOfWeek, hoursWorked];
+      });
 
       const csvContent = [
         headers.join(','),
@@ -308,7 +321,7 @@ export class IntervalsPageComponent {
       const url = URL.createObjectURL(blob);
 
       link.setAttribute('href', url);
-      link.setAttribute('download', 'time_tracker_export.csv');
+      link.setAttribute('download', 'time_tracker_daily_summary.csv');
       link.style.visibility = 'hidden';
 
       setTimeout(() => {
