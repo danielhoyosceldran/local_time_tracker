@@ -18,6 +18,16 @@ export function formatDuration(ms: number): string {
 }
 
 /**
+ * Formats decimal hours to HH:MM:SS format.
+ * @param hours Duration in decimal hours.
+ * @returns Formatted string "HH:MM:SS".
+ */
+export function formatHoursToTime(hours: number): string {
+  const ms = hours * 60 * 60 * 1000;
+  return formatDuration(ms);
+}
+
+/**
  * Converts a Date object or timestamp to the local datetime-local format string.
  * Format: YYYY-MM-DDTHH:mm (used by the input type="datetime-local")
  */

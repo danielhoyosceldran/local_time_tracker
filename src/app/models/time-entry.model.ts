@@ -24,3 +24,21 @@ export interface DailySummary {
   date: string; // Format 'YYYY-MM-DD'
   totalDurationMs: number;
 }
+
+export interface WeeklySummary {
+  hoursWorked: number;
+  horasExtra: number;      // Suma de excesos diarios > 8h
+  targetHours: number;
+  weekStart: string;       // ISO date (Monday)
+  weekEnd: string;         // ISO date (Sunday)
+}
+
+export interface DayGroup {
+  date: string;
+  entries: TimeEntry[];
+  totalDurationMs: number;
+}
+
+export interface GlobalBalance {
+  balanceHours: number; // Balance total en horas (positivo = extra, negativo = falta)
+}

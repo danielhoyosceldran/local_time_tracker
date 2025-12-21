@@ -2,8 +2,8 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Observable, Subscription, interval, switchMap, map, of } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
-import { TimeEntry, RunningTimeEntry, DailySummary } from '../models/time-entry.model';
-import { take, tap } from 'rxjs'; // Afegir tap si no el tens
+import { TimeEntry, RunningTimeEntry, DailySummary, WeeklySummary, DayGroup, GlobalBalance } from '../models/time-entry.model';
+import { take, tap } from 'rxjs';
 
 const STORAGE_KEY = 'timeTrackerEntries';
 const RUNNING_KEY = 'timeTrackerRunningEntry';
@@ -39,6 +39,21 @@ export class TimeEntryService implements OnDestroy {
   private _dailySummary$$ = new BehaviorSubject<DailySummary[]>([]);
   public readonly dailySummary$: Observable<DailySummary[]> = this._dailySummary$$.asObservable();
 
+  private _currentWeekSummary$$ = new BehaviorSubject<WeeklySummary>({
+    hoursWorked: 0,
+    horasExtra: 0,
+    targetHours: 40,
+    weekStart: '',
+    weekEnd: ''
+  });
+  public readonly currentWeekSummary$ = this._currentWeekSummary$$.asObservable();
+
+  private _todaySummary$$ = new BehaviorSubject<DailySummary | null>(null);
+  public readonly todaySummary$ = this._todaySummary$$.asObservable();
+
+  private _globalBalance$$ = new BehaviorSubject<GlobalBalance>({ balanceHours: 0 });
+  public readonly globalBalance$ = this._globalBalance$$.asObservable();
+
   constructor() {
     // Basic cleanup check for running entry on startup
     const running = this._runningEntry$$.getValue();
@@ -49,7 +64,12 @@ export class TimeEntryService implements OnDestroy {
 
     this._entries$$.pipe(
       // Executa la lògica de càlcul cada vegada que l'historial canvia
-      tap(entries => this.calculateDailySummary(entries))
+      tap(entries => {
+        this.calculateDailySummary(entries);
+        this.calculateWeeklySummary(entries);
+        this.calculateTodaySummary(entries);
+        this.calculateGlobalBalance(entries);
+      })
     ).subscribe();
   }
 
@@ -183,5 +203,176 @@ export class TimeEntryService implements OnDestroy {
     const currentEntries = this._entries$$.getValue();
     const newEntries = currentEntries.filter(e => e.id !== id);
     this.saveEntries(newEntries);
+  }
+
+  // --- New Methods for Weekly/Today Calculations ---
+
+  private getCurrentWeekBoundaries(): { start: Date; end: Date } {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMonday);
+    monday.setHours(0, 0, 0, 0);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+
+    return { start: monday, end: sunday };
+  }
+
+  private calculateWeeklySummary(entries: TimeEntry[]): void {
+    const { start, end } = this.getCurrentWeekBoundaries();
+
+    // Filtrar entradas de la semana actual
+    const weekEntries = entries.filter(e =>
+      e.startTime >= start.getTime() && e.startTime <= end.getTime()
+    );
+
+    // Agrupar por día
+    const dailyHoursMap = new Map<string, number>();
+    weekEntries.forEach(entry => {
+      const date = new Date(entry.startTime).toISOString().split('T')[0];
+      const current = dailyHoursMap.get(date) || 0;
+      dailyHoursMap.set(date, current + entry.duration);
+    });
+
+    // Calcular horas totales y horas extra
+    let totalHoursMs = 0;
+    let horasExtraMs = 0;
+    const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
+
+    dailyHoursMap.forEach(dailyMs => {
+      totalHoursMs += dailyMs;
+      if (dailyMs > EIGHT_HOURS_MS) {
+        horasExtraMs += (dailyMs - EIGHT_HOURS_MS);
+      }
+    });
+
+    this._currentWeekSummary$$.next({
+      hoursWorked: totalHoursMs / (1000 * 60 * 60),
+      horasExtra: horasExtraMs / (1000 * 60 * 60),
+      targetHours: 40,
+      weekStart: start.toISOString().split('T')[0],
+      weekEnd: end.toISOString().split('T')[0]
+    });
+  }
+
+  private calculateTodaySummary(entries: TimeEntry[]): void {
+    const today = new Date().toISOString().split('T')[0];
+    const todayEntries = entries.filter(e =>
+      new Date(e.startTime).toISOString().split('T')[0] === today
+    );
+
+    const totalMs = todayEntries.reduce((sum, e) => sum + e.duration, 0);
+
+    this._todaySummary$$.next({
+      date: today,
+      totalDurationMs: totalMs
+    });
+  }
+
+  public getEntriesGroupedByDay(): Observable<DayGroup[]> {
+    return this.entries$.pipe(
+      map(entries => {
+        const grouped = new Map<string, TimeEntry[]>();
+
+        entries.forEach(entry => {
+          const date = new Date(entry.startTime).toISOString().split('T')[0];
+          if (!grouped.has(date)) {
+            grouped.set(date, []);
+          }
+          grouped.get(date)!.push(entry);
+        });
+
+        return Array.from(grouped.entries())
+          .map(([date, dayEntries]) => ({
+            date,
+            entries: dayEntries.sort((a, b) => a.startTime - b.startTime),
+            totalDurationMs: dayEntries.reduce((sum, e) => sum + e.duration, 0)
+          }))
+          .sort((a, b) => b.date.localeCompare(a.date));
+      })
+    );
+  }
+
+  updateEntryTimes(id: string, startTime: number, endTime: number): boolean {
+    if (endTime <= startTime) {
+      return false;
+    }
+
+    const currentEntries = this._entries$$.getValue();
+    const index = currentEntries.findIndex(e => e.id === id);
+
+    if (index > -1) {
+      const updatedEntries = [...currentEntries];
+      updatedEntries[index] = {
+        ...updatedEntries[index],
+        startTime,
+        endTime,
+        duration: endTime - startTime
+      };
+      this.saveEntries(updatedEntries);
+      return true;
+    }
+    return false;
+  }
+
+  private calculateGlobalBalance(entries: TimeEntry[]): void {
+    if (entries.length === 0) {
+      this._globalBalance$$.next({ balanceHours: 0 });
+      return;
+    }
+
+    // Encontrar la primera entrada (más antigua)
+    const sortedEntries = [...entries].sort((a, b) => a.startTime - b.startTime);
+    const firstEntry = sortedEntries[0];
+    const firstDate = new Date(firstEntry.startTime);
+
+    // Obtener la fecha de hoy
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
+    // Función helper para obtener el día de la semana (0=Dom, 1=Lun, ..., 6=Sab)
+    const getDayOfWeek = (date: Date): number => date.getDay();
+
+    // Función helper para verificar si un día es L-V
+    const isWeekday = (dayOfWeek: number): boolean => dayOfWeek >= 1 && dayOfWeek <= 5;
+
+    // Contar días de L-V desde la primera entrada hasta hoy
+    let weekdayCount = 0;
+    const currentDate = new Date(firstDate);
+    currentDate.setHours(0, 0, 0, 0);
+
+    while (currentDate <= today) {
+      if (isWeekday(getDayOfWeek(currentDate))) {
+        weekdayCount++;
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Calcular horas trabajadas en L-V y fin de semana
+    let weekdayHours = 0;
+    let weekendHours = 0;
+
+    entries.forEach(entry => {
+      const entryDate = new Date(entry.startTime);
+      const dayOfWeek = getDayOfWeek(entryDate);
+      const hours = entry.duration / (1000 * 60 * 60);
+
+      if (isWeekday(dayOfWeek)) {
+        weekdayHours += hours;
+      } else {
+        weekendHours += hours;
+      }
+    });
+
+    // Calcular balance: (horas L-V) - (días L-V × 8) + horas fin de semana
+    const expectedWeekdayHours = weekdayCount * 8;
+    const balanceHours = (weekdayHours - expectedWeekdayHours) + weekendHours;
+
+    this._globalBalance$$.next({ balanceHours });
   }
 }
