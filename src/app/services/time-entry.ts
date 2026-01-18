@@ -1,9 +1,10 @@
 // src/app/services/time-entry.service.ts
-import { Injectable, OnDestroy } from '@angular/core';
+import { Injectable, OnDestroy, inject } from '@angular/core';
 import { BehaviorSubject, Observable, Subscription, interval, switchMap, map, of } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 import { TimeEntry, RunningTimeEntry, DailySummary, WeeklySummary, DayGroup, GlobalBalance } from '../models/time-entry.model';
 import { take, tap } from 'rxjs';
+import { HolidayDatesService } from './holiday-dates.service';
 
 const STORAGE_KEY = 'timeTrackerEntries';
 const RUNNING_KEY = 'timeTrackerRunningEntry';
@@ -12,6 +13,7 @@ const RUNNING_KEY = 'timeTrackerRunningEntry';
   providedIn: 'root'
 })
 export class TimeEntryService implements OnDestroy {
+  private holidayDatesService = inject(HolidayDatesService);
   // Single Source of Truth for the history
   private _entries$$ = new BehaviorSubject<TimeEntry[]>(this.loadEntries());
   public readonly entries$: Observable<TimeEntry[]> = this._entries$$.asObservable();
@@ -71,6 +73,17 @@ export class TimeEntryService implements OnDestroy {
         this.calculateGlobalBalance(entries);
       })
     ).subscribe();
+
+    // Recalcular cuando cambien las fechas de vacaciones
+    this.subscription.add(
+      this.holidayDatesService.holidayDates$.pipe(
+        tap(() => {
+          const entries = this._entries$$.getValue();
+          this.calculateWeeklySummary(entries);
+          this.calculateGlobalBalance(entries);
+        })
+      ).subscribe()
+    );
   }
 
   private calculateDailySummary(entries: TimeEntry[]): void {
@@ -251,10 +264,14 @@ export class TimeEntryService implements OnDestroy {
       }
     });
 
+    // Calcular targetHours ajustado según días de vacaciones
+    const holidaysInWeek = this.holidayDatesService.getWeekdayHolidaysInRange(start, end);
+    const targetHours = 40 - (holidaysInWeek.length * 8);
+
     this._currentWeekSummary$$.next({
       hoursWorked: totalHoursMs / (1000 * 60 * 60),
       horasExtra: horasExtraMs / (1000 * 60 * 60),
-      targetHours: 40,
+      targetHours: targetHours,
       weekStart: start.toISOString().split('T')[0],
       weekEnd: end.toISOString().split('T')[0]
     });
@@ -268,7 +285,7 @@ export class TimeEntryService implements OnDestroy {
 
     const totalMs = todayEntries.reduce((sum, e) => sum + e.duration, 0);
 
-    this._todaySummary$$.next({
+    this._todaySummary$$.next({/*  */
       date: today,
       totalDurationMs: totalMs
     });
@@ -330,6 +347,7 @@ export class TimeEntryService implements OnDestroy {
     const sortedEntries = [...entries].sort((a, b) => a.startTime - b.startTime);
     const firstEntry = sortedEntries[0];
     const firstDate = new Date(firstEntry.startTime);
+    firstDate.setHours(0, 0, 0, 0);
 
     // Obtener la fecha de hoy
     const today = new Date();
@@ -341,13 +359,17 @@ export class TimeEntryService implements OnDestroy {
     // Función helper para verificar si un día es L-V
     const isWeekday = (dayOfWeek: number): boolean => dayOfWeek >= 1 && dayOfWeek <= 5;
 
-    // Contar días de L-V desde la primera entrada hasta hoy
+    // Obtener días de vacaciones en el rango (solo L-V)
+    const holidayDates = this.holidayDatesService.getWeekdayHolidaysInRange(firstDate, today);
+    const holidaySet = new Set(holidayDates);
+
+    // Contar días de L-V desde la primera entrada hasta hoy, excluyendo vacaciones
     let weekdayCount = 0;
     const currentDate = new Date(firstDate);
-    currentDate.setHours(0, 0, 0, 0);
 
     while (currentDate <= today) {
-      if (isWeekday(getDayOfWeek(currentDate))) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      if (isWeekday(getDayOfWeek(currentDate)) && !holidaySet.has(dateStr)) {
         weekdayCount++;
       }
       currentDate.setDate(currentDate.getDate() + 1);

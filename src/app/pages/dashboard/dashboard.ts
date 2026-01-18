@@ -7,6 +7,7 @@ import { QuickIntervalInputComponent } from '../../components/quick-interval-inp
 import { DailySummaryComponent } from '../../components/daily-summary/daily-summary';
 import { WeeklySummaryComponent } from '../../components/weekly-summary/weekly-summary';
 import { CompactHolidayCounterComponent } from '../../components/compact-holiday-counter/compact-holiday-counter';
+import { CompactHolidayCalendarComponent } from '../../components/compact-holiday-calendar/compact-holiday-calendar';
 import { WeeklyChartComponent } from '../../components/weekly-chart/weekly-chart';
 
 @Component({
@@ -20,6 +21,7 @@ import { WeeklyChartComponent } from '../../components/weekly-chart/weekly-chart
     DailySummaryComponent,
     WeeklySummaryComponent,
     CompactHolidayCounterComponent,
+    CompactHolidayCalendarComponent,
     WeeklyChartComponent
   ],
   template: `
@@ -58,8 +60,12 @@ import { WeeklyChartComponent } from '../../components/weekly-chart/weekly-chart
             <app-compact-holiday-counter />
           </div>
 
-          <div class="col-span-2 h-full min-h-0">
+          <!-- Row 4: Empty (3 cols) + Holiday Calendar (last col) -->
+          <div class="col-span-3 h-full min-h-0">
             <!-- Empty cells -->
+          </div>
+          <div class="col-span-1 h-full min-h-0">
+            <app-compact-holiday-calendar />
           </div>
         </div>
       </div>
