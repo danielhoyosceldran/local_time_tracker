@@ -9,6 +9,9 @@ import { WeeklySummaryComponent } from '../../components/weekly-summary/weekly-s
 import { CompactHolidayCounterComponent } from '../../components/compact-holiday-counter/compact-holiday-counter';
 import { CompactHolidayCalendarComponent } from '../../components/compact-holiday-calendar/compact-holiday-calendar';
 import { WeeklyChartComponent } from '../../components/weekly-chart/weekly-chart';
+import { PomodoroTimerComponent } from '../../components/pomodoro-timer/pomodoro-timer';
+import { MarginConfigComponent } from '../../components/margin-config/margin-config';
+import { LunchConfigComponent } from '../../components/lunch-config/lunch-config';
 
 @Component({
   selector: 'app-dashboard',
@@ -22,7 +25,10 @@ import { WeeklyChartComponent } from '../../components/weekly-chart/weekly-chart
     WeeklySummaryComponent,
     CompactHolidayCounterComponent,
     CompactHolidayCalendarComponent,
-    WeeklyChartComponent
+    WeeklyChartComponent,
+    PomodoroTimerComponent,
+    MarginConfigComponent,
+    LunchConfigComponent
   ],
   template: `
     <div class="h-screen bg-slate-50 flex overflow-hidden">
@@ -39,14 +45,19 @@ import { WeeklyChartComponent } from '../../components/weekly-chart/weekly-chart
             <app-compact-timer />
           </div>
 
-          <!-- Quick Input: 1 col, 2 rows -->
-          <div class="col-span-1 row-span-2 h-full min-h-0">
+          <!-- Quick Input: 1 col, 1 row -->
+          <div class="col-span-1 h-full min-h-0">
             <app-quick-interval-input />
           </div>
 
-          <!-- Row 1 and 2: Daily + Weekly + Empty -->
+          <!-- Row 1: Daily Summary -->
           <div class="col-span-1 h-full min-h-0">
             <app-daily-summary />
+          </div>
+
+          <!-- Row 2: Pomodoro + Weekly Summary -->
+          <div class="col-span-1 h-full min-h-0">
+            <app-pomodoro-timer />
           </div>
           <div class="col-span-1 h-full min-h-0">
             <app-weekly-summary />
@@ -60,9 +71,15 @@ import { WeeklyChartComponent } from '../../components/weekly-chart/weekly-chart
             <app-compact-holiday-counter />
           </div>
 
-          <!-- Row 4: Empty (3 cols) + Holiday Calendar (last col) -->
-          <div class="col-span-3 h-full min-h-0">
-            <!-- Empty cells -->
+          <!-- Row 4: Margin Config + Lunch Config + Empty + Holiday Calendar -->
+          <div class="col-span-1 h-full min-h-0">
+            <app-margin-config />
+          </div>
+          <div class="col-span-1 h-full min-h-0">
+            <app-lunch-config />
+          </div>
+          <div class="col-span-1 h-full min-h-0">
+            <!-- Empty cell -->
           </div>
           <div class="col-span-1 h-full min-h-0">
             <app-compact-holiday-calendar />

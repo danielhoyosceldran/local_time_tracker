@@ -3,15 +3,19 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatTimepickerModule } from '@angular/material/timepicker';
 import { TimeEntryService } from '../../services/time-entry';
 import { DayGroup, TimeEntry, WeeklySummary } from '../../models/time-entry.model';
-import { formatDuration, formatHoursToTime, toDatetimeLocal } from '../../utils/format';
+import { formatDuration, formatHoursToTime, combineDateAndTime } from '../../utils/format';
 import { Observable, take } from 'rxjs';
 
 @Component({
   selector: 'app-intervals-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatDatepickerModule, MatTimepickerModule],
   template: `
     <div class="min-h-screen bg-slate-50 p-6">
       <div class="max-w-6xl mx-auto">
@@ -125,22 +129,54 @@ import { Observable, take } from 'rxjs';
                           @if (editingEntry() === entry.id) {
                             <!-- Edit Mode -->
                             <div class="space-y-3">
+                              <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Title</label>
+                                <input
+                                  type="text"
+                                  [(ngModel)]="editTitle"
+                                  placeholder="No title"
+                                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                />
+                              </div>
+                              <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Description</label>
+                                <textarea
+                                  [(ngModel)]="editDescription"
+                                  rows="2"
+                                  placeholder="No description"
+                                  class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                ></textarea>
+                              </div>
                               <div class="grid grid-cols-2 gap-3">
                                 <div>
                                   <label class="block text-xs font-medium text-slate-600 mb-1">Start Time</label>
-                                  <input
-                                    type="datetime-local"
-                                    [(ngModel)]="editStart"
-                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                  />
+                                  <div class="flex gap-2">
+                                    <mat-form-field appearance="outline" class="flex-1">
+                                      <input matInput [matDatepicker]="editStartDatePicker" [(ngModel)]="editStartDate" />
+                                      <mat-datepicker-toggle matIconSuffix [for]="editStartDatePicker" />
+                                      <mat-datepicker #editStartDatePicker />
+                                    </mat-form-field>
+                                    <mat-form-field appearance="outline" class="flex-1">
+                                      <input matInput [matTimepicker]="editStartTimePicker" [(ngModel)]="editStartTime" />
+                                      <mat-timepicker-toggle matIconSuffix [for]="editStartTimePicker" />
+                                      <mat-timepicker #editStartTimePicker interval="5m" />
+                                    </mat-form-field>
+                                  </div>
                                 </div>
                                 <div>
                                   <label class="block text-xs font-medium text-slate-600 mb-1">End Time</label>
-                                  <input
-                                    type="datetime-local"
-                                    [(ngModel)]="editEnd"
-                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                  />
+                                  <div class="flex gap-2">
+                                    <mat-form-field appearance="outline" class="flex-1">
+                                      <input matInput [matDatepicker]="editEndDatePicker" [(ngModel)]="editEndDate" />
+                                      <mat-datepicker-toggle matIconSuffix [for]="editEndDatePicker" />
+                                      <mat-datepicker #editEndDatePicker />
+                                    </mat-form-field>
+                                    <mat-form-field appearance="outline" class="flex-1">
+                                      <input matInput [matTimepicker]="editEndTimePicker" [(ngModel)]="editEndTime" />
+                                      <mat-timepicker-toggle matIconSuffix [for]="editEndTimePicker" />
+                                      <mat-timepicker #editEndTimePicker interval="5m" />
+                                    </mat-form-field>
+                                  </div>
                                 </div>
                               </div>
                               <div class="flex justify-end gap-2">
@@ -227,8 +263,12 @@ export class IntervalsPageComponent {
 
   expandedDays = new Set<string>();
   editingEntry = signal<string | null>(null);
-  editStart = signal('');
-  editEnd = signal('');
+  editTitle = signal<string | null>(null);
+  editDescription = signal<string | null>(null);
+  editStartDate = signal<Date | null>(null);
+  editStartTime = signal<Date | null>(null);
+  editEndDate = signal<Date | null>(null);
+  editEndTime = signal<Date | null>(null);
 
   formatDuration = formatDuration;
   formatHoursToTime = formatHoursToTime;
@@ -253,8 +293,16 @@ export class IntervalsPageComponent {
 
   startEdit(entry: TimeEntry): void {
     this.editingEntry.set(entry.id);
-    this.editStart.set(toDatetimeLocal(entry.startTime));
-    this.editEnd.set(toDatetimeLocal(entry.endTime));
+    this.editTitle.set(entry.title);
+    this.editDescription.set(entry.description);
+
+    const startDate = new Date(entry.startTime);
+    const endDate = new Date(entry.endTime);
+
+    this.editStartDate.set(startDate);
+    this.editStartTime.set(startDate);
+    this.editEndDate.set(endDate);
+    this.editEndTime.set(endDate);
   }
 
   cancelEdit(): void {
@@ -262,16 +310,31 @@ export class IntervalsPageComponent {
   }
 
   saveEdit(id: string): void {
-    const startTime = new Date(this.editStart()).getTime();
-    const endTime = new Date(this.editEnd()).getTime();
+    const startDate = this.editStartDate();
+    const startTime = this.editStartTime();
+    const endDate = this.editEndDate();
+    const endTime = this.editEndTime();
 
-    if (endTime <= startTime) {
+    if (!startDate || !startTime || !endDate || !endTime) {
+      alert('Please fill in all time fields');
+      return;
+    }
+
+    const startTimestamp = combineDateAndTime(startDate, startTime).getTime();
+    const endTimestamp = combineDateAndTime(endDate, endTime).getTime();
+
+    if (endTimestamp <= startTimestamp) {
       alert('End time must be after start time');
       return;
     }
 
-    const success = this.timeEntryService.updateEntryTimes(id, startTime, endTime);
-    if (success) {
+    const title = this.editTitle()?.trim() || null;
+    const description = this.editDescription()?.trim() || null;
+
+    const timesOk = this.timeEntryService.updateEntryTimes(id, startTimestamp, endTimestamp);
+    this.timeEntryService.updateEntry(id, title, description);
+
+    if (timesOk) {
       this.editingEntry.set(null);
     } else {
       alert('Failed to update entry');

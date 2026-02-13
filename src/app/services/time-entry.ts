@@ -1,6 +1,6 @@
 // src/app/services/time-entry.service.ts
 import { Injectable, OnDestroy, inject } from '@angular/core';
-import { BehaviorSubject, Observable, Subscription, interval, switchMap, map, of } from 'rxjs';
+import { BehaviorSubject, Observable, Subscription, combineLatest, interval, switchMap, map, of } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 import { TimeEntry, RunningTimeEntry, DailySummary, WeeklySummary, DayGroup, GlobalBalance } from '../models/time-entry.model';
 import { take, tap } from 'rxjs';
@@ -8,6 +8,11 @@ import { HolidayDatesService } from './holiday-dates.service';
 
 const STORAGE_KEY = 'timeTrackerEntries';
 const RUNNING_KEY = 'timeTrackerRunningEntry';
+const MARGIN_ENABLED_KEY = 'timeTrackerMarginEnabled';
+const MARGIN_MINUTES_KEY = 'timeTrackerMarginMinutes';
+const LUNCH_HOUR_KEY = 'timeTrackerLunchHour';
+const LUNCH_DURATION_KEY = 'timeTrackerLunchDurationMin';
+const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
 
 @Injectable({
   providedIn: 'root'
@@ -55,6 +60,36 @@ export class TimeEntryService implements OnDestroy {
 
   private _globalBalance$$ = new BehaviorSubject<GlobalBalance>({ balanceHours: 0 });
   public readonly globalBalance$ = this._globalBalance$$.asObservable();
+
+  // Live observables that include running timer duration (update every second)
+  public readonly liveTodaySummary$: Observable<DailySummary | null> = combineLatest([
+    this._todaySummary$$,
+    this.runningDuration$
+  ]).pipe(
+    map(([summary, runningMs]) => {
+      if (!summary) return null;
+      return { ...summary, totalDurationMs: summary.totalDurationMs + runningMs };
+    })
+  );
+
+  public readonly liveWeekSummary$: Observable<WeeklySummary> = combineLatest([
+    this._currentWeekSummary$$,
+    this.runningDuration$
+  ]).pipe(
+    map(([summary, runningMs]) => ({
+      ...summary,
+      hoursWorked: summary.hoursWorked + runningMs / (1000 * 60 * 60)
+    }))
+  );
+
+  public readonly liveGlobalBalance$: Observable<GlobalBalance> = combineLatest([
+    this._globalBalance$$,
+    this.runningDuration$
+  ]).pipe(
+    map(([balance, runningMs]) => ({
+      balanceHours: balance.balanceHours + runningMs / (1000 * 60 * 60)
+    }))
+  );
 
   constructor() {
     // Basic cleanup check for running entry on startup
@@ -143,6 +178,48 @@ export class TimeEntryService implements OnDestroy {
     this._runningEntry$$.next(entry);
   }
 
+  // --- Margin Config ---
+  private _marginEnabled$$ = new BehaviorSubject<boolean>(localStorage.getItem(MARGIN_ENABLED_KEY) === 'true');
+  public readonly marginEnabled$ = this._marginEnabled$$.asObservable();
+
+  private _marginMinutes$$ = new BehaviorSubject<number>(
+    parseInt(localStorage.getItem(MARGIN_MINUTES_KEY) || '10', 10)
+  );
+  public readonly marginMinutes$ = this._marginMinutes$$.asObservable();
+
+  setMarginEnabled(enabled: boolean): void {
+    localStorage.setItem(MARGIN_ENABLED_KEY, String(enabled));
+    this._marginEnabled$$.next(enabled);
+  }
+
+  setMarginMinutes(minutes: number): void {
+    const clamped = Math.max(1, Math.min(60, minutes));
+    localStorage.setItem(MARGIN_MINUTES_KEY, String(clamped));
+    this._marginMinutes$$.next(clamped);
+  }
+
+  // --- Lunch Config ---
+  private _lunchHour$$ = new BehaviorSubject<string>(
+    localStorage.getItem(LUNCH_HOUR_KEY) || '14:00'
+  );
+  public readonly lunchHour$ = this._lunchHour$$.asObservable();
+
+  private _lunchDurationMin$$ = new BehaviorSubject<number>(
+    parseInt(localStorage.getItem(LUNCH_DURATION_KEY) || '60', 10)
+  );
+  public readonly lunchDurationMin$ = this._lunchDurationMin$$.asObservable();
+
+  setLunchHour(hour: string): void {
+    localStorage.setItem(LUNCH_HOUR_KEY, hour);
+    this._lunchHour$$.next(hour);
+  }
+
+  setLunchDurationMin(minutes: number): void {
+    const clamped = Math.max(0, Math.min(180, minutes));
+    localStorage.setItem(LUNCH_DURATION_KEY, String(clamped));
+    this._lunchDurationMin$$.next(clamped);
+  }
+
   // --- Core Logic: Start/Stop Tracking ---
 
   startTracking(title: string | null, description: string | null): void {
@@ -168,13 +245,33 @@ export class TimeEntryService implements OnDestroy {
       return null;
     }
 
-    const now = Date.now();
-    const duration = now - runningEntry.startTime;
+    let endTime = Date.now();
+    let duration = endTime - runningEntry.startTime;
+
+    // Apply margin correction if enabled
+    if (this._marginEnabled$$.getValue()) {
+      const marginMs = this._marginMinutes$$.getValue() * 60 * 1000;
+      const today = new Date().toISOString().split('T')[0];
+      const todayCompletedMs = this._entries$$.getValue()
+        .filter(e => new Date(e.startTime).toISOString().split('T')[0] === today)
+        .reduce((sum, e) => sum + e.duration, 0);
+
+      const todayTotalMs = todayCompletedMs + duration;
+      const diff = todayTotalMs - EIGHT_HOURS_MS;
+
+      if (Math.abs(diff) <= marginMs) {
+        const targetDuration = EIGHT_HOURS_MS - todayCompletedMs;
+        if (targetDuration > 0) {
+          duration = targetDuration;
+          endTime = runningEntry.startTime + duration;
+        }
+      }
+    }
 
     const completedEntry: TimeEntry = {
       ...runningEntry,
-      endTime: now,
-      duration: duration,
+      endTime,
+      duration,
     };
 
     // 1. Add to history

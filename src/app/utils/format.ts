@@ -38,3 +38,31 @@ export function toDatetimeLocal(date: Date | number): string {
   const localIsoString = new Date(d.getTime() - offset).toISOString().slice(0, 16);
   return localIsoString;
 }
+
+/**
+ * Converts a time string "HH:mm" to a Date object for today with that time.
+ */
+export function timeStringToDate(timeStr: string): Date {
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  const d = new Date();
+  d.setHours(hours, minutes, 0, 0);
+  return d;
+}
+
+/**
+ * Converts a Date object to a time string "HH:mm".
+ */
+export function dateToTimeString(date: Date): string {
+  const h = date.getHours().toString().padStart(2, '0');
+  const m = date.getMinutes().toString().padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+/**
+ * Combines date portion from one Date and time portion from another into a single Date.
+ */
+export function combineDateAndTime(datePart: Date, timePart: Date): Date {
+  const combined = new Date(datePart);
+  combined.setHours(timePart.getHours(), timePart.getMinutes(), timePart.getSeconds(), 0);
+  return combined;
+}
