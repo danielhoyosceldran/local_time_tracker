@@ -4,6 +4,9 @@ import { FormsModule } from '@angular/forms';
 
 type PomodoroPhase = 'work' | 'break';
 
+const POMODORO_WORK_KEY = 'timeTrackerPomodoroWork';
+const POMODORO_BREAK_KEY = 'timeTrackerPomodoroBreak';
+
 @Component({
   selector: 'app-pomodoro-timer',
   standalone: true,
@@ -105,10 +108,10 @@ type PomodoroPhase = 'work' | 'break';
 export class PomodoroTimerComponent implements OnDestroy {
   phase = signal<PomodoroPhase>('work');
   running = signal(false);
-  remainingSeconds = signal(25 * 60);
 
-  workMinutes = signal(25);
-  breakMinutes = signal(5);
+  workMinutes = signal(parseInt(localStorage.getItem(POMODORO_WORK_KEY) || '25', 10));
+  breakMinutes = signal(parseInt(localStorage.getItem(POMODORO_BREAK_KEY) || '5', 10));
+  remainingSeconds = signal(parseInt(localStorage.getItem(POMODORO_WORK_KEY) || '25', 10) * 60);
 
   private intervalId: ReturnType<typeof setInterval> | null = null;
 
@@ -156,6 +159,7 @@ export class PomodoroTimerComponent implements OnDestroy {
   setWorkMinutes(value: number): void {
     const clamped = Math.max(1, Math.min(60, value));
     this.workMinutes.set(clamped);
+    localStorage.setItem(POMODORO_WORK_KEY, String(clamped));
     if (this.phase() === 'work' && !this.running()) {
       this.remainingSeconds.set(clamped * 60);
     }
@@ -164,6 +168,7 @@ export class PomodoroTimerComponent implements OnDestroy {
   setBreakMinutes(value: number): void {
     const clamped = Math.max(1, Math.min(30, value));
     this.breakMinutes.set(clamped);
+    localStorage.setItem(POMODORO_BREAK_KEY, String(clamped));
     if (this.phase() === 'break' && !this.running()) {
       this.remainingSeconds.set(clamped * 60);
     }
