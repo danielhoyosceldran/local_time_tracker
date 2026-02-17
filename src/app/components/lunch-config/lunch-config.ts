@@ -1,7 +1,7 @@
-import { Component, inject, signal } from '@angular/core';
+import { AfterViewInit, Component, inject, signal, ViewChild, ChangeDetectorRef } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { KENDO_TIMEPICKER } from '@progress/kendo-angular-dateinputs';
+import { KENDO_TIMEPICKER, TimePickerComponent } from '@progress/kendo-angular-dateinputs';
 import { TimeEntryService } from '../../services/time-entry';
 
 function timeStringToDate(timeStr: string): Date {
@@ -41,6 +41,7 @@ function dateToTimeString(date: Date): string {
         <div>
           <label class="block text-xs font-medium text-slate-600 mb-1">Hour</label>
           <kendo-timepicker
+            #timePicker
             [value]="lunchHourDate()"
             (valueChange)="setHour($event)"
             [format]="'HH:mm'"
@@ -64,17 +65,41 @@ function dateToTimeString(date: Date): string {
     </div>
   `,
 })
-export class LunchConfigComponent {
+export class LunchConfigComponent implements AfterViewInit {
+  @ViewChild('timePicker') timePicker!: TimePickerComponent;
+  
   private timeEntryService = inject(TimeEntryService);
 
   lunchHourDate = signal<Date>(timeStringToDate('14:00'));
   lunchDurationMin = signal(60);
 
-  constructor() {
+  constructor(private cdr: ChangeDetectorRef) {
     this.timeEntryService.lunchHour$.subscribe(v =>
       this.lunchHourDate.set(timeStringToDate(v))
     );
     this.timeEntryService.lunchDurationMin$.subscribe(v => this.lunchDurationMin.set(v));
+  }
+
+  ngAfterViewInit() {
+    this.forceInitialRender();
+  }
+
+  private forceInitialRender() {
+    if (this.timePicker) {
+      // Abrimos el popup programáticamente
+      this.timePicker.toggle(true);
+      
+      // En Zoneless, debemos avisar a Angular para que pinte la apertura
+      this.cdr.detectChanges();
+
+      // Usamos un setTimeout de 0 para que el navegador tenga un "respiro" 
+      // para calcular las alturas antes de cerrar
+      setTimeout(() => {
+        this.timePicker.toggle(false);
+        this.cdr.detectChanges();
+        console.log('✅ Pre-renderizado de Kendo completado');
+      }, 0);
+    }
   }
 
   setHour(date: Date | null): void {
