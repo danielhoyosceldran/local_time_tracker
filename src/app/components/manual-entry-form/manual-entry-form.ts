@@ -2,19 +2,15 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatTimepickerModule } from '@angular/material/timepicker';
 import { TimeEntryService } from '../../services/time-entry';
 import { v4 as uuidv4 } from 'uuid';
-import { combineDateAndTime } from '../../utils/format';
+import { toDatetimeLocal } from '../../utils/format';
 import { TimeEntry } from '../../models/time-entry.model';
 
 @Component({
   selector: 'app-manual-entry-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatDatepickerModule, MatTimepickerModule],
+  imports: [CommonModule, ReactiveFormsModule],
   template: `
     <div class="p-6 bg-white shadow-xl rounded-lg border border-gray-100">
       <h2 class="text-2xl font-bold mb-4 text-gray-800">Add Manual Entry</h2>
@@ -34,35 +30,17 @@ import { TimeEntry } from '../../models/time-entry.model';
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Start Time *</label>
-          <div class="flex gap-2">
-            <mat-form-field appearance="outline" class="flex-1">
-              <input matInput [matDatepicker]="startDatePicker" formControlName="startDate" placeholder="Date" />
-              <mat-datepicker-toggle matIconSuffix [for]="startDatePicker" />
-              <mat-datepicker #startDatePicker />
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="flex-1">
-              <input matInput [matTimepicker]="startTimePicker" formControlName="startTime" placeholder="Time" />
-              <mat-timepicker-toggle matIconSuffix [for]="startTimePicker" />
-              <mat-timepicker #startTimePicker interval="5m" />
-            </mat-form-field>
-          </div>
+          <label for="startTime" class="block text-sm font-medium text-gray-700">Start Time *</label>
+          <input id="startTime" type="datetime-local" formControlName="startTime" required
+            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-secondary focus:border-secondary"
+          />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">End Time *</label>
-          <div class="flex gap-2">
-            <mat-form-field appearance="outline" class="flex-1">
-              <input matInput [matDatepicker]="endDatePicker" formControlName="endDate" placeholder="Date" />
-              <mat-datepicker-toggle matIconSuffix [for]="endDatePicker" />
-              <mat-datepicker #endDatePicker />
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="flex-1">
-              <input matInput [matTimepicker]="endTimePicker" formControlName="endTime" placeholder="Time" />
-              <mat-timepicker-toggle matIconSuffix [for]="endTimePicker" />
-              <mat-timepicker #endTimePicker interval="5m" />
-            </mat-form-field>
-          </div>
+          <label for="endTime" class="block text-sm font-medium text-gray-700">End Time *</label>
+          <input id="endTime" type="datetime-local" formControlName="endTime" required
+            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-secondary focus:border-secondary"
+          />
         </div>
 
         @if (manualForm.errors?.['invalidTimeRange'] && (manualForm.touched || manualForm.dirty)) {
@@ -89,30 +67,27 @@ export class ManualEntryFormComponent {
   manualForm: FormGroup;
 
   constructor() {
-    const now = new Date();
+    const nowLocal = toDatetimeLocal(Date.now());
 
     this.manualForm = this.fb.group({
       title: [''],
       description: [''],
-      startDate: [now, Validators.required],
-      startTime: [now, Validators.required],
-      endDate: [now, Validators.required],
-      endTime: [now, Validators.required],
+      startTime: [nowLocal, Validators.required],
+      endTime: [nowLocal, Validators.required],
     }, { validators: this.timeRangeValidator });
   }
 
+  // Custom validator to ensure endTime > startTime
   private timeRangeValidator(group: AbstractControl): ValidationErrors | null {
-    const startDate = group.get('startDate');
-    const startTime = group.get('startTime');
-    const endDate = group.get('endDate');
-    const endTime = group.get('endTime');
+    const startControl = group.get('startTime');
+    const endControl = group.get('endTime');
 
-    if (!startDate?.value || !startTime?.value || !endDate?.value || !endTime?.value) {
+    if (!startControl || !endControl || !startControl.value || !endControl.value) {
       return null;
     }
 
-    const start = combineDateAndTime(startDate.value, startTime.value).getTime();
-    const end = combineDateAndTime(endDate.value, endTime.value).getTime();
+    const start = new Date(startControl.value).getTime();
+    const end = new Date(endControl.value).getTime();
 
     return end > start ? null : { invalidTimeRange: true };
   }
@@ -123,10 +98,10 @@ export class ManualEntryFormComponent {
       return;
     }
 
-    const { title, description, startDate, startTime, endDate, endTime } = this.manualForm.value;
+    const { title, description, startTime, endTime } = this.manualForm.value;
 
-    const startTimestamp = combineDateAndTime(startDate, startTime).getTime();
-    const endTimestamp = combineDateAndTime(endDate, endTime).getTime();
+    const startTimestamp = new Date(startTime).getTime();
+    const endTimestamp = new Date(endTime).getTime();
     const duration = endTimestamp - startTimestamp;
 
     const newEntry: TimeEntry = {
@@ -140,12 +115,10 @@ export class ManualEntryFormComponent {
 
     this.timeEntryService.addEntry(newEntry);
 
-    const now = new Date();
+    // Reset form and set default dates to current time again
     this.manualForm.reset({
-      startDate: now,
-      startTime: now,
-      endDate: now,
-      endTime: now,
+      startTime: toDatetimeLocal(Date.now()),
+      endTime: toDatetimeLocal(Date.now()),
     });
   }
 }
