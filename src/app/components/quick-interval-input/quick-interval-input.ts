@@ -2,15 +2,15 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
+import { KENDO_DATETIMEPICKER } from '@progress/kendo-angular-dateinputs';
 import { TimeEntryService } from '../../services/time-entry';
 import { v4 as uuidv4 } from 'uuid';
-import { toDatetimeLocal } from '../../utils/format';
 import { TimeEntry } from '../../models/time-entry.model';
 
 @Component({
   selector: 'app-quick-interval-input',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, KENDO_DATETIMEPICKER],
   template: `
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 h-full flex flex-col">
       <div class="mb-3">
@@ -19,11 +19,8 @@ import { TimeEntry } from '../../models/time-entry.model';
 
       <form [formGroup]="manualForm" (ngSubmit)="addEntry()" class="flex-1 flex flex-col space-y-2">
         <div>
-          <label for="title" class="block text-xs font-medium text-slate-600 mb-1">
-            Task
-          </label>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Task</label>
           <input
-            id="title"
             type="text"
             formControlName="title"
             placeholder="Task name..."
@@ -32,11 +29,8 @@ import { TimeEntry } from '../../models/time-entry.model';
         </div>
 
         <div class="grow flex flex-col">
-          <label for="description" class="block text-xs font-medium text-slate-600 mb-1">
-            Description
-          </label>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Description</label>
           <textarea
-            id="description"
             formControlName="description"
             rows="2"
             placeholder="Details..."
@@ -45,29 +39,27 @@ import { TimeEntry } from '../../models/time-entry.model';
         </div>
 
         <div>
-          <label for="startTime" class="block text-xs font-medium text-slate-600 mb-1">
+          <label class="block text-xs font-medium text-slate-600 mb-1">
             Start <span class="text-red-500">*</span>
           </label>
-          <input
-            id="startTime"
-            type="datetime-local"
+          <kendo-datetimepicker
             formControlName="startTime"
-            required
-            class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          />
+            [format]="'dd/MM/yyyy HH:mm'"
+            [fillMode]="'outline'"
+            [size]="'small'"
+          ></kendo-datetimepicker>
         </div>
 
         <div>
-          <label for="endTime" class="block text-xs font-medium text-slate-600 mb-1">
+          <label class="block text-xs font-medium text-slate-600 mb-1">
             End <span class="text-red-500">*</span>
           </label>
-          <input
-            id="endTime"
-            type="datetime-local"
+          <kendo-datetimepicker
             formControlName="endTime"
-            required
-            class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          />
+            [format]="'dd/MM/yyyy HH:mm'"
+            [fillMode]="'outline'"
+            [size]="'small'"
+          ></kendo-datetimepicker>
         </div>
 
         @if (manualForm.errors?.['invalidTimeRange'] && (manualForm.touched || manualForm.dirty)) {
@@ -94,13 +86,13 @@ export class QuickIntervalInputComponent {
   manualForm: FormGroup;
 
   constructor() {
-    const nowLocal = toDatetimeLocal(Date.now());
+    const now = new Date();
 
     this.manualForm = this.fb.group({
       title: [''],
       description: [''],
-      startTime: [nowLocal, Validators.required],
-      endTime: [nowLocal, Validators.required],
+      startTime: [now, Validators.required],
+      endTime: [now, Validators.required],
     }, { validators: this.timeRangeValidator });
   }
 
@@ -108,12 +100,12 @@ export class QuickIntervalInputComponent {
     const startControl = group.get('startTime');
     const endControl = group.get('endTime');
 
-    if (!startControl || !endControl || !startControl.value || !endControl.value) {
+    if (!startControl?.value || !endControl?.value) {
       return null;
     }
 
-    const start = new Date(startControl.value).getTime();
-    const end = new Date(endControl.value).getTime();
+    const start = (startControl.value as Date).getTime();
+    const end = (endControl.value as Date).getTime();
 
     return end > start ? null : { invalidTimeRange: true };
   }
@@ -126,8 +118,8 @@ export class QuickIntervalInputComponent {
 
     const { title, description, startTime, endTime } = this.manualForm.value;
 
-    const startTimestamp = new Date(startTime).getTime();
-    const endTimestamp = new Date(endTime).getTime();
+    const startTimestamp = (startTime as Date).getTime();
+    const endTimestamp = (endTime as Date).getTime();
     const duration = endTimestamp - startTimestamp;
 
     const newEntry: TimeEntry = {
@@ -141,10 +133,10 @@ export class QuickIntervalInputComponent {
 
     this.timeEntryService.addEntry(newEntry);
 
-    // Reset form
+    const now = new Date();
     this.manualForm.reset({
-      startTime: toDatetimeLocal(Date.now()),
-      endTime: toDatetimeLocal(Date.now()),
+      startTime: now,
+      endTime: now,
     });
   }
 }

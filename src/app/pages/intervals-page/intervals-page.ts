@@ -3,15 +3,16 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { KENDO_DATETIMEPICKER } from '@progress/kendo-angular-dateinputs';
 import { TimeEntryService } from '../../services/time-entry';
 import { DayGroup, TimeEntry, WeeklySummary } from '../../models/time-entry.model';
-import { formatDuration, formatHoursToTime, toDatetimeLocal } from '../../utils/format';
+import { formatDuration, formatHoursToTime } from '../../utils/format';
 import { Observable, take } from 'rxjs';
 
 @Component({
   selector: 'app-intervals-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, KENDO_DATETIMEPICKER],
   template: `
     <div class="min-h-screen bg-slate-50 p-6">
       <div class="max-w-6xl mx-auto">
@@ -146,19 +147,21 @@ import { Observable, take } from 'rxjs';
                               <div class="grid grid-cols-2 gap-3">
                                 <div>
                                   <label class="block text-xs font-medium text-slate-600 mb-1">Start Time</label>
-                                  <input
-                                    type="datetime-local"
-                                    [(ngModel)]="editStart"
-                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                  />
+                                  <kendo-datetimepicker
+                                    [value]="editStart()"
+                                    (valueChange)="editStart.set($event)"
+                                    [format]="'dd/MM/yyyy HH:mm'"
+                                    [fillMode]="'outline'"
+                                  ></kendo-datetimepicker>
                                 </div>
                                 <div>
                                   <label class="block text-xs font-medium text-slate-600 mb-1">End Time</label>
-                                  <input
-                                    type="datetime-local"
-                                    [(ngModel)]="editEnd"
-                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                  />
+                                  <kendo-datetimepicker
+                                    [value]="editEnd()"
+                                    (valueChange)="editEnd.set($event)"
+                                    [format]="'dd/MM/yyyy HH:mm'"
+                                    [fillMode]="'outline'"
+                                  ></kendo-datetimepicker>
                                 </div>
                               </div>
                               <div class="flex justify-end gap-2">
@@ -247,8 +250,8 @@ export class IntervalsPageComponent {
   editingEntry = signal<string | null>(null);
   editTitle = signal<string | null>(null);
   editDescription = signal<string | null>(null);
-  editStart = signal('');
-  editEnd = signal('');
+  editStart = signal<Date | null>(null);
+  editEnd = signal<Date | null>(null);
 
   formatDuration = formatDuration;
   formatHoursToTime = formatHoursToTime;
@@ -275,8 +278,8 @@ export class IntervalsPageComponent {
     this.editingEntry.set(entry.id);
     this.editTitle.set(entry.title);
     this.editDescription.set(entry.description);
-    this.editStart.set(toDatetimeLocal(entry.startTime));
-    this.editEnd.set(toDatetimeLocal(entry.endTime));
+    this.editStart.set(new Date(entry.startTime));
+    this.editEnd.set(new Date(entry.endTime));
   }
 
   cancelEdit(): void {
@@ -284,8 +287,16 @@ export class IntervalsPageComponent {
   }
 
   saveEdit(id: string): void {
-    const startTime = new Date(this.editStart()).getTime();
-    const endTime = new Date(this.editEnd()).getTime();
+    const start = this.editStart();
+    const end = this.editEnd();
+
+    if (!start || !end) {
+      alert('Please fill in all time fields');
+      return;
+    }
+
+    const startTime = start.getTime();
+    const endTime = end.getTime();
 
     if (endTime <= startTime) {
       alert('End time must be after start time');
@@ -315,7 +326,6 @@ export class IntervalsPageComponent {
     this.timeEntryService.entries$.pipe(take(1)).subscribe(entries => {
       if (!entries.length) return;
 
-      // Agrupar entradas por día
       const dailyMap = new Map<string, number>();
       entries.forEach(e => {
         const date = new Date(e.startTime).toISOString().split('T')[0];
@@ -323,11 +333,9 @@ export class IntervalsPageComponent {
         dailyMap.set(date, current + e.duration);
       });
 
-      // Convertir a array y ordenar por fecha (más antigua primero)
       const dailyData = Array.from(dailyMap.entries())
         .sort((a, b) => a[0].localeCompare(b[0]));
 
-      // Formatear datos
       const headers = ['Date', 'Day of Week', 'Hours Worked'];
       const rows = dailyData.map(([dateStr, durationMs]) => {
         const date = new Date(dateStr);

@@ -2,15 +2,15 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
+import { KENDO_DATETIMEPICKER } from '@progress/kendo-angular-dateinputs';
 import { TimeEntryService } from '../../services/time-entry';
 import { v4 as uuidv4 } from 'uuid';
-import { toDatetimeLocal } from '../../utils/format';
 import { TimeEntry } from '../../models/time-entry.model';
 
 @Component({
   selector: 'app-manual-entry-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, KENDO_DATETIMEPICKER],
   template: `
     <div class="p-6 bg-white shadow-xl rounded-lg border border-gray-100">
       <h2 class="text-2xl font-bold mb-4 text-gray-800">Add Manual Entry</h2>
@@ -30,17 +30,21 @@ import { TimeEntry } from '../../models/time-entry.model';
         </div>
 
         <div>
-          <label for="startTime" class="block text-sm font-medium text-gray-700">Start Time *</label>
-          <input id="startTime" type="datetime-local" formControlName="startTime" required
-            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-secondary focus:border-secondary"
-          />
+          <label class="block text-sm font-medium text-gray-700 mb-1">Start Time *</label>
+          <kendo-datetimepicker
+            formControlName="startTime"
+            [format]="'dd/MM/yyyy HH:mm'"
+            [fillMode]="'outline'"
+          ></kendo-datetimepicker>
         </div>
 
         <div>
-          <label for="endTime" class="block text-sm font-medium text-gray-700">End Time *</label>
-          <input id="endTime" type="datetime-local" formControlName="endTime" required
-            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-secondary focus:border-secondary"
-          />
+          <label class="block text-sm font-medium text-gray-700 mb-1">End Time *</label>
+          <kendo-datetimepicker
+            formControlName="endTime"
+            [format]="'dd/MM/yyyy HH:mm'"
+            [fillMode]="'outline'"
+          ></kendo-datetimepicker>
         </div>
 
         @if (manualForm.errors?.['invalidTimeRange'] && (manualForm.touched || manualForm.dirty)) {
@@ -67,27 +71,26 @@ export class ManualEntryFormComponent {
   manualForm: FormGroup;
 
   constructor() {
-    const nowLocal = toDatetimeLocal(Date.now());
+    const now = new Date();
 
     this.manualForm = this.fb.group({
       title: [''],
       description: [''],
-      startTime: [nowLocal, Validators.required],
-      endTime: [nowLocal, Validators.required],
+      startTime: [now, Validators.required],
+      endTime: [now, Validators.required],
     }, { validators: this.timeRangeValidator });
   }
 
-  // Custom validator to ensure endTime > startTime
   private timeRangeValidator(group: AbstractControl): ValidationErrors | null {
     const startControl = group.get('startTime');
     const endControl = group.get('endTime');
 
-    if (!startControl || !endControl || !startControl.value || !endControl.value) {
+    if (!startControl?.value || !endControl?.value) {
       return null;
     }
 
-    const start = new Date(startControl.value).getTime();
-    const end = new Date(endControl.value).getTime();
+    const start = (startControl.value as Date).getTime();
+    const end = (endControl.value as Date).getTime();
 
     return end > start ? null : { invalidTimeRange: true };
   }
@@ -100,8 +103,8 @@ export class ManualEntryFormComponent {
 
     const { title, description, startTime, endTime } = this.manualForm.value;
 
-    const startTimestamp = new Date(startTime).getTime();
-    const endTimestamp = new Date(endTime).getTime();
+    const startTimestamp = (startTime as Date).getTime();
+    const endTimestamp = (endTime as Date).getTime();
     const duration = endTimestamp - startTimestamp;
 
     const newEntry: TimeEntry = {
@@ -115,10 +118,10 @@ export class ManualEntryFormComponent {
 
     this.timeEntryService.addEntry(newEntry);
 
-    // Reset form and set default dates to current time again
+    const now = new Date();
     this.manualForm.reset({
-      startTime: toDatetimeLocal(Date.now()),
-      endTime: toDatetimeLocal(Date.now()),
+      startTime: now,
+      endTime: now,
     });
   }
 }
