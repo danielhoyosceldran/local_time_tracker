@@ -38,28 +38,30 @@ import { TimeEntry } from '../../models/time-entry.model';
           ></textarea>
         </div>
 
-        <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">
-            Start <span class="text-red-500">*</span>
-          </label>
-          <kendo-datetimepicker
-            formControlName="startTime"
-            [format]="'dd/MM/yyyy HH:mm'"
-            [fillMode]="'outline'"
-            [size]="'small'"
-          ></kendo-datetimepicker>
-        </div>
+        <div class="flex gap-4">
+          <div class="flex-1">
+            <label class="block text-xs font-medium text-slate-600 mb-1">
+              Start <span class="text-red-500">*</span>
+            </label>
+            <kendo-datetimepicker
+              formControlName="startTime"
+              [format]="'dd/MM/yyyy HH:mm'"
+              [fillMode]="'outline'"
+              [size]="'small'"
+            ></kendo-datetimepicker>
+          </div>
 
-        <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">
-            End <span class="text-red-500">*</span>
-          </label>
-          <kendo-datetimepicker
-            formControlName="endTime"
-            [format]="'dd/MM/yyyy HH:mm'"
-            [fillMode]="'outline'"
-            [size]="'small'"
-          ></kendo-datetimepicker>
+          <div class="flex-1">
+            <label class="block text-xs font-medium text-slate-600 mb-1">
+              End <span class="text-red-500">*</span>
+            </label>
+            <kendo-datetimepicker
+              formControlName="endTime"
+              [format]="'dd/MM/yyyy HH:mm'"
+              [fillMode]="'outline'"
+              [size]="'small'"
+            ></kendo-datetimepicker>
+          </div>
         </div>
 
         @if (manualForm.errors?.['invalidTimeRange'] && (manualForm.touched || manualForm.dirty)) {
