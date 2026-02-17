@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { KENDO_TIMEPICKER } from '@progress/kendo-angular-dateinputs';
 import { TimeEntryService } from '../../services/time-entry';
@@ -20,7 +20,7 @@ function dateToTimeString(date: Date): string {
 @Component({
   selector: 'app-lunch-config',
   standalone: true,
-  imports: [CommonModule, FormsModule, KENDO_TIMEPICKER],
+  imports: [FormsModule, KENDO_TIMEPICKER],
   template: `
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 h-full flex flex-col">
       <!-- Header -->

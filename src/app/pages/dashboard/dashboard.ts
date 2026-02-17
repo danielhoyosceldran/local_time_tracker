@@ -1,6 +1,6 @@
 // src/app/pages/dashboard/dashboard.ts
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { AgendaCalendarComponent } from '../../components/agenda-calendar/agenda-calendar';
 import { CompactTimerComponent } from '../../components/compact-timer/compact-timer';
 import { QuickIntervalInputComponent } from '../../components/quick-interval-input/quick-interval-input';
@@ -17,7 +17,6 @@ import { LunchConfigComponent } from '../../components/lunch-config/lunch-config
   selector: 'app-dashboard',
   standalone: true,
   imports: [
-    CommonModule,
     AgendaCalendarComponent,
     CompactTimerComponent,
     QuickIntervalInputComponent,
@@ -29,7 +28,7 @@ import { LunchConfigComponent } from '../../components/lunch-config/lunch-config
     PomodoroTimerComponent,
     MarginConfigComponent,
     LunchConfigComponent
-  ],
+],
   template: `
     <div class="h-screen bg-slate-50 flex overflow-hidden">
       <!-- Sidebar Fixed -->

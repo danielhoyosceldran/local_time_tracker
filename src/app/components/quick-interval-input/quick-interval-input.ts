@@ -1,6 +1,6 @@
 // src/app/components/quick-interval-input/quick-interval-input.ts
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { KENDO_DATETIMEPICKER } from '@progress/kendo-angular-dateinputs';
 import { TimeEntryService } from '../../services/time-entry';
@@ -10,7 +10,7 @@ import { TimeEntry } from '../../models/time-entry.model';
 @Component({
   selector: 'app-quick-interval-input',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, KENDO_DATETIMEPICKER],
+  imports: [ReactiveFormsModule, KENDO_DATETIMEPICKER],
   template: `
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 h-full flex flex-col">
       <div class="mb-3">

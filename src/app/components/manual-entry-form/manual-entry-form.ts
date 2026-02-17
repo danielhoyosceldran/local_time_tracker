@@ -1,6 +1,6 @@
 // src/app/components/manual-entry-form/manual-entry-form.component.ts
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { KENDO_DATETIMEPICKER } from '@progress/kendo-angular-dateinputs';
 import { TimeEntryService } from '../../services/time-entry';
@@ -10,7 +10,7 @@ import { TimeEntry } from '../../models/time-entry.model';
 @Component({
   selector: 'app-manual-entry-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, KENDO_DATETIMEPICKER],
+  imports: [ReactiveFormsModule, KENDO_DATETIMEPICKER],
   template: `
     <div class="p-6 bg-white shadow-xl rounded-lg border border-gray-100">
       <h2 class="text-2xl font-bold mb-4 text-gray-800">Add Manual Entry</h2>

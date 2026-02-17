@@ -1,6 +1,6 @@
 // src/app/components/weekly-chart/weekly-chart.ts
 import { Component, inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration } from 'chart.js';
 import { TimeEntryService } from '../../services/time-entry';
@@ -9,7 +9,7 @@ import { formatHoursToTime } from '../../utils/format';
 @Component({
   selector: 'app-weekly-chart',
   standalone: true,
-  imports: [CommonModule, BaseChartDirective],
+  imports: [BaseChartDirective],
   template: `
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 h-full flex flex-col">
       <h3 class="text-slate-900 font-semibold mb-3">Weekly Hours</h3>
