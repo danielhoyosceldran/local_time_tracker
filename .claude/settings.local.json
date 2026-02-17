@@ -4,7 +4,9 @@
       "Bash(npm run build:*)",
       "WebFetch(domain:material.angular.dev)",
       "WebFetch(domain:github.com)",
-      "mcp__claude_ai_Contex7__resolve-library-id"
+      "mcp__claude_ai_Contex7__resolve-library-id",
+      "Bash(npx ng add:*)",
+      "Bash(npx ng build:*)"
     ],
     "deny": [],
     "ask": []

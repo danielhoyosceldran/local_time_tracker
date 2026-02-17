@@ -53,6 +53,7 @@
     "@angular/build": "^21.1.4",
     "@angular/cli": "^21.1.4",
     "@angular/compiler-cli": "^21.1.4",
+    "@angular/localize": "^21.1.4",
     "@types/jasmine": "~5.1.0",
     "@types/uuid": "^10.0.0",
     "jasmine-core": "~5.9.0",

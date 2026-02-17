@@ -24,6 +24,9 @@
             "styles": [
               "node_modules/@progress/kendo-theme-default/dist/all.css",
               "src/styles.css"
+            ],
+            "polyfills": [
+              "@angular/localize/init"
             ]
           },
           "configurations": {
@@ -78,6 +81,9 @@
             "styles": [
               "node_modules/@progress/kendo-theme-default/dist/all.css",
               "src/styles.css"
+            ],
+            "polyfills": [
+              "@angular/localize/init"
             ]
           }
         }
