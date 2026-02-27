@@ -99,7 +99,7 @@ import { Observable, take } from 'rxjs';
                     <div class="flex items-center gap-4">
                       <svg
                         class="w-5 h-5 text-slate-400 transition-transform"
-                        [class.rotate-90]="expandedDays.has(day.date)"
+                        [class.rotate-90]="expandedDays().has(day.date)"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -119,7 +119,7 @@ import { Observable, take } from 'rxjs';
                   </button>
 
                   <!-- Day Entries -->
-                  @if (expandedDays.has(day.date)) {
+                  @if (expandedDays().has(day.date)) {
                     <div class="border-t border-slate-200">
                       @for (entry of day.entries; track entry.id) {
                         <div class="px-6 py-4 border-b border-slate-100 last:border-b-0 hover:bg-slate-50">
@@ -130,7 +130,8 @@ import { Observable, take } from 'rxjs';
                                 <label class="block text-xs font-medium text-slate-600 mb-1">Title</label>
                                 <input
                                   type="text"
-                                  [(ngModel)]="editTitle"
+                                  [ngModel]="editTitle()"
+                                  (ngModelChange)="editTitle.set($event)"
                                   placeholder="No title"
                                   class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                                 />
@@ -138,7 +139,8 @@ import { Observable, take } from 'rxjs';
                               <div>
                                 <label class="block text-xs font-medium text-slate-600 mb-1">Description</label>
                                 <textarea
-                                  [(ngModel)]="editDescription"
+                                  [ngModel]="editDescription()"
+                                  (ngModelChange)="editDescription.set($event)"
                                   rows="2"
                                   placeholder="No description"
                                   class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
@@ -246,7 +248,7 @@ export class IntervalsPageComponent {
   dayGroups$: Observable<DayGroup[]> = this.timeEntryService.getEntriesGroupedByDay();
   weekSummary$: Observable<WeeklySummary> = this.timeEntryService.currentWeekSummary$;
 
-  expandedDays = new Set<string>();
+  expandedDays = signal(new Set<string>());
   editingEntry = signal<string | null>(null);
   editTitle = signal<string | null>(null);
   editDescription = signal<string | null>(null);
@@ -257,21 +259,21 @@ export class IntervalsPageComponent {
   formatHoursToTime = formatHoursToTime;
 
   toggleDay(date: string): void {
-    if (this.expandedDays.has(date)) {
-      this.expandedDays.delete(date);
-    } else {
-      this.expandedDays.add(date);
-    }
+    this.expandedDays.update(set => {
+      const next = new Set(set);
+      next.has(date) ? next.delete(date) : next.add(date);
+      return next;
+    });
   }
 
   expandAll(): void {
     this.dayGroups$.pipe(take(1)).subscribe(groups => {
-      groups.forEach(group => this.expandedDays.add(group.date));
+      this.expandedDays.set(new Set(groups.map(g => g.date)));
     });
   }
 
   collapseAll(): void {
-    this.expandedDays.clear();
+    this.expandedDays.set(new Set());
   }
 
   startEdit(entry: TimeEntry): void {
