@@ -1,6 +1,7 @@
-import { Component, signal, OnDestroy, computed } from '@angular/core';
+import { Component, signal, OnDestroy, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { NotificationService } from '../../services/notification.service';
 
 type PomodoroPhase = 'work' | 'break';
 
@@ -106,6 +107,8 @@ const POMODORO_BREAK_KEY = 'timeTrackerPomodoroBreak';
   `,
 })
 export class PomodoroTimerComponent implements OnDestroy {
+  private notifications = inject(NotificationService);
+
   phase = signal<PomodoroPhase>('work');
   running = signal(false);
 
@@ -141,6 +144,7 @@ export class PomodoroTimerComponent implements OnDestroy {
       this.clearTimer();
       this.running.set(false);
     } else {
+      this.notifications.requestPermission();
       this.startTimer();
       this.running.set(true);
     }
@@ -198,9 +202,11 @@ export class PomodoroTimerComponent implements OnDestroy {
     if (this.phase() === 'work') {
       this.phase.set('break');
       this.remainingSeconds.set(this.breakMinutes() * 60);
+      this.notifications.notify('Pomodoro - Break time!', `Take a ${this.breakMinutes()} min break.`);
     } else {
       this.phase.set('work');
       this.remainingSeconds.set(this.workMinutes() * 60);
+      this.notifications.notify('Pomodoro - Focus time!', `Work session started: ${this.workMinutes()} min.`);
     }
   }
 
