@@ -20,7 +20,6 @@ import { map, Observable } from 'rxjs';
             [src]="url"
             class="flex-1 w-full border-0 rounded-lg"
             title="Google Calendar"
-            allow="identity-credentials-get"
           ></iframe>
         } @else {
           <div class="flex-1 flex items-center justify-center text-slate-500 text-center px-4">
