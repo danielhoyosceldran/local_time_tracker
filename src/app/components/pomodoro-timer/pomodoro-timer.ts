@@ -14,6 +14,7 @@ interface PomodoroState {
   remainingSeconds: number;
   running: boolean;
   timestamp: number;
+  endTime?: number;
 }
 
 @Component({
@@ -125,6 +126,7 @@ export class PomodoroTimerComponent implements OnInit, OnDestroy {
   remainingSeconds = signal(parseInt(localStorage.getItem(POMODORO_WORK_KEY) || '25', 10) * 60);
 
   private intervalId: ReturnType<typeof setInterval> | null = null;
+  private endTime: number | null = null;
 
   backgroundClasses = computed(() =>
     this.phase() === 'work'
@@ -151,21 +153,22 @@ export class PomodoroTimerComponent implements OnInit, OnDestroy {
       const state: PomodoroState = JSON.parse(raw);
       this.phase.set(state.phase);
 
-      let remaining = state.remainingSeconds;
       if (state.running) {
-        const elapsed = Math.floor((Date.now() - state.timestamp) / 1000);
-        remaining = state.remainingSeconds - elapsed;
-      }
+        // Use endTime if available (new format), fallback to elapsed calculation
+        const endTime = state.endTime ?? (state.timestamp + state.remainingSeconds * 1000);
+        const remaining = Math.ceil((endTime - Date.now()) / 1000);
 
-      if (remaining > 0) {
-        this.remainingSeconds.set(remaining);
-        if (state.running) {
+        if (remaining > 0) {
+          this.remainingSeconds.set(remaining);
+          this.endTime = endTime;
           this.startTimer();
           this.running.set(true);
+        } else {
+          // Timer expired while page was closed — switch phase
+          this.switchPhase();
         }
       } else {
-        // Timer expired while page was closed — switch phase
-        this.switchPhase();
+        this.remainingSeconds.set(state.remainingSeconds);
       }
     } catch {
       localStorage.removeItem(POMODORO_STATE_KEY);
@@ -179,10 +182,12 @@ export class PomodoroTimerComponent implements OnInit, OnDestroy {
   toggleRunning(): void {
     if (this.running()) {
       this.clearTimer();
+      this.endTime = null;
       this.running.set(false);
       this.saveState();
     } else {
       this.notifications.requestPermission();
+      this.endTime = Date.now() + this.remainingSeconds() * 1000;
       this.startTimer();
       this.running.set(true);
       this.saveState();
@@ -191,6 +196,7 @@ export class PomodoroTimerComponent implements OnInit, OnDestroy {
 
   reset(): void {
     this.clearTimer();
+    this.endTime = null;
     this.running.set(false);
     this.remainingSeconds.set(
       this.phase() === 'work'
@@ -206,6 +212,7 @@ export class PomodoroTimerComponent implements OnInit, OnDestroy {
       remainingSeconds: this.remainingSeconds(),
       running: this.running(),
       timestamp: Date.now(),
+      endTime: this.endTime ?? undefined,
     };
     localStorage.setItem(POMODORO_STATE_KEY, JSON.stringify(state));
   }
@@ -230,16 +237,20 @@ export class PomodoroTimerComponent implements OnInit, OnDestroy {
 
   private startTimer(): void {
     this.clearTimer();
+    if (!this.endTime) {
+      this.endTime = Date.now() + this.remainingSeconds() * 1000;
+    }
     this.intervalId = setInterval(() => {
-      const current = this.remainingSeconds();
-      if (current <= 1) {
+      const remaining = Math.ceil((this.endTime! - Date.now()) / 1000);
+      if (remaining <= 0) {
+        this.remainingSeconds.set(0);
+        this.endTime = null;
         this.playBeep();
         this.switchPhase();
       } else {
-        this.remainingSeconds.set(current - 1);
-        this.saveState();
+        this.remainingSeconds.set(remaining);
       }
-    }, 1000);
+    }, 250);
   }
 
   private clearTimer(): void {
@@ -253,10 +264,12 @@ export class PomodoroTimerComponent implements OnInit, OnDestroy {
     if (this.phase() === 'work') {
       this.phase.set('break');
       this.remainingSeconds.set(this.breakMinutes() * 60);
+      this.endTime = Date.now() + this.breakMinutes() * 60 * 1000;
       this.notifications.notify('Pomodoro - Break time!', `Take a ${this.breakMinutes()} min break.`);
     } else {
       this.phase.set('work');
       this.remainingSeconds.set(this.workMinutes() * 60);
+      this.endTime = Date.now() + this.workMinutes() * 60 * 1000;
       this.notifications.notify('Pomodoro - Focus time!', `Work session started: ${this.workMinutes()} min.`);
     }
     this.saveState();
