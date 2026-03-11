@@ -1,4 +1,4 @@
-import { Component, signal, OnDestroy, computed, inject } from '@angular/core';
+import { Component, signal, OnDestroy, OnInit, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NotificationService } from '../../services/notification.service';
@@ -7,6 +7,14 @@ type PomodoroPhase = 'work' | 'break';
 
 const POMODORO_WORK_KEY = 'timeTrackerPomodoroWork';
 const POMODORO_BREAK_KEY = 'timeTrackerPomodoroBreak';
+const POMODORO_STATE_KEY = 'timeTrackerPomodoroState';
+
+interface PomodoroState {
+  phase: PomodoroPhase;
+  remainingSeconds: number;
+  running: boolean;
+  timestamp: number;
+}
 
 @Component({
   selector: 'app-pomodoro-timer',
@@ -106,7 +114,7 @@ const POMODORO_BREAK_KEY = 'timeTrackerPomodoroBreak';
     </div>
   `,
 })
-export class PomodoroTimerComponent implements OnDestroy {
+export class PomodoroTimerComponent implements OnInit, OnDestroy {
   private notifications = inject(NotificationService);
 
   phase = signal<PomodoroPhase>('work');
@@ -135,6 +143,35 @@ export class PomodoroTimerComponent implements OnDestroy {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   });
 
+  ngOnInit(): void {
+    const raw = localStorage.getItem(POMODORO_STATE_KEY);
+    if (!raw) return;
+
+    try {
+      const state: PomodoroState = JSON.parse(raw);
+      this.phase.set(state.phase);
+
+      let remaining = state.remainingSeconds;
+      if (state.running) {
+        const elapsed = Math.floor((Date.now() - state.timestamp) / 1000);
+        remaining = state.remainingSeconds - elapsed;
+      }
+
+      if (remaining > 0) {
+        this.remainingSeconds.set(remaining);
+        if (state.running) {
+          this.startTimer();
+          this.running.set(true);
+        }
+      } else {
+        // Timer expired while page was closed — switch phase
+        this.switchPhase();
+      }
+    } catch {
+      localStorage.removeItem(POMODORO_STATE_KEY);
+    }
+  }
+
   ngOnDestroy(): void {
     this.clearTimer();
   }
@@ -143,10 +180,12 @@ export class PomodoroTimerComponent implements OnDestroy {
     if (this.running()) {
       this.clearTimer();
       this.running.set(false);
+      this.saveState();
     } else {
       this.notifications.requestPermission();
       this.startTimer();
       this.running.set(true);
+      this.saveState();
     }
   }
 
@@ -158,6 +197,17 @@ export class PomodoroTimerComponent implements OnDestroy {
         ? this.workMinutes() * 60
         : this.breakMinutes() * 60
     );
+    this.saveState();
+  }
+
+  private saveState(): void {
+    const state: PomodoroState = {
+      phase: this.phase(),
+      remainingSeconds: this.remainingSeconds(),
+      running: this.running(),
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(POMODORO_STATE_KEY, JSON.stringify(state));
   }
 
   setWorkMinutes(value: number): void {
@@ -187,6 +237,7 @@ export class PomodoroTimerComponent implements OnDestroy {
         this.switchPhase();
       } else {
         this.remainingSeconds.set(current - 1);
+        this.saveState();
       }
     }, 1000);
   }
@@ -208,6 +259,7 @@ export class PomodoroTimerComponent implements OnDestroy {
       this.remainingSeconds.set(this.workMinutes() * 60);
       this.notifications.notify('Pomodoro - Focus time!', `Work session started: ${this.workMinutes()} min.`);
     }
+    this.saveState();
   }
 
   private playBeep(): void {
