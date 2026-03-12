@@ -94,8 +94,7 @@ interface PomodoroState {
                 type="number"
                 [ngModel]="workMinutes()"
                 (ngModelChange)="setWorkMinutes($event)"
-                min="1"
-                max="60"
+                min="0"
                 class="w-full px-1 py-0.5 border border-slate-300 rounded-lg text-xs text-center focus:ring-2 focus:ring-blue-400 focus:border-transparent"
               />
             </div>
