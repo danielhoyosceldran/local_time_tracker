@@ -217,7 +217,7 @@ export class PomodoroTimerComponent implements OnInit, OnDestroy {
   }
 
   setWorkMinutes(value: number): void {
-    const clamped = Math.max(1, Math.min(60, value));
+    const clamped = Math.max(0, value);
     this.workMinutes.set(clamped);
     localStorage.setItem(POMODORO_WORK_KEY, String(clamped));
     if (this.phase() === 'work' && !this.running()) {
