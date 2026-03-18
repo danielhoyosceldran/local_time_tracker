@@ -21,6 +21,6 @@ export class NotificationService {
   notify(title: string, body: string, icon?: string): void {
     if (!('Notification' in window) || this.permission !== 'granted') return;
 
-    new Notification(title, { body, icon, silent: false });
+    new Notification(title, { body, icon, silent: false, requireInteraction: true });
   }
 }
