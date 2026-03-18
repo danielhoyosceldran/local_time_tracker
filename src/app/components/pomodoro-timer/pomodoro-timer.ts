@@ -2,6 +2,7 @@ import { Component, signal, OnDestroy, OnInit, computed, inject } from '@angular
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NotificationService } from '../../services/notification.service';
+import { FaviconService } from '../../services/favicon.service';
 import { SOUNDS, SoundId, playSound } from '../../shared/sounds';
 
 type PomodoroPhase = 'work' | 'break';
@@ -233,6 +234,7 @@ interface PomodoroState {
 })
 export class PomodoroTimerComponent implements OnInit, OnDestroy {
   private notifications = inject(NotificationService);
+  private favicon = inject(FaviconService);
 
   phase            = signal<PomodoroPhase>('work');
   running          = signal(false);
@@ -276,6 +278,7 @@ export class PomodoroTimerComponent implements OnInit, OnDestroy {
     try {
       const state: PomodoroState = JSON.parse(raw);
       this.phase.set(state.phase);
+      state.phase === 'work' ? this.favicon.setWork() : this.favicon.setBreak();
       if (state.running) {
         const endTime = state.endTime ?? (state.timestamp + state.remainingSeconds * 1000);
         const remaining = Math.ceil((endTime - Date.now()) / 1000);
@@ -346,6 +349,7 @@ export class PomodoroTimerComponent implements OnInit, OnDestroy {
     this.phase.set(p);
     this.remainingSeconds.set(p === 'work' ? this.workMinutes() * 60 : this.breakMinutes() * 60);
     this.endTime = null;
+    p === 'work' ? this.favicon.setWork() : this.favicon.setBreak();
     this.saveState();
   }
 
@@ -425,12 +429,14 @@ export class PomodoroTimerComponent implements OnInit, OnDestroy {
       this.phase.set('break');
       this.remainingSeconds.set(this.breakMinutes() * 60);
       this.endTime = Date.now() + this.breakMinutes() * 60 * 1000;
+      this.favicon.setBreak();
       this.notifications.notify('Pomodoro - Break time!', `Take a ${this.breakMinutes()} min break.`);
       playSound(this.breakSound());
     } else {
       this.phase.set('work');
       this.remainingSeconds.set(this.workMinutes() * 60);
       this.endTime = Date.now() + this.workMinutes() * 60 * 1000;
+      this.favicon.setWork();
       this.notifications.notify('Pomodoro - Focus time!', `Work session started: ${this.workMinutes()} min.`);
       playSound(this.workSound());
     }
