@@ -12,6 +12,7 @@ import { WeeklyChartComponent } from '../../components/weekly-chart/weekly-chart
 import { PomodoroTimerComponent } from '../../components/pomodoro-timer/pomodoro-timer';
 import { MarginConfigComponent } from '../../components/margin-config/margin-config';
 import { LunchConfigComponent } from '../../components/lunch-config/lunch-config';
+import { ReminderNotificationComponent } from '../../components/reminder-notification/reminder-notification';
 
 @Component({
   selector: 'app-dashboard',
@@ -27,7 +28,8 @@ import { LunchConfigComponent } from '../../components/lunch-config/lunch-config
     WeeklyChartComponent,
     PomodoroTimerComponent,
     MarginConfigComponent,
-    LunchConfigComponent
+    LunchConfigComponent,
+    ReminderNotificationComponent
 ],
   template: `
     <div class="h-screen bg-slate-50 flex overflow-hidden">
@@ -78,7 +80,7 @@ import { LunchConfigComponent } from '../../components/lunch-config/lunch-config
             <app-lunch-config />
           </div>
           <div class="col-span-1 h-full min-h-0">
-            <!-- Empty cell -->
+            <app-reminder-notification />
           </div>
           <div class="col-span-1 h-full min-h-0">
             <app-compact-holiday-calendar />

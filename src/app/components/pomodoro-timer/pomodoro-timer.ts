@@ -2,12 +2,15 @@ import { Component, signal, OnDestroy, OnInit, computed, inject } from '@angular
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NotificationService } from '../../services/notification.service';
+import { SOUNDS, SoundId, playSound } from '../../shared/sounds';
 
 type PomodoroPhase = 'work' | 'break';
 
-const POMODORO_WORK_KEY = 'timeTrackerPomodoroWork';
-const POMODORO_BREAK_KEY = 'timeTrackerPomodoroBreak';
-const POMODORO_STATE_KEY = 'timeTrackerPomodoroState';
+const POMODORO_WORK_KEY        = 'timeTrackerPomodoroWork';
+const POMODORO_BREAK_KEY       = 'timeTrackerPomodoroBreak';
+const POMODORO_STATE_KEY       = 'timeTrackerPomodoroState';
+const POMODORO_SOUND_WORK_KEY  = 'timeTrackerPomodoroSoundWork';
+const POMODORO_SOUND_BREAK_KEY = 'timeTrackerPomodoroSoundBreak';
 
 interface PomodoroState {
   phase: PomodoroPhase;
@@ -34,95 +37,214 @@ interface PomodoroState {
         <h3 class="font-semibold text-slate-900 text-sm">Pomodoro</h3>
       </div>
 
-        <!-- Phase Label -->
-        <div class="text-center mb-1">
+      <!-- Phase selector / label -->
+      <div class="flex justify-center mb-1">
+        @if (running()) {
           <span
             class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
-            [ngClass]="phase() === 'work'
-              ? 'bg-blue-200 text-blue-800'
-              : 'bg-green-200 text-green-800'"
+            [ngClass]="phase() === 'work' ? 'bg-blue-200 text-blue-800' : 'bg-green-200 text-green-800'"
           >
             {{ phase() === 'work' ? 'Working' : 'Break' }}
           </span>
-        </div>
-
-        <!-- Countdown -->
-        <div class="flex-1 flex items-center justify-center">
-          <div
-            class="text-3xl font-bold font-mono"
-            [ngClass]="phase() === 'work' ? 'text-blue-600' : 'text-green-600'"
-          >
-            {{ displayTime() }}
-          </div>
-        </div>
-
-        <!-- Controls -->
-        <div class="flex justify-center gap-2 mb-1">
-          <button
-            (click)="toggleRunning()"
-            class="p-1.5 rounded-lg transition"
-            [ngClass]="phase() === 'work'
-              ? 'text-blue-600 hover:bg-blue-100'
-              : 'text-green-600 hover:bg-green-100'"
-          >
-            @if (running()) {
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
-              </svg>
-            } @else {
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
-            }
-          </button>
-          <button
-            (click)="reset()"
-            class="p-1.5 rounded-lg transition text-slate-500 hover:bg-slate-100"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-            </svg>
-          </button>
-        </div>
-
-        <!-- Config (only when not running) -->
-        @if (!running()) {
-          <div class="grid grid-cols-2 gap-1.5">
-            <div>
-              <label class="block text-[10px] text-slate-500 mb-0.5">Work (min)</label>
-              <input
-                type="number"
-                [ngModel]="workMinutes()"
-                (ngModelChange)="setWorkMinutes($event)"
-                min="0"
-                class="w-full px-1 py-0.5 border border-slate-300 rounded-lg text-xs text-center focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label class="block text-[10px] text-slate-500 mb-0.5">Break (min)</label>
-              <input
-                type="number"
-                [ngModel]="breakMinutes()"
-                (ngModelChange)="setBreakMinutes($event)"
-                min="1"
-                max="30"
-                class="w-full px-1 py-0.5 border border-slate-300 rounded-lg text-xs text-center focus:ring-2 focus:ring-green-400 focus:border-transparent"
-              />
-            </div>
+        } @else {
+          <div class="flex rounded-full border border-slate-200 overflow-hidden text-[10px] font-bold uppercase tracking-wider">
+            <button
+              type="button"
+              (click)="setPhase('work')"
+              class="px-3 py-0.5 transition-colors"
+              [ngClass]="phase() === 'work' ? 'bg-blue-500 text-white' : 'text-slate-400 hover:bg-slate-100'"
+            >Work</button>
+            <button
+              type="button"
+              (click)="setPhase('break')"
+              class="px-3 py-0.5 transition-colors"
+              [ngClass]="phase() === 'break' ? 'bg-green-500 text-white' : 'text-slate-400 hover:bg-slate-100'"
+            >Break</button>
           </div>
         }
+      </div>
+
+      <!-- Countdown -->
+      <div class="flex-1 flex items-center justify-center">
+        <div
+          class="text-3xl font-bold font-mono"
+          [ngClass]="phase() === 'work' ? 'text-blue-600' : 'text-green-600'"
+        >
+          {{ displayTime() }}
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="flex justify-center gap-2 mb-1">
+        <button
+          (click)="toggleRunning()"
+          class="p-1.5 rounded-lg transition"
+          [ngClass]="phase() === 'work'
+            ? 'text-blue-600 hover:bg-blue-100'
+            : 'text-green-600 hover:bg-green-100'"
+        >
+          @if (running()) {
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+            </svg>
+          } @else {
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          }
+        </button>
+        <button
+          (click)="reset()"
+          class="p-1.5 rounded-lg transition text-gray-500 hover:bg-gray-500/10"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Config (only when not running) -->
+      @if (!running()) {
+        <div class="grid grid-cols-2 gap-1.5">
+          <!-- Work minutes -->
+          <div>
+            <label class="block text-[10px] text-slate-500 mb-0.5">Work (min)</label>
+            <input
+              type="number"
+              [ngModel]="workMinutes()"
+              (ngModelChange)="setWorkMinutes($event)"
+              (input)="cleanValue($event)"
+              min="0"
+              class="w-full px-1 py-0.5 border border-slate-300 rounded-lg text-xs text-center focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+            />
+          </div>
+          <!-- Break minutes -->
+          <div>
+            <label class="block text-[10px] text-slate-500 mb-0.5">Break (min)</label>
+            <input
+              type="number"
+              [ngModel]="breakMinutes()"
+              (ngModelChange)="setBreakMinutes($event)"
+              min="0"
+              class="w-full px-1 py-0.5 border border-slate-300 rounded-lg text-xs text-center focus:ring-2 focus:ring-green-400 focus:border-transparent"
+            />
+          </div>
+
+          <!-- Work sound -->
+          <div class="relative">
+            <label class="block text-[10px] text-slate-500 mb-0.5">Work sound</label>
+            <button
+              type="button"
+              (click)="toggleMenu('work', $event)"
+              class="w-full flex items-center justify-between px-1.5 py-0.5 border border-slate-300 rounded-lg text-xs bg-white hover:bg-slate-50 transition-colors"
+            >
+              <span class="truncate text-slate-700">{{ soundLabel(workSound()) }}</span>
+              <svg class="w-3 h-3 text-slate-400 shrink-0 ml-1 transition-transform"
+                [class.rotate-180]="soundOpenFor() === 'work'"
+                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+
+            @if (soundOpenFor() === 'work') {
+              <!-- backdrop -->
+              <div class="fixed inset-0 z-40" (click)="closeMenu()"></div>
+              <!-- dropdown -->
+              <div
+                class="absolute left-0 w-36 bg-white border border-slate-200 rounded-lg shadow-lg z-50 overflow-hidden"
+                [class.bottom-full]="dropDirection() === 'up'"
+                [class.mb-1]="dropDirection() === 'up'"
+                [class.top-full]="dropDirection() === 'down'"
+                [class.mt-1]="dropDirection() === 'down'"
+              >
+                @for (s of sounds; track s.id) {
+                  <div class="flex items-center justify-between px-2 py-1 hover:bg-blue-50 transition-colors">
+                    <label class="flex items-center gap-1.5 cursor-pointer flex-1 min-w-0">
+                      <input type="radio" name="pomWorkSound" [value]="s.id"
+                        [checked]="workSound() === s.id"
+                        (change)="setWorkSound(s.id)"
+                        class="accent-blue-600 shrink-0" />
+                      <span class="text-xs text-slate-700 truncate">{{ s.label }}</span>
+                    </label>
+                    @if (s.id !== 'none') {
+                      <button type="button" (click)="preview(s.id)"
+                        class="p-0.5 text-slate-400 hover:text-blue-600 transition-colors shrink-0">
+                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Break sound -->
+          <div class="relative">
+            <label class="block text-[10px] text-slate-500 mb-0.5">Break sound</label>
+            <button
+              type="button"
+              (click)="toggleMenu('break', $event)"
+              class="w-full flex items-center justify-between px-1.5 py-0.5 border border-slate-300 rounded-lg text-xs bg-white hover:bg-slate-50 transition-colors"
+            >
+              <span class="truncate text-slate-700">{{ soundLabel(breakSound()) }}</span>
+              <svg class="w-3 h-3 text-slate-400 shrink-0 ml-1 transition-transform"
+                [class.rotate-180]="soundOpenFor() === 'break'"
+                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+
+            @if (soundOpenFor() === 'break') {
+              <!-- backdrop -->
+              <div class="fixed inset-0 z-40" (click)="closeMenu()"></div>
+              <!-- dropdown -->
+              <div
+                class="absolute left-0 w-36 bg-white border border-slate-200 rounded-lg shadow-lg z-50 overflow-hidden"
+                [class.bottom-full]="dropDirection() === 'up'"
+                [class.mb-1]="dropDirection() === 'up'"
+                [class.top-full]="dropDirection() === 'down'"
+                [class.mt-1]="dropDirection() === 'down'"
+              >
+                @for (s of sounds; track s.id) {
+                  <div class="flex items-center justify-between px-2 py-1 hover:bg-green-50 transition-colors">
+                    <label class="flex items-center gap-1.5 cursor-pointer flex-1 min-w-0">
+                      <input type="radio" name="pomBreakSound" [value]="s.id"
+                        [checked]="breakSound() === s.id"
+                        (change)="setBreakSound(s.id)"
+                        class="accent-green-600 shrink-0" />
+                      <span class="text-xs text-slate-700 truncate">{{ s.label }}</span>
+                    </label>
+                    @if (s.id !== 'none') {
+                      <button type="button" (click)="preview(s.id)"
+                        class="p-0.5 text-slate-400 hover:text-green-600 transition-colors shrink-0">
+                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+        </div>
+      }
     </div>
   `,
 })
 export class PomodoroTimerComponent implements OnInit, OnDestroy {
   private notifications = inject(NotificationService);
 
-  phase = signal<PomodoroPhase>('work');
-  running = signal(false);
+  phase            = signal<PomodoroPhase>('work');
+  running          = signal(false);
+  workMinutes      = signal(parseInt(localStorage.getItem(POMODORO_WORK_KEY)  || '25', 10));
+  breakMinutes     = signal(parseInt(localStorage.getItem(POMODORO_BREAK_KEY) || '5',  10));
+  remainingSeconds = signal(parseInt(localStorage.getItem(POMODORO_WORK_KEY)  || '25', 10) * 60);
+  workSound        = signal<SoundId>((localStorage.getItem(POMODORO_SOUND_WORK_KEY)  || 'beep') as SoundId);
+  breakSound       = signal<SoundId>((localStorage.getItem(POMODORO_SOUND_BREAK_KEY) || 'beep') as SoundId);
+  soundOpenFor     = signal<'work' | 'break' | null>(null);
+  dropDirection    = signal<'up' | 'down'>('down');
 
-  workMinutes = signal(parseInt(localStorage.getItem(POMODORO_WORK_KEY) || '25', 10));
-  breakMinutes = signal(parseInt(localStorage.getItem(POMODORO_BREAK_KEY) || '5', 10));
-  remainingSeconds = signal(parseInt(localStorage.getItem(POMODORO_WORK_KEY) || '25', 10) * 60);
+  readonly sounds = SOUNDS;
 
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private endTime: number | null = null;
@@ -144,26 +266,25 @@ export class PomodoroTimerComponent implements OnInit, OnDestroy {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   });
 
+  soundLabel(id: SoundId): string {
+    return SOUNDS.find(s => s.id === id)?.label ?? '';
+  }
+
   ngOnInit(): void {
     const raw = localStorage.getItem(POMODORO_STATE_KEY);
     if (!raw) return;
-
     try {
       const state: PomodoroState = JSON.parse(raw);
       this.phase.set(state.phase);
-
       if (state.running) {
-        // Use endTime if available (new format), fallback to elapsed calculation
         const endTime = state.endTime ?? (state.timestamp + state.remainingSeconds * 1000);
         const remaining = Math.ceil((endTime - Date.now()) / 1000);
-
         if (remaining > 0) {
           this.remainingSeconds.set(remaining);
           this.endTime = endTime;
           this.startTimer();
           this.running.set(true);
         } else {
-          // Timer expired while page was closed — switch phase
           this.switchPhase();
         }
       } else {
@@ -198,11 +319,70 @@ export class PomodoroTimerComponent implements OnInit, OnDestroy {
     this.endTime = null;
     this.running.set(false);
     this.remainingSeconds.set(
-      this.phase() === 'work'
-        ? this.workMinutes() * 60
-        : this.breakMinutes() * 60
+      this.phase() === 'work' ? this.workMinutes() * 60 : this.breakMinutes() * 60
     );
     this.saveState();
+  }
+
+  setWorkMinutes(value: number): void {
+    const clamped = Math.max(0, value);
+    this.workMinutes.set(clamped);
+    localStorage.setItem(POMODORO_WORK_KEY, String(clamped));
+    if (this.phase() === 'work' && !this.running()) {
+      this.remainingSeconds.set(clamped * 60);
+    }
+  }
+
+  setBreakMinutes(value: number): void {
+    const clamped = Math.max(0, value);
+    this.breakMinutes.set(clamped);
+    localStorage.setItem(POMODORO_BREAK_KEY, String(clamped));
+    if (this.phase() === 'break' && !this.running()) {
+      this.remainingSeconds.set(clamped * 60);
+    }
+  }
+
+  setPhase(p: PomodoroPhase): void {
+    this.phase.set(p);
+    this.remainingSeconds.set(p === 'work' ? this.workMinutes() * 60 : this.breakMinutes() * 60);
+    this.endTime = null;
+    this.saveState();
+  }
+
+  setWorkSound(id: SoundId): void {
+    this.workSound.set(id);
+    localStorage.setItem(POMODORO_SOUND_WORK_KEY, id);
+  }
+
+  setBreakSound(id: SoundId): void {
+    this.breakSound.set(id);
+    localStorage.setItem(POMODORO_SOUND_BREAK_KEY, id);
+  }
+
+  toggleMenu(for_: 'work' | 'break', event: MouseEvent): void {
+    if (this.soundOpenFor() === for_) {
+      this.soundOpenFor.set(null);
+      return;
+    }
+    // Detect available space to open up or down
+    const btn  = event.currentTarget as HTMLElement;
+    const rect = btn.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    this.dropDirection.set(spaceBelow >= 180 ? 'down' : 'up');
+    this.soundOpenFor.set(for_);
+  }
+
+  closeMenu(): void {
+    this.soundOpenFor.set(null);
+  }
+
+  preview(id: SoundId): void {
+    playSound(id);
+  }
+
+  cleanValue(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    input.value = input.value.replace(/[^0-9]/g, '');
   }
 
   private saveState(): void {
@@ -216,24 +396,6 @@ export class PomodoroTimerComponent implements OnInit, OnDestroy {
     localStorage.setItem(POMODORO_STATE_KEY, JSON.stringify(state));
   }
 
-  setWorkMinutes(value: number): void {
-    const clamped = Math.max(0, value);
-    this.workMinutes.set(clamped);
-    localStorage.setItem(POMODORO_WORK_KEY, String(clamped));
-    if (this.phase() === 'work' && !this.running()) {
-      this.remainingSeconds.set(clamped * 60);
-    }
-  }
-
-  setBreakMinutes(value: number): void {
-    const clamped = Math.max(1, Math.min(30, value));
-    this.breakMinutes.set(clamped);
-    localStorage.setItem(POMODORO_BREAK_KEY, String(clamped));
-    if (this.phase() === 'break' && !this.running()) {
-      this.remainingSeconds.set(clamped * 60);
-    }
-  }
-
   private startTimer(): void {
     this.clearTimer();
     if (!this.endTime) {
@@ -244,7 +406,6 @@ export class PomodoroTimerComponent implements OnInit, OnDestroy {
       if (remaining <= 0) {
         this.remainingSeconds.set(0);
         this.endTime = null;
-        this.playBeep();
         this.switchPhase();
       } else {
         this.remainingSeconds.set(remaining);
@@ -265,35 +426,14 @@ export class PomodoroTimerComponent implements OnInit, OnDestroy {
       this.remainingSeconds.set(this.breakMinutes() * 60);
       this.endTime = Date.now() + this.breakMinutes() * 60 * 1000;
       this.notifications.notify('Pomodoro - Break time!', `Take a ${this.breakMinutes()} min break.`);
+      playSound(this.breakSound());
     } else {
       this.phase.set('work');
       this.remainingSeconds.set(this.workMinutes() * 60);
       this.endTime = Date.now() + this.workMinutes() * 60 * 1000;
       this.notifications.notify('Pomodoro - Focus time!', `Work session started: ${this.workMinutes()} min.`);
+      playSound(this.workSound());
     }
     this.saveState();
-  }
-
-  private playBeep(): void {
-    try {
-      const ctx = new AudioContext();
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      oscillator.connect(gain);
-      gain.connect(ctx.destination);
-
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(880, ctx.currentTime);
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-
-      oscillator.start(ctx.currentTime);
-      oscillator.stop(ctx.currentTime + 0.5);
-
-      setTimeout(() => ctx.close(), 600);
-    } catch {
-      // Audio not supported
-    }
   }
 }
