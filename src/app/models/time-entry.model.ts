@@ -29,6 +29,7 @@ export interface WeeklySummary {
   hoursWorked: number;
   horasExtra: number;      // Suma de excesos diarios > 8h
   targetHours: number;
+  remainingHours: number;  // Horas pendientes solo desde hoy hasta fin de semana
   weekStart: string;       // ISO date (Monday)
   weekEnd: string;         // ISO date (Sunday)
 }

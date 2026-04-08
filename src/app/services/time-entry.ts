@@ -50,6 +50,7 @@ export class TimeEntryService implements OnDestroy {
     hoursWorked: 0,
     horasExtra: 0,
     targetHours: 40,
+    remainingHours: 40,
     weekStart: '',
     weekEnd: ''
   });
@@ -365,10 +366,35 @@ export class TimeEntryService implements OnDestroy {
     const holidaysInWeek = this.holidayDatesService.getWeekdayHolidaysInRange(start, end);
     const targetHours = 40 - (holidaysInWeek.length * 8);
 
+    // Calcular horas pendientes: solo días laborables desde hoy hasta fin de semana
+    const toLocalDateStr = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const holidaysSet = new Set(holidaysInWeek);
+    let remainingWorkingDays = 0;
+    const dayIter = new Date(todayStart);
+    while (dayIter <= end) {
+      const dow = dayIter.getDay();
+      if (dow >= 1 && dow <= 5 && !holidaysSet.has(toLocalDateStr(dayIter))) {
+        remainingWorkingDays++;
+      }
+      dayIter.setDate(dayIter.getDate() + 1);
+    }
+
+    const hoursWorkedFromTodayMs = weekEntries
+      .filter(e => e.startTime >= todayStart.getTime())
+      .reduce((sum, e) => sum + e.duration, 0);
+
+    const remainingHours = Math.max(0, remainingWorkingDays * 8 - hoursWorkedFromTodayMs / (1000 * 60 * 60));
+
     this._currentWeekSummary$$.next({
       hoursWorked: totalHoursMs / (1000 * 60 * 60),
       horasExtra: horasExtraMs / (1000 * 60 * 60),
       targetHours: targetHours,
+      remainingHours: remainingHours,
       weekStart: start.toISOString().split('T')[0],
       weekEnd: end.toISOString().split('T')[0]
     });

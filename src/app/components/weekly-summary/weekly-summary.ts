@@ -45,7 +45,7 @@ import { Observable } from 'rxjs';
             </div>
 
             <div class="text-xs text-slate-600 text-center">
-              Remaining: {{ formatHoursToTime(getRemaining(summary.hoursWorked, summary.targetHours)) }}
+              Remaining: {{ formatHoursToTime(summary.remainingHours) }}
             </div>
           </div>
         } @else {
@@ -94,10 +94,6 @@ export class WeeklySummaryComponent {
 
   getProgress(worked: number, target: number): number {
     return Math.min((worked / target) * 100, 100);
-  }
-
-  getRemaining(worked: number, target: number): number {
-    return Math.max(target - worked, 0);
   }
 
   navigateToIntervals(): void {
