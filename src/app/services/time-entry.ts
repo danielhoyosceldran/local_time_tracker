@@ -125,9 +125,8 @@ export class TimeEntryService implements OnDestroy {
   private calculateDailySummary(entries: TimeEntry[]): void {
     const summaryMap = new Map<string, number>();
 
-    // Ús de toISOString per obtenir la data en format YYYY-MM-DDT...
-    const getISODate = (timestamp: number): string => 
-      new Date(timestamp).toISOString().split('T')[0];
+    const getISODate = (timestamp: number): string =>
+      new Date(timestamp).toLocaleDateString('en-CA');
 
     entries.forEach(entry => {
       // 3. Obtenir la data (YYYY-MM-DD) de l'hora d'inici
@@ -252,9 +251,9 @@ export class TimeEntryService implements OnDestroy {
     // Apply margin correction if enabled
     if (this._marginEnabled$$.getValue()) {
       const marginMs = this._marginMinutes$$.getValue() * 60 * 1000;
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toLocaleDateString('en-CA');
       const todayCompletedMs = this._entries$$.getValue()
-        .filter(e => new Date(e.startTime).toISOString().split('T')[0] === today)
+        .filter(e => new Date(e.startTime).toLocaleDateString('en-CA') === today)
         .reduce((sum, e) => sum + e.duration, 0);
 
       const todayTotalMs = todayCompletedMs + duration;
@@ -345,7 +344,7 @@ export class TimeEntryService implements OnDestroy {
     // Agrupar por día
     const dailyHoursMap = new Map<string, number>();
     weekEntries.forEach(entry => {
-      const date = new Date(entry.startTime).toISOString().split('T')[0];
+      const date = new Date(entry.startTime).toLocaleDateString('en-CA');
       const current = dailyHoursMap.get(date) || 0;
       dailyHoursMap.set(date, current + entry.duration);
     });
@@ -395,15 +394,15 @@ export class TimeEntryService implements OnDestroy {
       horasExtra: horasExtraMs / (1000 * 60 * 60),
       targetHours: targetHours,
       remainingHours: remainingHours,
-      weekStart: start.toISOString().split('T')[0],
-      weekEnd: end.toISOString().split('T')[0]
+      weekStart: start.toLocaleDateString('en-CA'),
+      weekEnd: end.toLocaleDateString('en-CA')
     });
   }
 
   private calculateTodaySummary(entries: TimeEntry[]): void {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleDateString('en-CA');
     const todayEntries = entries.filter(e =>
-      new Date(e.startTime).toISOString().split('T')[0] === today
+      new Date(e.startTime).toLocaleDateString('en-CA') === today
     );
 
     const totalMs = todayEntries.reduce((sum, e) => sum + e.duration, 0);
@@ -420,7 +419,7 @@ export class TimeEntryService implements OnDestroy {
         const grouped = new Map<string, TimeEntry[]>();
 
         entries.forEach(entry => {
-          const date = new Date(entry.startTime).toISOString().split('T')[0];
+          const date = new Date(entry.startTime).toLocaleDateString('en-CA');
           if (!grouped.has(date)) {
             grouped.set(date, []);
           }
@@ -466,21 +465,27 @@ export class TimeEntryService implements OnDestroy {
       return;
     }
 
-    // Encontrar la primera entrada (más antigua)
-    const sortedEntries = [...entries].sort((a, b) => a.startTime - b.startTime);
-    const firstEntry = sortedEntries[0];
-    const firstDate = new Date(firstEntry.startTime);
-    firstDate.setHours(0, 0, 0, 0);
+    // Helper: obtiene fecha local como string YYYY-MM-DD usando la timezone del navegador
+    const toLocalDateStr = (ts: number): string =>
+      new Date(ts).toLocaleDateString('en-CA'); // en-CA produce formato YYYY-MM-DD
 
-    // Obtener la fecha de hoy
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-
-    // Función helper para obtener el día de la semana (0=Dom, 1=Lun, ..., 6=Sab)
-    const getDayOfWeek = (date: Date): number => date.getDay();
+    // Helper: obtiene el día de la semana (0=Dom, 1=Lun, ..., 6=Sab) en timezone local
+    const getLocalDayOfWeek = (ts: number): number => new Date(ts).getDay();
 
     // Función helper para verificar si un día es L-V
     const isWeekday = (dayOfWeek: number): boolean => dayOfWeek >= 1 && dayOfWeek <= 5;
+
+    // Encontrar la primera entrada (más antigua)
+    const sortedEntries = [...entries].sort((a, b) => a.startTime - b.startTime);
+    const firstEntry = sortedEntries[0];
+
+    // Fecha de inicio: medianoche local del día de la primera entrada
+    const firstDateStr = toLocalDateStr(firstEntry.startTime);
+    const firstDate = new Date(firstDateStr + 'T00:00:00');
+
+    // Fecha de hoy: fin del día local
+    const todayStr = toLocalDateStr(Date.now());
+    const today = new Date(todayStr + 'T23:59:59');
 
     // Obtener días de vacaciones en el rango (solo L-V)
     const holidayDates = this.holidayDatesService.getWeekdayHolidaysInRange(firstDate, today);
@@ -491,8 +496,8 @@ export class TimeEntryService implements OnDestroy {
     const currentDate = new Date(firstDate);
 
     while (currentDate <= today) {
-      const dateStr = currentDate.toISOString().split('T')[0];
-      if (isWeekday(getDayOfWeek(currentDate)) && !holidaySet.has(dateStr)) {
+      const dateStr = toLocalDateStr(currentDate.getTime());
+      if (isWeekday(currentDate.getDay()) && !holidaySet.has(dateStr)) {
         weekdayCount++;
       }
       currentDate.setDate(currentDate.getDate() + 1);
@@ -503,8 +508,7 @@ export class TimeEntryService implements OnDestroy {
     let weekendHours = 0;
 
     entries.forEach(entry => {
-      const entryDate = new Date(entry.startTime);
-      const dayOfWeek = getDayOfWeek(entryDate);
+      const dayOfWeek = getLocalDayOfWeek(entry.startTime);
       const hours = entry.duration / (1000 * 60 * 60);
 
       if (isWeekday(dayOfWeek)) {
