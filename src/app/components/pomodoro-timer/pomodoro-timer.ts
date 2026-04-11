@@ -27,7 +27,7 @@ interface PomodoroState {
   imports: [CommonModule, FormsModule],
   template: `
     <div
-      class="rounded-xl border p-3 h-full flex flex-col transition-colors duration-300 bg-gradient-to-br"
+      class="rounded-xl border p-3 h-full flex flex-col overflow-y-auto transition-colors duration-300 bg-gradient-to-br"
       [ngClass]="backgroundClasses()"
     >
       <!-- Header -->

@@ -23,13 +23,6 @@ import { TimeEntry } from '../../models/time-entry.model';
           />
         </div>
         <div>
-          <label for="manDesc" class="block text-sm font-medium text-gray-700">Description (Optional)</label>
-          <textarea id="manDesc" formControlName="description" rows="2"
-            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-secondary focus:border-secondary"
-          ></textarea>
-        </div>
-
-        <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Start Time *</label>
           <kendo-datetimepicker
             formControlName="startTime"
@@ -75,7 +68,6 @@ export class ManualEntryFormComponent {
 
     this.manualForm = this.fb.group({
       title: [''],
-      description: [''],
       startTime: [now, Validators.required],
       endTime: [now, Validators.required],
     }, { validators: this.timeRangeValidator });
@@ -101,7 +93,7 @@ export class ManualEntryFormComponent {
       return;
     }
 
-    const { title, description, startTime, endTime } = this.manualForm.value;
+    const { title, startTime, endTime } = this.manualForm.value;
 
     const startTimestamp = (startTime as Date).getTime();
     const endTimestamp = (endTime as Date).getTime();
@@ -110,7 +102,7 @@ export class ManualEntryFormComponent {
     const newEntry: TimeEntry = {
       id: uuidv4(),
       title: title ? title.trim() : null,
-      description: description ? description.trim() : null,
+      description: null,
       startTime: startTimestamp,
       endTime: endTimestamp,
       duration: duration,

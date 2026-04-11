@@ -12,7 +12,7 @@ import { Observable, map } from 'rxjs';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 h-full flex flex-col">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 h-full flex flex-col overflow-y-auto">
       @if (runningEntry$ | async; as entry) {
         <!-- Running State -->
         <div class="flex items-center justify-between mb-3">
@@ -29,9 +29,6 @@ import { Observable, map } from 'rxjs';
           </div>
           <div class="text-center">
             <p class="text-slate-700 font-medium">{{ entry.title || 'Sin título' }}</p>
-            @if (entry.description) {
-              <p class="text-sm text-slate-500 mt-1">{{ entry.description }}</p>
-            }
           </div>
         </div>
 
@@ -62,19 +59,6 @@ import { Observable, map } from 'rxjs';
             />
           </div>
 
-          <div class="flex-1 flex flex-col">
-            <label for="description" class="block text-xs font-medium text-slate-600 mb-1">
-              Description
-            </label>
-            <textarea
-              id="description"
-              formControlName="description"
-              rows="3"
-              placeholder="Details..."
-              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none grow"
-            ></textarea>
-          </div>
-
           <button
             type="submit"
             class="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-sm transition mt-auto"
@@ -92,7 +76,6 @@ export class CompactTimerComponent {
 
   timerForm: FormGroup = this.fb.group({
     title: [''],
-    description: [''],
   });
 
   runningEntry$: Observable<RunningTimeEntry | null> = this.timeEntryService.runningEntry$;
@@ -101,11 +84,10 @@ export class CompactTimerComponent {
   );
 
   startTracking(): void {
-    const { title, description } = this.timerForm.value;
+    const { title } = this.timerForm.value;
     const finalTitle = title ? title.trim() : null;
-    const finalDescription = description ? description.trim() : null;
 
-    this.timeEntryService.startTracking(finalTitle, finalDescription);
+    this.timeEntryService.startTracking(finalTitle, null);
     this.timerForm.reset();
   }
 

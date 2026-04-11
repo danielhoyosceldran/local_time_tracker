@@ -11,7 +11,7 @@ import { formatHoursToTime } from '../../utils/format';
   standalone: true,
   imports: [BaseChartDirective],
   template: `
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 h-full flex flex-col">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 h-full flex flex-col overflow-y-auto">
       <h3 class="text-slate-900 font-semibold mb-3">Weekly Hours</h3>
       <div class="flex-1 min-h-0">
         <canvas

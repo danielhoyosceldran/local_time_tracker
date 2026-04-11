@@ -39,7 +39,7 @@ function nowTimeString(): string {
     input:checked + .slider:before { transform: translateX(16px); }
   `],
   template: `
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 h-full flex flex-col overflow-hidden">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 h-full flex flex-col overflow-y-auto">
 
       <!-- Header -->
       <div class="flex items-center justify-between mb-2">

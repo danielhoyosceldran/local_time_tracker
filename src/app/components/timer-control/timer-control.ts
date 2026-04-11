@@ -19,9 +19,6 @@ import { Observable, map } from 'rxjs';
           <div class="text-center p-4 bg-primary text-white rounded-lg mb-4 shadow-md">
             <p class="text-sm opacity-75">Tracking: {{ entry.title || '(No Title)' }}</p>
             <div class="text-6xl font-mono my-2">{{ runningTime$ | async }}</div>
-            @if (entry.description) {
-              <p class="text-sm opacity-90 truncate max-w-full mx-auto">{{ entry.description }}</p>
-            }
           </div>
           <button
             (click)="stopTracking()"
@@ -42,16 +39,6 @@ import { Observable, map } from 'rxjs';
               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-primary focus:border-primary"
               />
             </div>
-            <div>
-              <label for="description" class="block text-sm font-medium text-gray-700">Description (Optional)</label>
-              <textarea
-                id="description"
-                formControlName="description"
-                rows="2"
-                placeholder="Detailed notes on the task..."
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-primary focus:border-primary"
-              ></textarea>
-            </div>
             <button
               type="submit"
               class="w-full py-3 px-4 bg-primary hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md transition duration-150"
@@ -71,7 +58,6 @@ export class TimerControlComponent {
 
   timerForm: FormGroup = this.fb.group({
     title: [''],
-    description: [''],
   });
 
   runningEntry$: Observable<RunningTimeEntry | null> = this.timeEntryService.runningEntry$;
@@ -80,11 +66,10 @@ export class TimerControlComponent {
   );
 
   startTracking(): void {
-    const { title, description } = this.timerForm.value;
+    const { title } = this.timerForm.value;
     const finalTitle = title ? title.trim() : null;
-    const finalDescription = description ? description.trim() : null;
 
-    this.timeEntryService.startTracking(finalTitle, finalDescription);
+    this.timeEntryService.startTracking(finalTitle, null);
 
     this.timerForm.reset();
   }

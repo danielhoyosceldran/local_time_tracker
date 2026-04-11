@@ -14,7 +14,7 @@ import { Observable } from 'rxjs';
   template: `
     <div
       (click)="navigateToIntervals()"
-      class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 h-full flex flex-col cursor-pointer hover:shadow-md transition"
+      class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 h-full flex flex-col overflow-y-auto cursor-pointer hover:shadow-md transition"
     >
       <div class="flex items-center gap-2 mb-3">
         <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

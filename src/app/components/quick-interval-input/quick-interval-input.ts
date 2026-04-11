@@ -12,7 +12,7 @@ import { TimeEntry } from '../../models/time-entry.model';
   standalone: true,
   imports: [ReactiveFormsModule, KENDO_DATETIMEPICKER],
   template: `
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 h-full flex flex-col">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 h-full flex flex-col overflow-y-auto">
       <div class="mb-3">
         <h3 class="text-slate-900 font-semibold">Add Interval</h3>
       </div>
@@ -26,16 +26,6 @@ import { TimeEntry } from '../../models/time-entry.model';
             placeholder="Task name..."
             class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
-        </div>
-
-        <div class="grow flex flex-col">
-          <label class="block text-xs font-medium text-slate-600 mb-1">Description</label>
-          <textarea
-            formControlName="description"
-            rows="2"
-            placeholder="Details..."
-            class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none grow"
-          ></textarea>
         </div>
 
         <div class="flex gap-4">
@@ -92,7 +82,6 @@ export class QuickIntervalInputComponent {
 
     this.manualForm = this.fb.group({
       title: [''],
-      description: [''],
       startTime: [now, Validators.required],
       endTime: [now, Validators.required],
     }, { validators: this.timeRangeValidator });
@@ -118,7 +107,7 @@ export class QuickIntervalInputComponent {
       return;
     }
 
-    const { title, description, startTime, endTime } = this.manualForm.value;
+    const { title, startTime, endTime } = this.manualForm.value;
 
     const startTimestamp = (startTime as Date).getTime();
     const endTimestamp = (endTime as Date).getTime();
@@ -127,7 +116,7 @@ export class QuickIntervalInputComponent {
     const newEntry: TimeEntry = {
       id: uuidv4(),
       title: title ? title.trim() : null,
-      description: description ? description.trim() : null,
+      description: null,
       startTime: startTimestamp,
       endTime: endTimestamp,
       duration: duration,

@@ -8,7 +8,7 @@ import { TimeEntryService } from '../../services/time-entry';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 h-full flex flex-col">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 h-full flex flex-col overflow-y-auto">
       <!-- Header + Switch -->
       <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-1.5">

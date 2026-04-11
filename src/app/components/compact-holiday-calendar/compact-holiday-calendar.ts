@@ -10,7 +10,7 @@ import { Observable } from 'rxjs';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 h-full flex flex-col">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 h-full flex flex-col overflow-y-auto">
       <!-- Header -->
       <div class="flex items-center gap-2 mb-3">
         <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

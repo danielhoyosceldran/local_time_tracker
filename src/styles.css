@@ -1,1 +1,31 @@
 /* You can add global styles to this file, and also import other style files */
+
+/* Discrete scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s;
+}
+
+*:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 999px;
+  transition: background-color 0.3s;
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.15);
+}

@@ -1,7 +1,6 @@
 // src/app/pages/dashboard/dashboard.ts
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 
-import { AgendaCalendarComponent } from '../../components/agenda-calendar/agenda-calendar';
 import { CompactTimerComponent } from '../../components/compact-timer/compact-timer';
 import { QuickIntervalInputComponent } from '../../components/quick-interval-input/quick-interval-input';
 import { DailySummaryComponent } from '../../components/daily-summary/daily-summary';
@@ -18,7 +17,6 @@ import { ReminderNotificationComponent } from '../../components/reminder-notific
   selector: 'app-dashboard',
   standalone: true,
   imports: [
-    AgendaCalendarComponent,
     CompactTimerComponent,
     QuickIntervalInputComponent,
     DailySummaryComponent,
@@ -32,62 +30,85 @@ import { ReminderNotificationComponent } from '../../components/reminder-notific
     ReminderNotificationComponent
 ],
   template: `
-    <div class="h-screen bg-slate-50 flex overflow-hidden">
-      <!-- Sidebar Fixed -->
-      <app-agenda-calendar
-        class="w-96 shrink-0 h-full"
-      />
+    <div class="h-screen bg-slate-50 overflow-hidden p-4">
+      <!-- Dashboard Grid: 5 cols, 4 rows -->
+      <div class="h-full overflow-hidden">
+        <div class="h-full grid grid-cols-5 grid-rows-4 gap-4">
 
-      <!-- Dashboard Grid -->
-      <div class="flex-1 p-4 overflow-hidden">
-        <div class="h-full grid grid-cols-4 grid-rows-4 gap-4">
-          <!-- Timer: 2 cols, 2 rows -->
-          <div class="col-span-2 row-span-2 h-full min-h-0">
-            <app-compact-timer />
+          <!-- Col 1, Row 1: Autoround (Margin Config) -->
+          <div class="col-span-1 h-full min-h-0">
+            <app-margin-config />
           </div>
 
-          <!-- Quick Input: 1 col, 1 row -->
-          <div class="col-span-1 h-full min-h-0">
-            <app-quick-interval-input />
+          <!-- Col 2, Rows 1-2: Timer / Add Interval (toggle) -->
+          <div class="col-span-1 row-span-2 h-full min-h-0 relative">
+            <button
+              (click)="showTimer.set(!showTimer())"
+              class="absolute top-2 right-2 z-10 p-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors"
+              [title]="showTimer() ? 'Switch to Add Interval' : 'Switch to Timer'"
+            >
+              @if (showTimer()) {
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+              } @else {
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+              }
+            </button>
+            @if (showTimer()) {
+              <app-compact-timer class="h-full" />
+            } @else {
+              <app-quick-interval-input class="h-full" />
+            }
           </div>
 
-          <!-- Row 1: Daily Summary -->
-          <div class="col-span-1 h-full min-h-0">
+          <!-- Col 3, Rows 1-2: Pomodoro -->
+          <div class="col-span-1 row-span-2 h-full min-h-0">
+            <app-pomodoro-timer />
+          </div>
+
+          <!-- Col 4, Rows 1-2: Daily Summary -->
+          <div class="col-span-1 row-span-2 h-full min-h-0">
             <app-daily-summary />
           </div>
 
-          <!-- Row 2: Pomodoro + Weekly Summary -->
-          <div class="col-span-1 h-full min-h-0">
-            <app-pomodoro-timer />
-          </div>
-          <div class="col-span-1 h-full min-h-0">
+          <!-- Col 5, Rows 1-2: Weekly Summary -->
+          <div class="col-span-1 row-span-2 h-full min-h-0">
             <app-weekly-summary />
           </div>
-          
-          <!-- Row 3: Chart (3 cols) + Holiday -->
-          <div class="col-span-3 h-full min-h-0">
+
+          <!-- Col 1, Row 2: Lunch Config -->
+          <div class="col-span-1 h-full min-h-0">
+            <app-lunch-config />
+          </div>
+
+          <!-- Col 1, Row 3: Reminder -->
+          <div class="col-span-1 h-full min-h-0">
+            <app-reminder-notification />
+          </div>
+
+          <!-- Col 2-4, Rows 3-4: Weekly Chart -->
+          <div class="col-span-3 row-span-2 h-full min-h-0">
             <app-weekly-chart />
           </div>
+
+          <!-- Col 5, Rows 3-4: Holiday Calendar -->
+          <div class="col-span-1 row-span-2 h-full min-h-0">
+            <app-compact-holiday-calendar />
+          </div>
+
+          <!-- Col 1, Row 4: Vacation Days (Holiday Counter) -->
           <div class="col-span-1 h-full min-h-0">
             <app-compact-holiday-counter />
           </div>
 
-          <!-- Row 4: Margin Config + Lunch Config + Empty + Holiday Calendar -->
-          <div class="col-span-1 h-full min-h-0">
-            <app-margin-config />
-          </div>
-          <div class="col-span-1 h-full min-h-0">
-            <app-lunch-config />
-          </div>
-          <div class="col-span-1 h-full min-h-0">
-            <app-reminder-notification />
-          </div>
-          <div class="col-span-1 h-full min-h-0">
-            <app-compact-holiday-calendar />
-          </div>
         </div>
       </div>
     </div>
   `
 })
-export class DashboardComponent {}
+export class DashboardComponent {
+  showTimer = signal(true);
+}

@@ -22,7 +22,7 @@ function dateToTimeString(date: Date): string {
   standalone: true,
   imports: [FormsModule, KENDO_TIMEPICKER],
   template: `
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 h-full flex flex-col">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 h-full flex flex-col overflow-y-auto">
       <!-- Header -->
       <div class="flex items-center gap-1.5 mb-2">
         <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
