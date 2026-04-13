@@ -17,48 +17,50 @@ import { TimeEntry } from '../../models/time-entry.model';
         <h3 class="text-slate-900 font-semibold">Add Interval</h3>
       </div>
 
-      <form [formGroup]="manualForm" (ngSubmit)="addEntry()" class="flex-1 flex flex-col space-y-2">
-        <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Task</label>
-          <input
-            type="text"
-            formControlName="title"
-            placeholder="Task name..."
-            class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          />
+      <form [formGroup]="manualForm" (ngSubmit)="addEntry()" class="flex-1 flex justify-between flex-col space-y-2">
+        <div class="flex-1 flex flex-col space-y-2">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Task</label>
+            <input
+              type="text"
+              formControlName="title"
+              placeholder="Task name..."
+              class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+          </div>
+
+          <div class="flex gap-4">
+            <div class="flex-1">
+              <label class="block text-xs font-medium text-slate-600 mb-1">
+                Start <span class="text-red-500">*</span>
+              </label>
+              <kendo-datetimepicker
+                formControlName="startTime"
+                [format]="'dd/MM/yyyy HH:mm'"
+                [fillMode]="'outline'"
+                [size]="'small'"
+              ></kendo-datetimepicker>
+            </div>
+
+            <div class="flex-1">
+              <label class="block text-xs font-medium text-slate-600 mb-1">
+                End <span class="text-red-500">*</span>
+              </label>
+              <kendo-datetimepicker
+                formControlName="endTime"
+                [format]="'dd/MM/yyyy HH:mm'"
+                [fillMode]="'outline'"
+                [size]="'small'"
+              ></kendo-datetimepicker>
+            </div>
+          </div>
+
+          @if (manualForm.errors?.['invalidTimeRange'] && (manualForm.touched || manualForm.dirty)) {
+            <div class="text-red-600 text-xs p-2 bg-red-50 rounded-md border border-red-200">
+              End time must be after start time
+            </div>
+          }
         </div>
-
-        <div class="flex gap-4">
-          <div class="flex-1">
-            <label class="block text-xs font-medium text-slate-600 mb-1">
-              Start <span class="text-red-500">*</span>
-            </label>
-            <kendo-datetimepicker
-              formControlName="startTime"
-              [format]="'dd/MM/yyyy HH:mm'"
-              [fillMode]="'outline'"
-              [size]="'small'"
-            ></kendo-datetimepicker>
-          </div>
-
-          <div class="flex-1">
-            <label class="block text-xs font-medium text-slate-600 mb-1">
-              End <span class="text-red-500">*</span>
-            </label>
-            <kendo-datetimepicker
-              formControlName="endTime"
-              [format]="'dd/MM/yyyy HH:mm'"
-              [fillMode]="'outline'"
-              [size]="'small'"
-            ></kendo-datetimepicker>
-          </div>
-        </div>
-
-        @if (manualForm.errors?.['invalidTimeRange'] && (manualForm.touched || manualForm.dirty)) {
-          <div class="text-red-600 text-xs p-2 bg-red-50 rounded-md border border-red-200">
-            End time must be after start time
-          </div>
-        }
 
         <button
           type="submit"

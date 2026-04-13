@@ -45,7 +45,7 @@ import { Observable, map } from 'rxjs';
           <h3 class="text-slate-900 font-semibold">Timer</h3>
         </div>
 
-        <form [formGroup]="timerForm" (ngSubmit)="startTracking()" class="flex-1 flex flex-col space-y-3">
+        <form [formGroup]="timerForm" (ngSubmit)="startTracking()" class="flex-1 justify-between flex flex-col space-y-3">
           <div>
             <label for="title" class="block text-xs font-medium text-slate-600 mb-1">
               Title
