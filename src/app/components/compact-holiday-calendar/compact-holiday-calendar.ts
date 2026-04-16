@@ -54,8 +54,9 @@ function buildMonthData(year: number, month: number): MonthData {
   imports: [CommonModule],
   styles: [`
     .month-cell {
-      flex: 1 1 130px;
-      max-width: 180px;
+      flex: 1 1 250px;
+      min-width: 130px;
+      max-width: 250px;
     }
   `],
   template: `
