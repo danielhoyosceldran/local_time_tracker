@@ -35,15 +35,13 @@ import { Observable } from 'rxjs';
 
         <!-- Mini bar chart -->
         <div class="flex-1 flex flex-col justify-end mt-2">
-          <div class="grid grid-cols-7 gap-1 items-end h-12">
+          <div class="grid grid-cols-7 gap-1 items-end" style="height:48px;">
             @for (h of dailyHours(); track $index) {
-              <div class="flex flex-col items-center gap-0.5">
-                <div
-                  class="w-full bg-emerald-100 rounded-t-sm transition-all duration-500"
-                  [style.height.%]="getBarHeight(h)"
-                  style="min-height: 2px;"
-                ></div>
-              </div>
+              <div
+                class="w-full bg-emerald-400 rounded-t-sm transition-all duration-500"
+                [style.height.px]="getBarHeightPx(h)"
+                style="min-height: 2px;"
+              ></div>
             }
           </div>
           <div class="grid grid-cols-7 gap-1 mt-0.5">
@@ -120,6 +118,11 @@ export class WeeklySummaryComponent {
   getBarHeight(hours: number): number {
     const max = Math.max(...this.dailyHours(), 8);
     return Math.min((hours / max) * 100, 100);
+  }
+
+  getBarHeightPx(hours: number): number {
+    const max = Math.max(...this.dailyHours(), 8);
+    return Math.min((hours / max) * 48, 48);
   }
 
   getProgress(worked: number, target: number): number {
