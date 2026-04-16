@@ -12,56 +12,58 @@ import { Observable, map } from 'rxjs';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 h-full flex flex-col overflow-y-auto">
+    <div class="bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm shadow-slate-200/50 border border-white p-4 h-full flex flex-col overflow-y-auto">
       @if (runningEntry$ | async; as entry) {
         <!-- Running State -->
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-slate-900 font-semibold">Timer</h3>
-          <span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+          <h3 class="text-slate-800 font-bold">Timer</h3>
+          <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full tracking-wider">
             ACTIVO
           </span>
         </div>
 
         <!-- Time Display -->
-        <div class="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl p-6 border border-indigo-100 mb-4">
-          <div class="text-5xl text-indigo-600 font-mono tracking-tight mb-2">
+        <div class="flex-1 flex flex-col items-center justify-center rounded-xl p-6 mb-4">
+          <div class="text-5xl font-extrabold font-mono tracking-tighter text-indigo-600 mb-2">
             {{ runningTime$ | async }}
           </div>
           <div class="text-center">
-            <p class="text-slate-700 font-medium">{{ entry.title || 'Sin título' }}</p>
+            <input
+              type="text"
+              [value]="entry.title || 'Sin título'"
+              readonly
+              class="text-slate-700 font-medium text-center bg-transparent border-none outline-none w-full cursor-default"
+            />
           </div>
         </div>
 
         <!-- Stop Button -->
         <button
           (click)="stopTracking()"
-          class="w-full py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-sm transition"
+          class="w-full py-4 px-4 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white font-bold rounded-2xl shadow-lg shadow-rose-200 transition-all"
         >
           STOP
         </button>
       } @else {
         <!-- Start Form -->
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-slate-900 font-semibold">Timer</h3>
+          <h3 class="text-slate-800 font-bold">Timer</h3>
         </div>
 
         <form [formGroup]="timerForm" (ngSubmit)="startTracking()" class="flex-1 justify-between flex flex-col space-y-3">
           <div>
-            <label for="title" class="block text-xs font-medium text-slate-600 mb-1">
-              Title
-            </label>
             <input
               id="title"
               type="text"
               formControlName="title"
               placeholder="Task name..."
-              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-0 py-2 border-0 border-b border-slate-200 text-sm text-slate-800 placeholder-slate-400 bg-transparent focus:outline-none focus:border-indigo-500 transition-colors"
             />
           </div>
 
           <button
             type="submit"
-            class="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-sm transition mt-auto"
+            class="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 transition-all mt-auto"
           >
             START
           </button>

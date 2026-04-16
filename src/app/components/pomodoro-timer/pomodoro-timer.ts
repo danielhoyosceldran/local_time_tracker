@@ -28,39 +28,42 @@ interface PomodoroState {
   imports: [CommonModule, FormsModule, SoundPickerModalComponent],
   template: `
     <div
-      class="rounded-xl border p-3 h-full flex flex-col overflow-y-auto transition-colors duration-300 bg-gradient-to-br"
-      [ngClass]="backgroundClasses()"
+      class="rounded-2xl p-3 h-full flex flex-col overflow-y-auto transition-all duration-500"
+      [ngClass]="containerClasses()"
     >
       <!-- Header -->
       <div class="flex items-center gap-1.5 mb-1">
-        <svg class="w-4 h-4" [ngClass]="iconColor()" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-4 h-4" [ngClass]="headerIconColor()" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
-        <h3 class="font-semibold text-slate-900 text-sm">Pomodoro</h3>
+        <h3 class="font-bold text-sm" [ngClass]="headerTextColor()">Pomodoro</h3>
       </div>
 
       <!-- Phase selector / label -->
       <div class="flex justify-center mb-1">
         @if (running()) {
           <span
-            class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
-            [ngClass]="phase() === 'work' ? 'bg-blue-200 text-blue-800' : 'bg-green-200 text-green-800'"
+            class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm"
+            [ngClass]="phase() === 'work' ? 'text-white' : 'text-white'"
           >
             {{ phase() === 'work' ? 'Working' : 'Break' }}
           </span>
         } @else {
-          <div class="flex rounded-full border border-slate-200 overflow-hidden text-[10px] font-bold uppercase tracking-wider">
+          <div
+            class="flex rounded-full overflow-hidden text-[10px] font-bold uppercase tracking-wider"
+            [ngClass]="phase() === 'work' ? 'border border-slate-600' : 'border border-white/30'"
+          >
             <button
               type="button"
               (click)="setPhase('work')"
-              class="px-3 py-0.5 transition-colors"
-              [ngClass]="phase() === 'work' ? 'bg-blue-500 text-white' : 'text-slate-400 hover:bg-slate-100'"
+              class="px-3 py-0.5 transition-all active:scale-95"
+              [ngClass]="phase() === 'work' ? 'bg-white/20 text-white' : 'text-white/40 hover:bg-white/10 text-white'"
             >Work</button>
             <button
               type="button"
               (click)="setPhase('break')"
-              class="px-3 py-0.5 transition-colors"
-              [ngClass]="phase() === 'break' ? 'bg-green-500 text-white' : 'text-slate-400 hover:bg-slate-100'"
+              class="px-3 py-0.5 transition-all active:scale-95"
+              [ngClass]="phase() === 'break' ? 'bg-white/20 text-white' : 'text-white/40 hover:bg-white/10 text-white'"
             >Break</button>
           </div>
         }
@@ -68,22 +71,16 @@ interface PomodoroState {
 
       <!-- Countdown -->
       <div class="flex-1 flex items-center justify-center">
-        <div
-          class="text-3xl font-bold font-mono"
-          [ngClass]="phase() === 'work' ? 'text-blue-600' : 'text-green-600'"
-        >
+        <div class="text-6xl font-extrabold font-mono text-white leading-none">
           {{ displayTime() }}
         </div>
       </div>
 
       <!-- Controls -->
-      <div class="flex justify-center gap-2 mb-1">
+      <div class="flex justify-center gap-3 mb-1">
         <button
           (click)="toggleRunning()"
-          class="p-1.5 rounded-lg transition"
-          [ngClass]="phase() === 'work'
-            ? 'text-blue-600 hover:bg-blue-100'
-            : 'text-green-600 hover:bg-green-100'"
+          class="p-2 rounded-xl bg-white/20 backdrop-blur-sm hover:bg-white/30 active:scale-95 transition-all text-white"
         >
           @if (running()) {
             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -97,7 +94,7 @@ interface PomodoroState {
         </button>
         <button
           (click)="reset()"
-          class="p-1.5 rounded-lg transition text-gray-500 hover:bg-gray-500/10"
+          class="p-2 rounded-xl bg-white/20 backdrop-blur-sm hover:bg-white/30 active:scale-95 transition-all text-white"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -110,38 +107,38 @@ interface PomodoroState {
         <div class="grid grid-cols-2 gap-1.5">
           <!-- Work minutes -->
           <div>
-            <label class="block text-[10px] text-slate-500 mb-0.5">Work (min)</label>
+            <label class="block text-[10px] text-white/60 mb-0.5">Work (min)</label>
             <input
               type="number"
               [ngModel]="workMinutes()"
               (ngModelChange)="setWorkMinutes($event)"
               (input)="cleanValue($event)"
               min="0"
-              class="w-full px-1 py-0.5 border border-slate-300 rounded-lg text-xs text-center focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+              class="w-full px-1 py-0.5 border border-white/20 rounded-lg text-xs text-center bg-white/10 text-white placeholder-white/40 focus:ring-2 focus:ring-white/40 focus:border-transparent"
             />
           </div>
           <!-- Break minutes -->
           <div>
-            <label class="block text-[10px] text-slate-500 mb-0.5">Break (min)</label>
+            <label class="block text-[10px] text-white/60 mb-0.5">Break (min)</label>
             <input
               type="number"
               [ngModel]="breakMinutes()"
               (ngModelChange)="setBreakMinutes($event)"
               min="0"
-              class="w-full px-1 py-0.5 border border-slate-300 rounded-lg text-xs text-center focus:ring-2 focus:ring-green-400 focus:border-transparent"
+              class="w-full px-1 py-0.5 border border-white/20 rounded-lg text-xs text-center bg-white/10 text-white placeholder-white/40 focus:ring-2 focus:ring-white/40 focus:border-transparent"
             />
           </div>
 
           <!-- Work sound -->
           <div>
-            <label class="block text-[10px] text-slate-500 mb-0.5">Work sound</label>
+            <label class="block text-[10px] text-white/60 mb-0.5">Work sound</label>
             <button
               type="button"
               (click)="soundModalFor.set('work')"
-              class="w-full flex items-center justify-between px-1.5 py-0.5 border border-slate-300 rounded-lg text-xs bg-white hover:bg-slate-50 transition-colors"
+              class="w-full flex items-center justify-between px-1.5 py-0.5 border border-white/20 rounded-lg text-xs bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white/80"
             >
-              <span class="truncate text-slate-700">{{ soundLabel(workSound()) }}</span>
-              <svg class="w-3 h-3 text-slate-400 shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span class="truncate">{{ soundLabel(workSound()) }}</span>
+              <svg class="w-3 h-3 shrink-0 ml-1 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
               </svg>
             </button>
@@ -149,14 +146,14 @@ interface PomodoroState {
 
           <!-- Break sound -->
           <div>
-            <label class="block text-[10px] text-slate-500 mb-0.5">Break sound</label>
+            <label class="block text-[10px] text-white/60 mb-0.5">Break sound</label>
             <button
               type="button"
               (click)="soundModalFor.set('break')"
-              class="w-full flex items-center justify-between px-1.5 py-0.5 border border-slate-300 rounded-lg text-xs bg-white hover:bg-slate-50 transition-colors"
+              class="w-full flex items-center justify-between px-1.5 py-0.5 border border-white/20 rounded-lg text-xs bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white/80"
             >
-              <span class="truncate text-slate-700">{{ soundLabel(breakSound()) }}</span>
-              <svg class="w-3 h-3 text-slate-400 shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span class="truncate">{{ soundLabel(breakSound()) }}</span>
+              <svg class="w-3 h-3 shrink-0 ml-1 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
               </svg>
             </button>
@@ -209,6 +206,16 @@ export class PomodoroTimerComponent implements OnInit, OnDestroy {
   iconColor = computed(() =>
     this.phase() === 'work' ? 'text-blue-600' : 'text-green-600'
   );
+
+  containerClasses = computed(() =>
+    this.phase() === 'work'
+      ? 'bg-slate-900'
+      : 'bg-emerald-500'
+  );
+
+  headerIconColor = computed(() => 'text-white/70');
+
+  headerTextColor = computed(() => 'text-white');
 
   displayTime = computed(() => {
     const total = this.remainingSeconds();

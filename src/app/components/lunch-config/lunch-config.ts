@@ -23,14 +23,14 @@ function dateToTimeString(date: Date): string {
   standalone: true,
   imports: [CommonModule, FormsModule, KENDO_TIMEPICKER],
   template: `
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 h-full flex flex-col overflow-y-auto">
+    <div class="bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm shadow-slate-200/50 border border-white p-3 h-full flex flex-col overflow-y-auto">
       <!-- Header + Switch -->
       <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-1.5">
           <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
-          <h3 class="font-semibold text-slate-900 text-sm">Lunch break</h3>
+          <h3 class="font-bold text-slate-800 text-sm">Lunch break</h3>
         </div>
         <button
           (click)="toggleEnabled()"

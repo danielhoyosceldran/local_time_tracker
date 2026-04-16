@@ -1,5 +1,5 @@
 // src/app/components/weekly-summary/weekly-summary.ts
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { TimeEntryService } from '../../services/time-entry';
@@ -14,72 +14,70 @@ import { Observable } from 'rxjs';
   template: `
     <div
       (click)="navigateToIntervals()"
-      class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 h-full flex flex-col overflow-y-auto cursor-pointer hover:shadow-md transition"
+      class="bg-white/80 backdrop-blur-xl border border-white rounded-2xl shadow-sm shadow-slate-200/50 p-4 h-full flex flex-col overflow-y-auto cursor-pointer active:scale-95 transition-all"
     >
-      <!-- 2/3 Superior: Weekly Progress -->
-      <div class="flex-[2] flex flex-col">
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-2">
-            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-            </svg>
-            <h3 class="text-slate-900 font-semibold">Weekly Progress</h3>
+      <!-- Header -->
+      <div class="flex items-center gap-2 mb-2">
+        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+        </svg>
+        <h3 class="text-slate-800 font-bold text-sm">Weekly Progress</h3>
+      </div>
+
+      @if (weekSummary$ | async; as summary) {
+        <!-- Hero number -->
+        <div class="text-center my-1">
+          <div class="text-4xl font-extrabold font-mono text-emerald-600 leading-none">
+            {{ formatHoursToTime(summary.hoursWorked) }}
+          </div>
+          <div class="text-xs text-slate-500 mt-1">of {{ formatHoursToTime(summary.targetHours) }}</div>
+        </div>
+
+        <!-- Mini bar chart -->
+        <div class="flex-1 flex flex-col justify-end mt-2">
+          <div class="grid grid-cols-7 gap-1 items-end h-12">
+            @for (h of dailyHours(); track $index) {
+              <div class="flex flex-col items-center gap-0.5">
+                <div
+                  class="w-full bg-emerald-100 rounded-t-sm transition-all duration-500"
+                  [style.height.%]="getBarHeight(h)"
+                  style="min-height: 2px;"
+                ></div>
+              </div>
+            }
+          </div>
+          <div class="grid grid-cols-7 gap-1 mt-0.5">
+            @for (d of dayLabels; track d) {
+              <div class="text-[9px] text-slate-400 text-center font-mono">{{ d }}</div>
+            }
           </div>
         </div>
 
-        @if (weekSummary$ | async; as summary) {
-          <div class="flex-1 flex flex-col justify-center">
-            <div class="text-center mb-2">
-              <div class="text-3xl font-bold text-green-600">
-                {{ formatHoursToTime(summary.hoursWorked) }}
-              </div>
-              <div class="text-sm text-slate-600">of {{ formatHoursToTime(summary.targetHours) }}</div>
-            </div>
+        <div class="text-xs text-slate-500 text-center mt-1">
+          Remaining: <span class="font-mono font-medium text-slate-700">{{ formatHoursToTime(summary.remainingHours) }}</span>
+        </div>
+      } @else {
+        <div class="flex-1 flex items-center justify-center text-slate-400 text-sm">
+          No entries this week
+        </div>
+      }
 
-            <!-- Progress Bar -->
-            <div class="w-full bg-green-100 rounded-full h-2 overflow-hidden mb-1">
-              <div
-                class="bg-green-600 h-full rounded-full transition-all"
-                [style.width.%]="getProgress(summary.hoursWorked, summary.targetHours)"
-              ></div>
-            </div>
-
-            <div class="text-xs text-slate-600 text-center">
-              Remaining: {{ formatHoursToTime(summary.remainingHours) }}
-            </div>
-          </div>
-        } @else {
-          <div class="flex-1 flex items-center justify-center text-slate-500 text-sm">
-            No entries this week
-          </div>
-        }
-      </div>  
-      
-      <!-- Divider -->
-      <div class="border-t border-green-200 my-2"></div>
-  
-      <!-- 1/3 Inferior: Global Balance -->
-      <div class="flex-1 flex items-center justify-between">
+      <!-- Divider + Global Balance -->
+      <div class="border-t border-slate-50 mt-2 pt-2 flex items-center justify-between">
         @if (globalBalance$ | async; as balance) {
-          <div class="flex items-center gap-2">
-            <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"></path>
-            </svg>
-            <span class="text-xs text-slate-600 font-medium">Total Balance</span>
-          </div>
+          <span class="text-xs text-slate-500 font-medium">Total Balance</span>
           <div
-            class="px-3 py-1 rounded-full text-sm font-bold"
-            [class.bg-green-100]="balance.balanceHours >= 0"
-            [class.text-green-700]="balance.balanceHours >= 0"
-            [class.bg-red-100]="balance.balanceHours < 0"
-            [class.text-red-700]="balance.balanceHours < 0"
+            class="px-3 py-0.5 rounded-full text-xs font-bold font-mono"
+            [class.bg-emerald-100]="balance.balanceHours >= 0"
+            [class.text-emerald-700]="balance.balanceHours >= 0"
+            [class.bg-rose-100]="balance.balanceHours < 0"
+            [class.text-rose-700]="balance.balanceHours < 0"
           >
-            {{ balance.balanceHours >= 0 ? '+ ' : '- ' }}{{ formatHoursToTime(Math.abs(balance.balanceHours)) }}
+            {{ balance.balanceHours >= 0 ? '+' : '-' }}{{ formatHoursToTime(Math.abs(balance.balanceHours)) }}
           </div>
         }
       </div>
     </div>
-
   `,
 })
 export class WeeklySummaryComponent {
@@ -91,6 +89,38 @@ export class WeeklySummaryComponent {
 
   formatHoursToTime = formatHoursToTime;
   Math = Math;
+
+  dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  dailyHours = signal<number[]>([0, 0, 0, 0, 0, 0, 0]);
+
+  constructor() {
+    this.timeEntryService.entries$.subscribe(entries => {
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() + diffToMonday);
+      monday.setHours(0, 0, 0, 0);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
+
+      const hours = [0, 0, 0, 0, 0, 0, 0];
+      entries
+        .filter((e: any) => e.startTime >= monday.getTime() && e.startTime <= sunday.getTime())
+        .forEach((e: any) => {
+          const dow = new Date(e.startTime).getDay();
+          const idx = dow === 0 ? 6 : dow - 1;
+          hours[idx] += e.duration / (1000 * 60 * 60);
+        });
+      this.dailyHours.set(hours);
+    });
+  }
+
+  getBarHeight(hours: number): number {
+    const max = Math.max(...this.dailyHours(), 8);
+    return Math.min((hours / max) * 100, 100);
+  }
 
   getProgress(worked: number, target: number): number {
     return Math.min((worked / target) * 100, 100);

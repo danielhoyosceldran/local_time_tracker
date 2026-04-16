@@ -28,7 +28,7 @@ import { ReminderNotificationComponent } from '../../components/reminder-notific
     ReminderNotificationComponent
 ],
   template: `
-    <div class="h-screen bg-slate-50 overflow-hidden p-4">
+    <div class="h-screen bg-slate-100 overflow-hidden p-4">
       <div class="h-full overflow-hidden">
         <div class="h-full grid grid-cols-5 grid-rows-4 gap-4">
 

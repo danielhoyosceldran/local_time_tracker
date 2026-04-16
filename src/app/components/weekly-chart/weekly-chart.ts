@@ -11,8 +11,8 @@ import { formatHoursToTime } from '../../utils/format';
   standalone: true,
   imports: [BaseChartDirective],
   template: `
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 h-full flex flex-col overflow-y-auto">
-      <h3 class="text-slate-900 font-semibold mb-3">Weekly Hours</h3>
+    <div class="bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm shadow-slate-200/50 border border-white p-4 h-full flex flex-col overflow-y-auto">
+      <h3 class="text-slate-800 font-bold mb-3">Weekly Hours</h3>
       <div class="flex-1 min-h-0">
         <canvas
           baseChart
@@ -34,18 +34,27 @@ export class WeeklyChartComponent implements OnInit {
         label: 'Hours Worked',
         data: [0, 0, 0, 0, 0, 0, 0],
         borderColor: '#4f46e5',
-        backgroundColor: 'rgba(79, 70, 229, 0.1)',
-        borderWidth: 3,
-        tension: 0.4,
+        backgroundColor: (ctx: any) => {
+          const chart = ctx.chart;
+          const { ctx: c, chartArea } = chart;
+          if (!chartArea) return 'rgba(79,70,229,0.1)';
+          const gradient = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+          gradient.addColorStop(0, 'rgba(79,70,229,0.25)');
+          gradient.addColorStop(1, 'rgba(79,70,229,0)');
+          return gradient;
+        },
+        borderWidth: 2,
+        tension: 0.5,
         fill: true,
         pointRadius: 4,
         pointHoverRadius: 6,
+        pointBackgroundColor: '#4f46e5',
         order: 2
       },
       {
         label: '8h Target',
         data: [8, 8, 8, 8, 8, 8, 8],
-        borderColor: '#6a67aaff',
+        borderColor: 'rgba(99,102,241,0.3)',
         borderWidth: 1,
         borderDash: [5, 5],
         pointRadius: 0,

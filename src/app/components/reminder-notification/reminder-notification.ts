@@ -40,7 +40,7 @@ function nowTimeString(): string {
     input:checked + .slider:before { transform: translateX(16px); }
   `],
   template: `
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 h-full flex flex-col overflow-y-auto">
+    <div class="bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm shadow-slate-200/50 border border-white p-3 h-full flex flex-col overflow-y-auto">
 
       <!-- Header -->
       <div class="flex items-center justify-between mb-2">
@@ -50,7 +50,7 @@ function nowTimeString(): string {
               d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
             </path>
           </svg>
-          <h3 class="font-semibold text-slate-900 text-sm">Reminder</h3>
+          <h3 class="font-bold text-slate-800 text-sm">Reminder</h3>
         </div>
         <label class="switch">
           <input type="checkbox" [checked]="enabled()" (change)="toggleEnabled($event)" />

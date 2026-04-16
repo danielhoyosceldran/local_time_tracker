@@ -63,17 +63,17 @@ function buildMonthData(year: number, month: number): MonthData {
     }
   `],
   template: `
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 h-full flex flex-col overflow-hidden">
+    <div class="bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm shadow-slate-200/50 border border-white p-3 h-full flex flex-col overflow-hidden">
       <!-- Header row -->
       <div class="flex items-center justify-between mb-2 shrink-0">
         <div class="flex items-center gap-2">
-          <svg class="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
           </svg>
-          <h3 class="text-slate-900 font-semibold text-sm">Holiday Calendar {{ currentYear }}</h3>
+          <h3 class="text-slate-800 font-bold text-sm">Holiday Calendar {{ currentYear }}</h3>
         </div>
-        <span class="text-xs text-slate-400">{{ holidayCount() }} public</span>
+        <span class="text-xs text-slate-400 font-mono">{{ holidayCount() }} public</span>
       </div>
 
       <!-- Vacation Days bar -->
@@ -81,7 +81,7 @@ function buildMonthData(year: number, month: number): MonthData {
         <div class="flex items-center gap-2 mb-2 px-2 py-1.5 bg-indigo-50 rounded-lg border border-indigo-100 shrink-0 text-xs">
           <!-- Remaining badge -->
           <div class="flex items-center gap-1 mr-1">
-            <span class="text-xl font-bold text-indigo-600 leading-none">{{ h.total - holidayCount() }}</span>
+            <span class="text-xl font-extrabold font-mono text-indigo-600 leading-none">{{ h.total - holidayCount() }}</span>
             <span class="text-indigo-400 leading-none">left</span>
           </div>
           <div class="w-px h-5 bg-indigo-200"></div>
@@ -144,11 +144,11 @@ function buildMonthData(year: number, month: number): MonthData {
                       class="aspect-square flex items-center justify-center text-[9px] rounded-sm select-none transition-colors"
                       [ngClass]="{
                         'cursor-default pointer-events-none text-transparent': !cell.date,
-                        'bg-teal-500 text-white font-semibold': cell.date && isHoliday(cell.date),
-                        'text-slate-400': cell.date && !isHoliday(cell.date) && cell.isWeekend,
-                        'text-slate-600 cursor-pointer hover:bg-teal-100': cell.date && !isHoliday(cell.date) && !cell.isWeekend,
-                        'cursor-pointer hover:bg-teal-200': cell.date && isHoliday(cell.date),
-                        'ring-1 ring-slate-400': cell.date === today
+                        'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-200': cell.date && isHoliday(cell.date),
+                        'text-slate-300 bg-slate-50/50': cell.date && !isHoliday(cell.date) && cell.isWeekend,
+                        'text-slate-600 cursor-pointer hover:bg-indigo-50': cell.date && !isHoliday(cell.date) && !cell.isWeekend,
+                        'cursor-pointer hover:bg-indigo-700': cell.date && isHoliday(cell.date),
+                        'ring-2 ring-indigo-500 bg-indigo-50': cell.date === today && !isHoliday(cell.date)
                       }"
                       (click)="toggleHoliday(cell.date)"
                     >{{ cell.day }}</div>
