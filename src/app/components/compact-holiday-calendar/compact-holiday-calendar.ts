@@ -1,7 +1,10 @@
 // src/app/components/compact-holiday-calendar/compact-holiday-calendar.ts
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { HolidayDatesService } from '../../services/holiday-dates.service';
+import { HolidayService, HolidayData } from '../../services/holiday.service';
+import { Observable } from 'rxjs';
 
 interface DayCell {
   date: string | null; // 'YYYY-MM-DD' or null for padding
@@ -51,7 +54,7 @@ function buildMonthData(year: number, month: number): MonthData {
 @Component({
   selector: 'app-compact-holiday-calendar',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   styles: [`
     .month-cell {
       flex: 1 1 250px;
@@ -61,7 +64,7 @@ function buildMonthData(year: number, month: number): MonthData {
   `],
   template: `
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 h-full flex flex-col overflow-hidden">
-      <!-- Header -->
+      <!-- Header row -->
       <div class="flex items-center justify-between mb-2 shrink-0">
         <div class="flex items-center gap-2">
           <svg class="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -70,12 +73,57 @@ function buildMonthData(year: number, month: number): MonthData {
           </svg>
           <h3 class="text-slate-900 font-semibold text-sm">Holiday Calendar {{ currentYear }}</h3>
         </div>
-        <span class="text-xs text-slate-400">{{ holidayCount() }} days</span>
+        <span class="text-xs text-slate-400">{{ holidayCount() }} public</span>
       </div>
+
+      <!-- Vacation Days bar -->
+      @if (holidays$ | async; as h) {
+        <div class="flex items-center gap-2 mb-2 px-2 py-1.5 bg-indigo-50 rounded-lg border border-indigo-100 shrink-0 text-xs">
+          <!-- Remaining badge -->
+          <div class="flex items-center gap-1 mr-1">
+            <span class="text-xl font-bold text-indigo-600 leading-none">{{ h.total - holidayCount() }}</span>
+            <span class="text-indigo-400 leading-none">left</span>
+          </div>
+          <div class="w-px h-5 bg-indigo-200"></div>
+          <!-- Total -->
+          <span class="text-slate-500">Total</span>
+          @if (editMode()) {
+            <input
+              type="number"
+              [(ngModel)]="editTotal"
+              (keyup.enter)="saveEdit()"
+              (keyup.escape)="cancelEdit()"
+              class="w-10 px-1 py-0.5 border border-indigo-300 rounded text-slate-900 font-semibold text-center focus:ring-1 focus:ring-indigo-500"
+              autofocus
+            />
+            <button (click)="saveEdit()" class="text-green-600 hover:text-green-700" title="Save">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              </svg>
+            </button>
+            <button (click)="cancelEdit()" class="text-red-500 hover:text-red-600" title="Cancel">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          } @else {
+            <span class="font-semibold text-slate-700">{{ h.total }}</span>
+            <button (click)="startEdit(h.total)" class="text-slate-400 hover:text-indigo-500" title="Edit total">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+              </svg>
+            </button>
+          }
+          <div class="w-px h-5 bg-indigo-200"></div>
+          <!-- Used (auto-counted from marked days) -->
+          <span class="text-slate-500">Used</span>
+          <span class="font-semibold text-orange-600 min-w-[1.25rem] text-center">{{ holidayCount() }}</span>
+        </div>
+      }
 
       <!-- Year grid -->
       <div class="flex-1 overflow-y-auto">
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-2 justify-center">
           @for (month of months; track month.name) {
             <div class="month-cell">
               <!-- Month name -->
@@ -116,6 +164,7 @@ function buildMonthData(year: number, month: number): MonthData {
 })
 export class CompactHolidayCalendarComponent implements OnInit {
   private holidayDatesService = inject(HolidayDatesService);
+  private holidayService = inject(HolidayService);
 
   currentYear = new Date().getFullYear();
   today = (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`; })();
@@ -123,8 +172,11 @@ export class CompactHolidayCalendarComponent implements OnInit {
   months: MonthData[] = [];
 
   private holidaySet = signal<Set<string>>(new Set());
-
   holidayCount = computed(() => this.holidaySet().size);
+
+  holidays$: Observable<HolidayData> = this.holidayService.holidays$;
+  editMode = signal(false);
+  editTotal = signal(22);
 
   ngOnInit(): void {
     this.months = Array.from({ length: 12 }, (_, i) => buildMonthData(this.currentYear, i));
@@ -145,4 +197,19 @@ export class CompactHolidayCalendarComponent implements OnInit {
       this.holidayDatesService.addHolidayDate(date);
     }
   }
+
+  startEdit(current: number): void {
+    this.editTotal.set(current);
+    this.editMode.set(true);
+  }
+
+  saveEdit(): void {
+    this.holidayService.updateTotal(this.editTotal());
+    this.editMode.set(false);
+  }
+
+  cancelEdit(): void {
+    this.editMode.set(false);
+  }
+
 }

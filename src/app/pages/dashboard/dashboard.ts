@@ -5,7 +5,6 @@ import { CompactTimerComponent } from '../../components/compact-timer/compact-ti
 import { QuickIntervalInputComponent } from '../../components/quick-interval-input/quick-interval-input';
 import { DailySummaryComponent } from '../../components/daily-summary/daily-summary';
 import { WeeklySummaryComponent } from '../../components/weekly-summary/weekly-summary';
-import { CompactHolidayCounterComponent } from '../../components/compact-holiday-counter/compact-holiday-counter';
 import { CompactHolidayCalendarComponent } from '../../components/compact-holiday-calendar/compact-holiday-calendar';
 import { WeeklyChartComponent } from '../../components/weekly-chart/weekly-chart';
 import { PomodoroTimerComponent } from '../../components/pomodoro-timer/pomodoro-timer';
@@ -21,7 +20,6 @@ import { ReminderNotificationComponent } from '../../components/reminder-notific
     QuickIntervalInputComponent,
     DailySummaryComponent,
     WeeklySummaryComponent,
-    CompactHolidayCounterComponent,
     CompactHolidayCalendarComponent,
     WeeklyChartComponent,
     PomodoroTimerComponent,
@@ -31,13 +29,12 @@ import { ReminderNotificationComponent } from '../../components/reminder-notific
 ],
   template: `
     <div class="h-screen bg-slate-50 overflow-hidden p-4">
-      <!-- Dashboard Grid: 5 cols, 4 rows -->
       <div class="h-full overflow-hidden">
         <div class="h-full grid grid-cols-5 grid-rows-4 gap-4">
 
-          <!-- Col 1, Row 1: Autoround (Margin Config) -->
-          <div class="col-span-1 h-full min-h-0">
-            <app-margin-config />
+          <!-- Col 1, Rows 1-4: Holiday Calendar -->
+          <div class="col-span-1 row-span-4 h-full min-h-0">
+            <app-compact-holiday-calendar />
           </div>
 
           <!-- Col 2, Rows 1-2: Timer / Add Interval (toggle) -->
@@ -79,30 +76,28 @@ import { ReminderNotificationComponent } from '../../components/reminder-notific
             <app-weekly-summary />
           </div>
 
-          <!-- Col 1, Row 2: Lunch Config -->
+          <!-- Cols 2-5, Row 3: Weekly Chart -->
+          <div class="col-span-4 h-full min-h-0">
+            <app-weekly-chart />
+          </div>
+
+          <!-- Col 2, Row 4: Auto round -->
+          <div class="col-span-1 h-full min-h-0">
+            <app-margin-config />
+          </div>
+
+          <!-- Col 3, Row 4: Lunch break -->
           <div class="col-span-1 h-full min-h-0">
             <app-lunch-config />
           </div>
 
-          <!-- Col 1, Row 3: Reminder -->
+          <!-- Col 4, Row 4: Reminder -->
           <div class="col-span-1 h-full min-h-0">
             <app-reminder-notification />
           </div>
 
-          <!-- Col 2-4, Rows 3-4: Weekly Chart -->
-          <div class="col-span-3 row-span-2 h-full min-h-0">
-            <app-weekly-chart />
-          </div>
-
-          <!-- Col 5, Rows 3-4: Holiday Calendar -->
-          <div class="col-span-1 row-span-2 h-full min-h-0">
-            <app-compact-holiday-calendar />
-          </div>
-
-          <!-- Col 1, Row 4: Vacation Days (Holiday Counter) -->
-          <div class="col-span-1 h-full min-h-0">
-            <app-compact-holiday-counter />
-          </div>
+          <!-- Col 5, Row 4: empty -->
+          <div class="col-span-1 h-full min-h-0"></div>
 
         </div>
       </div>

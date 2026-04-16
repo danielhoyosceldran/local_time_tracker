@@ -4,7 +4,6 @@ import { BehaviorSubject } from 'rxjs';
 
 export interface HolidayData {
   total: number;
-  used: number;
 }
 
 @Injectable({
@@ -19,17 +18,17 @@ export class HolidayService {
   private load(): HolidayData {
     const data = localStorage.getItem(this.STORAGE_KEY);
     if (!data) {
-      return { total: 22, used: 0 };
+      return { total: 22 };
     }
     try {
       const parsed = JSON.parse(data);
-      if (typeof parsed.total === 'number' && typeof parsed.used === 'number') {
-        return parsed;
+      if (typeof parsed.total === 'number') {
+        return { total: parsed.total };
       }
     } catch (e) {
       console.warn('Invalid holiday data in localStorage, resetting');
     }
-    return { total: 22, used: 0 };
+    return { total: 22 };
   }
 
   private save(data: HolidayData): void {
@@ -38,12 +37,6 @@ export class HolidayService {
   }
 
   updateTotal(newTotal: number): void {
-    const current = this._holidays$$.getValue();
-    this.save({ ...current, total: newTotal });
-  }
-
-  updateUsed(newUsed: number): void {
-    const current = this._holidays$$.getValue();
-    this.save({ ...current, used: newUsed });
+    this.save({ total: newTotal });
   }
 }
