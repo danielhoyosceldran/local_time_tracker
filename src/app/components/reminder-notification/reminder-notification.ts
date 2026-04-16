@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { KENDO_TIMEPICKER, TimePickerComponent } from '@progress/kendo-angular-dateinputs';
 import { NotificationService } from '../../services/notification.service';
 import { SOUNDS, SoundId, playSound } from '../../shared/sounds';
+import { SoundPickerModalComponent } from '../../shared/sound-picker-modal';
 
 const STORAGE_KEY_ENABLED  = 'timeTrackerReminderEnabled';
 const STORAGE_KEY_TIME     = 'timeTrackerReminderTime';
@@ -29,7 +30,7 @@ function nowTimeString(): string {
 @Component({
   selector: 'app-reminder-notification',
   standalone: true,
-  imports: [FormsModule, KENDO_TIMEPICKER],
+  imports: [FormsModule, KENDO_TIMEPICKER, SoundPickerModalComponent],
   styles: [`
     .switch { position: relative; display: inline-block; width: 36px; height: 20px; }
     .switch input { opacity: 0; width: 0; height: 0; }
@@ -92,63 +93,30 @@ function nowTimeString(): string {
           />
         </div>
 
-        <!-- Sound accordion -->
-        <div class="border border-slate-200 rounded-lg overflow-hidden">
-          <!-- Accordion header -->
-          <button
-            type="button"
-            (click)="soundOpen.set(!soundOpen())"
-            class="w-full flex items-center justify-between px-2 py-1.5 bg-slate-50 hover:bg-slate-100 transition-colors"
-          >
-            <div class="flex items-center gap-1.5">
-              <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M15.536 8.464a5 5 0 010 7.072M12 6v12m0 0l-3-3m3 3l3-3M9 9a3 3 0 000 6"/>
-              </svg>
-              <span class="text-xs font-medium text-slate-600">Sound</span>
-              <span class="text-[10px] text-slate-400 ml-1">{{ selectedSoundLabel() }}</span>
-            </div>
-            <svg
-              class="w-3.5 h-3.5 text-slate-400 transition-transform"
-              [class.rotate-180]="soundOpen()"
-              fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        <!-- Sound -->
+        <button
+          type="button"
+          (click)="soundModalOpen.set(true)"
+          class="w-full flex items-center justify-between px-2 py-1.5 border border-slate-200 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
+        >
+          <div class="flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
             </svg>
-          </button>
+            <span class="text-xs font-medium text-slate-600">Sound</span>
+          </div>
+          <span class="text-xs text-slate-400">{{ selectedSoundLabel() }}</span>
+        </button>
 
-          <!-- Accordion body -->
-          @if (soundOpen()) {
-            <div class="divide-y divide-slate-100">
-              @for (s of sounds; track s.id) {
-                <div class="flex items-center justify-between px-2 py-1 hover:bg-violet-50 transition-colors">
-                  <label class="flex items-center gap-2 cursor-pointer flex-1">
-                    <input
-                      type="radio"
-                      name="reminderSound"
-                      [value]="s.id"
-                      [checked]="selectedSound() === s.id"
-                      (change)="setSound(s.id)"
-                      class="accent-violet-600"
-                    />
-                    <span class="text-xs text-slate-700">{{ s.label }}</span>
-                  </label>
-                  @if (s.id !== 'none') {
-                    <button
-                      type="button"
-                      (click)="previewSound(s.id)"
-                      title="Preview"
-                      class="p-0.5 rounded text-slate-400 hover:text-violet-600 transition-colors"
-                    >
-                      <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z"/>
-                      </svg>
-                    </button>
-                  }
-                </div>
-              }
-            </div>
-          }
-        </div>
+        @if (soundModalOpen()) {
+          <app-sound-picker-modal
+            title="Reminder sound"
+            [current]="selectedSound()"
+            (soundSelected)="setSound($event)"
+            (closed)="soundModalOpen.set(false)"
+          />
+        }
 
       </div>
     </div>
@@ -163,9 +131,7 @@ export class ReminderNotificationComponent implements AfterViewInit, OnDestroy {
   reminderTimeDate  = signal<Date>(timeStringToDate(this.loadStr(STORAGE_KEY_TIME, '09:00')));
   message           = signal<string>(this.loadStr(STORAGE_KEY_MESSAGE, 'Reminder!'));
   selectedSound     = signal<SoundId>(this.loadStr(STORAGE_KEY_SOUND, 'beep') as SoundId);
-  soundOpen         = signal<boolean>(false);
-
-  readonly sounds = SOUNDS;
+  soundModalOpen    = signal<boolean>(false);
 
   selectedSoundLabel() {
     return SOUNDS.find(s => s.id === this.selectedSound())?.label ?? '';

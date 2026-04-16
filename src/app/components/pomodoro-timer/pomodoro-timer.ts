@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { NotificationService } from '../../services/notification.service';
 import { FaviconService } from '../../services/favicon.service';
 import { SOUNDS, SoundId, playSound } from '../../shared/sounds';
+import { SoundPickerModalComponent } from '../../shared/sound-picker-modal';
 
 type PomodoroPhase = 'work' | 'break';
 
@@ -24,7 +25,7 @@ interface PomodoroState {
 @Component({
   selector: 'app-pomodoro-timer',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SoundPickerModalComponent],
   template: `
     <div
       class="rounded-xl border p-3 h-full flex flex-col overflow-y-auto transition-colors duration-300 bg-gradient-to-br"
@@ -132,100 +133,51 @@ interface PomodoroState {
           </div>
 
           <!-- Work sound -->
-          <div class="relative">
+          <div>
             <label class="block text-[10px] text-slate-500 mb-0.5">Work sound</label>
             <button
               type="button"
-              (click)="toggleMenu('work', $event)"
+              (click)="soundModalFor.set('work')"
               class="w-full flex items-center justify-between px-1.5 py-0.5 border border-slate-300 rounded-lg text-xs bg-white hover:bg-slate-50 transition-colors"
             >
               <span class="truncate text-slate-700">{{ soundLabel(workSound()) }}</span>
-              <svg class="w-3 h-3 text-slate-400 shrink-0 ml-1 transition-transform"
-                [class.rotate-180]="soundOpenFor() === 'work'"
-                fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              <svg class="w-3 h-3 text-slate-400 shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
               </svg>
             </button>
-
-            @if (soundOpenFor() === 'work') {
-              <!-- backdrop -->
-              <div class="fixed inset-0 z-40" (click)="closeMenu()"></div>
-              <!-- dropdown -->
-              <div
-                class="absolute left-0 w-36 bg-white border border-slate-200 rounded-lg shadow-lg z-50 overflow-hidden"
-                [class.bottom-full]="dropDirection() === 'up'"
-                [class.mb-1]="dropDirection() === 'up'"
-                [class.top-full]="dropDirection() === 'down'"
-                [class.mt-1]="dropDirection() === 'down'"
-              >
-                @for (s of sounds; track s.id) {
-                  <div class="flex items-center justify-between px-2 py-1 hover:bg-blue-50 transition-colors">
-                    <label class="flex items-center gap-1.5 cursor-pointer flex-1 min-w-0">
-                      <input type="radio" name="pomWorkSound" [value]="s.id"
-                        [checked]="workSound() === s.id"
-                        (change)="setWorkSound(s.id)"
-                        class="accent-blue-600 shrink-0" />
-                      <span class="text-xs text-slate-700 truncate">{{ s.label }}</span>
-                    </label>
-                    @if (s.id !== 'none') {
-                      <button type="button" (click)="preview(s.id)"
-                        class="p-0.5 text-slate-400 hover:text-blue-600 transition-colors shrink-0">
-                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                      </button>
-                    }
-                  </div>
-                }
-              </div>
-            }
           </div>
 
           <!-- Break sound -->
-          <div class="relative">
+          <div>
             <label class="block text-[10px] text-slate-500 mb-0.5">Break sound</label>
             <button
               type="button"
-              (click)="toggleMenu('break', $event)"
+              (click)="soundModalFor.set('break')"
               class="w-full flex items-center justify-between px-1.5 py-0.5 border border-slate-300 rounded-lg text-xs bg-white hover:bg-slate-50 transition-colors"
             >
               <span class="truncate text-slate-700">{{ soundLabel(breakSound()) }}</span>
-              <svg class="w-3 h-3 text-slate-400 shrink-0 ml-1 transition-transform"
-                [class.rotate-180]="soundOpenFor() === 'break'"
-                fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              <svg class="w-3 h-3 text-slate-400 shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
               </svg>
             </button>
-
-            @if (soundOpenFor() === 'break') {
-              <!-- backdrop -->
-              <div class="fixed inset-0 z-40" (click)="closeMenu()"></div>
-              <!-- dropdown -->
-              <div
-                class="absolute left-0 w-36 bg-white border border-slate-200 rounded-lg shadow-lg z-50 overflow-hidden"
-                [class.bottom-full]="dropDirection() === 'up'"
-                [class.mb-1]="dropDirection() === 'up'"
-                [class.top-full]="dropDirection() === 'down'"
-                [class.mt-1]="dropDirection() === 'down'"
-              >
-                @for (s of sounds; track s.id) {
-                  <div class="flex items-center justify-between px-2 py-1 hover:bg-green-50 transition-colors">
-                    <label class="flex items-center gap-1.5 cursor-pointer flex-1 min-w-0">
-                      <input type="radio" name="pomBreakSound" [value]="s.id"
-                        [checked]="breakSound() === s.id"
-                        (change)="setBreakSound(s.id)"
-                        class="accent-green-600 shrink-0" />
-                      <span class="text-xs text-slate-700 truncate">{{ s.label }}</span>
-                    </label>
-                    @if (s.id !== 'none') {
-                      <button type="button" (click)="preview(s.id)"
-                        class="p-0.5 text-slate-400 hover:text-green-600 transition-colors shrink-0">
-                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                      </button>
-                    }
-                  </div>
-                }
-              </div>
-            }
           </div>
+
+          @if (soundModalFor() === 'work') {
+            <app-sound-picker-modal
+              title="Work sound"
+              [current]="workSound()"
+              (soundSelected)="setWorkSound($event)"
+              (closed)="soundModalFor.set(null)"
+            />
+          }
+          @if (soundModalFor() === 'break') {
+            <app-sound-picker-modal
+              title="Break sound"
+              [current]="breakSound()"
+              (soundSelected)="setBreakSound($event)"
+              (closed)="soundModalFor.set(null)"
+            />
+          }
 
         </div>
       }
@@ -243,10 +195,7 @@ export class PomodoroTimerComponent implements OnInit, OnDestroy {
   remainingSeconds = signal(parseInt(localStorage.getItem(POMODORO_WORK_KEY)  || '25', 10) * 60);
   workSound        = signal<SoundId>((localStorage.getItem(POMODORO_SOUND_WORK_KEY)  || 'beep') as SoundId);
   breakSound       = signal<SoundId>((localStorage.getItem(POMODORO_SOUND_BREAK_KEY) || 'beep') as SoundId);
-  soundOpenFor     = signal<'work' | 'break' | null>(null);
-  dropDirection    = signal<'up' | 'down'>('down');
-
-  readonly sounds = SOUNDS;
+  soundModalFor    = signal<'work' | 'break' | null>(null);
 
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private endTime: number | null = null;
@@ -361,23 +310,6 @@ export class PomodoroTimerComponent implements OnInit, OnDestroy {
   setBreakSound(id: SoundId): void {
     this.breakSound.set(id);
     localStorage.setItem(POMODORO_SOUND_BREAK_KEY, id);
-  }
-
-  toggleMenu(for_: 'work' | 'break', event: MouseEvent): void {
-    if (this.soundOpenFor() === for_) {
-      this.soundOpenFor.set(null);
-      return;
-    }
-    // Detect available space to open up or down
-    const btn  = event.currentTarget as HTMLElement;
-    const rect = btn.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom;
-    this.dropDirection.set(spaceBelow >= 180 ? 'down' : 'up');
-    this.soundOpenFor.set(for_);
-  }
-
-  closeMenu(): void {
-    this.soundOpenFor.set(null);
   }
 
   preview(id: SoundId): void {
