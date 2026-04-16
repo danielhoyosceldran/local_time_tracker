@@ -68,10 +68,12 @@ export class DailySummaryComponent {
 
   todaySummary$: Observable<DailySummary | null> = this.timeEntryService.liveTodaySummary$;
 
+  private lunchEnabled = signal(true);
   private lunchHour = signal('14:00');
   private lunchDurationMin = signal(60);
 
   constructor() {
+    this.timeEntryService.lunchEnabled$.subscribe(v => this.lunchEnabled.set(v));
     this.timeEntryService.lunchHour$.subscribe(v => this.lunchHour.set(v));
     this.timeEntryService.lunchDurationMin$.subscribe(v => this.lunchDurationMin.set(v));
   }
@@ -97,7 +99,7 @@ export class DailySummaryComponent {
     const lunchTime = new Date();
     lunchTime.setHours(lh, lm, 0, 0);
 
-    if (now < lunchTime) {
+    if (this.lunchEnabled() && now < lunchTime) {
       totalRemainingMs += this.lunchDurationMin() * 60 * 1000;
     }
 

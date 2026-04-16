@@ -12,6 +12,7 @@ const MARGIN_ENABLED_KEY = 'timeTrackerMarginEnabled';
 const MARGIN_MINUTES_KEY = 'timeTrackerMarginMinutes';
 const LUNCH_HOUR_KEY = 'timeTrackerLunchHour';
 const LUNCH_DURATION_KEY = 'timeTrackerLunchDurationMin';
+const LUNCH_ENABLED_KEY = 'timeTrackerLunchEnabled';
 const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
 
 @Injectable({
@@ -199,6 +200,11 @@ export class TimeEntryService implements OnDestroy {
   }
 
   // --- Lunch Config ---
+  private _lunchEnabled$$ = new BehaviorSubject<boolean>(
+    localStorage.getItem(LUNCH_ENABLED_KEY) !== 'false'
+  );
+  public readonly lunchEnabled$ = this._lunchEnabled$$.asObservable();
+
   private _lunchHour$$ = new BehaviorSubject<string>(
     localStorage.getItem(LUNCH_HOUR_KEY) || '14:00'
   );
@@ -208,6 +214,11 @@ export class TimeEntryService implements OnDestroy {
     parseInt(localStorage.getItem(LUNCH_DURATION_KEY) || '60', 10)
   );
   public readonly lunchDurationMin$ = this._lunchDurationMin$$.asObservable();
+
+  setLunchEnabled(enabled: boolean): void {
+    localStorage.setItem(LUNCH_ENABLED_KEY, String(enabled));
+    this._lunchEnabled$$.next(enabled);
+  }
 
   setLunchHour(hour: string): void {
     localStorage.setItem(LUNCH_HOUR_KEY, hour);

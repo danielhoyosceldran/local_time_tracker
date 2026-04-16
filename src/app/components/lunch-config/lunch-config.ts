@@ -1,5 +1,6 @@
 import { AfterViewInit, Component, inject, signal, ViewChild, ChangeDetectorRef } from '@angular/core';
 
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { KENDO_TIMEPICKER, TimePickerComponent } from '@progress/kendo-angular-dateinputs';
 import { TimeEntryService } from '../../services/time-entry';
@@ -20,15 +21,27 @@ function dateToTimeString(date: Date): string {
 @Component({
   selector: 'app-lunch-config',
   standalone: true,
-  imports: [FormsModule, KENDO_TIMEPICKER],
+  imports: [CommonModule, FormsModule, KENDO_TIMEPICKER],
   template: `
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 h-full flex flex-col overflow-y-auto">
-      <!-- Header -->
-      <div class="flex items-center gap-1.5 mb-2">
-        <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-        </svg>
-        <h3 class="font-semibold text-slate-900 text-sm">Lunch break</h3>
+      <!-- Header + Switch -->
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <h3 class="font-semibold text-slate-900 text-sm">Lunch break</h3>
+        </div>
+        <button
+          (click)="toggleEnabled()"
+          class="relative w-10 h-5 rounded-full transition-colors duration-200"
+          [ngClass]="enabled() ? 'bg-orange-500' : 'bg-slate-300'"
+        >
+          <span
+            class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200"
+            [ngClass]="enabled() ? 'translate-x-5' : 'translate-x-0'"
+          ></span>
+        </button>
       </div>
 
       <!-- Description -->
@@ -70,14 +83,20 @@ export class LunchConfigComponent implements AfterViewInit {
   
   private timeEntryService = inject(TimeEntryService);
 
+  enabled = signal(true);
   lunchHourDate = signal<Date>(timeStringToDate('14:00'));
   lunchDurationMin = signal(60);
 
   constructor(private cdr: ChangeDetectorRef) {
+    this.timeEntryService.lunchEnabled$.subscribe(v => this.enabled.set(v));
     this.timeEntryService.lunchHour$.subscribe(v =>
       this.lunchHourDate.set(timeStringToDate(v))
     );
     this.timeEntryService.lunchDurationMin$.subscribe(v => this.lunchDurationMin.set(v));
+  }
+
+  toggleEnabled(): void {
+    this.timeEntryService.setLunchEnabled(!this.enabled());
   }
 
   ngAfterViewInit() {
