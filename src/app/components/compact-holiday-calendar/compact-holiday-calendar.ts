@@ -1,115 +1,147 @@
 // src/app/components/compact-holiday-calendar/compact-holiday-calendar.ts
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { HolidayDatesService } from '../../services/holiday-dates.service';
-import { Observable } from 'rxjs';
+
+interface DayCell {
+  date: string | null; // 'YYYY-MM-DD' or null for padding
+  day: number | null;
+  isWeekend: boolean;
+}
+
+interface MonthData {
+  name: string;
+  weeks: DayCell[][];
+}
+
+const MONTH_NAMES = [
+  'January','February','March','April','May','June',
+  'July','August','September','October','November','December'
+];
+const DAY_HEADERS = ['M','T','W','T','F','S','S'];
+
+function buildMonthData(year: number, month: number): MonthData {
+  const firstDay = new Date(year, month, 1);
+  // Monday=0 ... Sunday=6
+  const startOffset = (firstDay.getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const cells: DayCell[] = [];
+  for (let i = 0; i < startOffset; i++) {
+    cells.push({ date: null, day: null, isWeekend: false });
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateObj = new Date(year, month, d);
+    const dow = dateObj.getDay(); // 0=Sun
+    const dateStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    cells.push({ date: dateStr, day: d, isWeekend: dow === 0 || dow === 6 });
+  }
+  // Pad to full weeks
+  while (cells.length % 7 !== 0) {
+    cells.push({ date: null, day: null, isWeekend: false });
+  }
+
+  const weeks: DayCell[][] = [];
+  for (let i = 0; i < cells.length; i += 7) {
+    weeks.push(cells.slice(i, i + 7));
+  }
+  return { name: MONTH_NAMES[month], weeks };
+}
 
 @Component({
   selector: 'app-compact-holiday-calendar',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule],
+  styles: [`
+    .month-cell {
+      flex: 1 1 130px;
+      max-width: 180px;
+    }
+  `],
   template: `
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 h-full flex flex-col overflow-y-auto">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3 h-full flex flex-col overflow-hidden">
       <!-- Header -->
-      <div class="flex items-center gap-2 mb-3">
-        <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-        </svg>
-        <h3 class="text-slate-900 font-semibold">Holiday Calendar</h3>
-      </div>
-
-      <!-- Date Input -->
-      <div class="flex gap-2 mb-3">
-        <input
-          type="date"
-          [(ngModel)]="selectedDate"
-          class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-        />
-        <button
-          (click)="addHoliday()"
-          [disabled]="!selectedDate()"
-          class="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition flex items-center gap-1"
-          title="Add holiday"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+      <div class="flex items-center justify-between mb-2 shrink-0">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
           </svg>
-          Add
-        </button>
+          <h3 class="text-slate-900 font-semibold text-sm">Holiday Calendar {{ currentYear }}</h3>
+        </div>
+        <span class="text-xs text-slate-400">{{ holidayCount() }} days</span>
       </div>
 
-      <!-- Holiday List -->
+      <!-- Year grid -->
       <div class="flex-1 overflow-y-auto">
-        @if (holidayDates$ | async; as dates) {
-          @if (dates.length > 0) {
-            <div class="space-y-1.5">
-              @for (date of dates; track date) {
-                <div class="flex items-center justify-between px-3 py-2 bg-teal-50 rounded-lg border border-teal-100 hover:bg-teal-100 transition">
-                  <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                    <span class="text-sm font-medium text-slate-900">
-                      {{ formatDate(date) }}
-                    </span>
-                    <span class="text-xs text-slate-500">
-                      ({{ getDayName(date) }})
-                    </span>
-                  </div>
-                  <button
-                    (click)="removeHoliday(date)"
-                    class="p-1 text-red-500 hover:bg-red-100 rounded transition"
-                    title="Remove"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                  </button>
+        <div class="flex flex-wrap gap-2">
+          @for (month of months; track month.name) {
+            <div class="month-cell">
+              <!-- Month name -->
+              <div class="text-[10px] font-semibold text-slate-600 uppercase tracking-wide mb-1 text-center">
+                {{ month.name }}
+              </div>
+              <!-- Day headers -->
+              <div class="grid grid-cols-7 mb-0.5">
+                @for (d of dayHeaders; track d + $index) {
+                  <div class="text-[8px] text-slate-400 text-center font-medium">{{ d }}</div>
+                }
+              </div>
+              <!-- Weeks -->
+              @for (week of month.weeks; track $index) {
+                <div class="grid grid-cols-7">
+                  @for (cell of week; track $index) {
+                    <div
+                      class="aspect-square flex items-center justify-center text-[9px] rounded-sm select-none transition-colors"
+                      [ngClass]="{
+                        'cursor-default pointer-events-none text-transparent': !cell.date,
+                        'bg-teal-500 text-white font-semibold': cell.date && isHoliday(cell.date),
+                        'text-slate-400': cell.date && !isHoliday(cell.date) && cell.isWeekend,
+                        'text-slate-600 cursor-pointer hover:bg-teal-100': cell.date && !isHoliday(cell.date) && !cell.isWeekend,
+                        'cursor-pointer hover:bg-teal-200': cell.date && isHoliday(cell.date),
+                        'ring-1 ring-slate-400': cell.date === today
+                      }"
+                      (click)="toggleHoliday(cell.date)"
+                    >{{ cell.day }}</div>
+                  }
                 </div>
               }
             </div>
-          } @else {
-            <div class="flex-1 flex items-center justify-center text-slate-400 text-sm">
-              No holidays registered
-            </div>
           }
-        }
+        </div>
       </div>
     </div>
   `,
 })
-export class CompactHolidayCalendarComponent {
+export class CompactHolidayCalendarComponent implements OnInit {
   private holidayDatesService = inject(HolidayDatesService);
 
-  holidayDates$: Observable<string[]> = this.holidayDatesService.holidayDates$;
-  selectedDate = signal<string>('');
+  currentYear = new Date().getFullYear();
+  today = (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`; })();
+  dayHeaders = DAY_HEADERS;
+  months: MonthData[] = [];
 
-  addHoliday(): void {
-    const date = this.selectedDate();
-    if (!date) return;
+  private holidaySet = signal<Set<string>>(new Set());
 
-    const success = this.holidayDatesService.addHolidayDate(date);
-    if (success) {
-      this.selectedDate.set('');
-    }
-  }
+  holidayCount = computed(() => this.holidaySet().size);
 
-  removeHoliday(date: string): void {
-    this.holidayDatesService.removeHolidayDate(date);
-  }
-
-  formatDate(dateStr: string): string {
-    const date = new Date(dateStr + 'T00:00:00');
-    return date.toLocaleDateString('en-GB', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+  ngOnInit(): void {
+    this.months = Array.from({ length: 12 }, (_, i) => buildMonthData(this.currentYear, i));
+    this.holidayDatesService.holidayDates$.subscribe(dates => {
+      this.holidaySet.set(new Set(dates));
     });
   }
 
-  getDayName(dateStr: string): string {
-    const date = new Date(dateStr + 'T00:00:00');
-    return date.toLocaleDateString('en-GB', { weekday: 'short' });
+  isHoliday(date: string | null): boolean {
+    return !!date && this.holidaySet().has(date);
+  }
+
+  toggleHoliday(date: string | null): void {
+    if (!date) return;
+    if (this.holidaySet().has(date)) {
+      this.holidayDatesService.removeHolidayDate(date);
+    } else {
+      this.holidayDatesService.addHolidayDate(date);
+    }
   }
 }
