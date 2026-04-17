@@ -43,10 +43,10 @@ export class MonthlyChartComponent implements OnInit {
           gradient.addColorStop(1, 'rgba(79,70,229,0)');
           return gradient;
         },
-        borderWidth: 1,
+        borderWidth: 1.5,
         tension: 0.4,
         fill: true,
-        pointRadius: 1.5,
+        pointRadius: 3,
         pointHoverRadius: 4,
         pointBackgroundColor: '#4f46e5',
         order: 2
