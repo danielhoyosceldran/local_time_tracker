@@ -6,7 +6,7 @@ import { QuickIntervalInputComponent } from '../../components/quick-interval-inp
 import { DailySummaryComponent } from '../../components/daily-summary/daily-summary';
 import { WeeklySummaryComponent } from '../../components/weekly-summary/weekly-summary';
 import { CompactHolidayCalendarComponent } from '../../components/compact-holiday-calendar/compact-holiday-calendar';
-import { WeeklyChartComponent } from '../../components/weekly-chart/weekly-chart';
+import { MonthlyChartComponent } from '../../components/monthly-chart/monthly-chart';
 import { PomodoroTimerComponent } from '../../components/pomodoro-timer/pomodoro-timer';
 import { MarginConfigComponent } from '../../components/margin-config/margin-config';
 import { LunchConfigComponent } from '../../components/lunch-config/lunch-config';
@@ -21,7 +21,7 @@ import { ReminderNotificationComponent } from '../../components/reminder-notific
     DailySummaryComponent,
     WeeklySummaryComponent,
     CompactHolidayCalendarComponent,
-    WeeklyChartComponent,
+    MonthlyChartComponent,
     PomodoroTimerComponent,
     MarginConfigComponent,
     LunchConfigComponent,
@@ -78,7 +78,7 @@ import { ReminderNotificationComponent } from '../../components/reminder-notific
 
           <!-- Cols 2-5, Row 3: Weekly Chart -->
           <div class="col-span-4 h-full min-h-0">
-            <app-weekly-chart />
+            <app-monthly-chart />
           </div>
 
           <!-- Col 2, Row 4: Auto round -->

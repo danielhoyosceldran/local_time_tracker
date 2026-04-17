@@ -1,4 +1,4 @@
-// src/app/components/weekly-chart/weekly-chart.ts
+// src/app/components/monthly-chart/monthly-chart.ts
 import { Component, inject, OnInit } from '@angular/core';
 
 import { BaseChartDirective } from 'ng2-charts';
@@ -7,12 +7,12 @@ import { TimeEntryService } from '../../services/time-entry';
 import { formatHoursToTime } from '../../utils/format';
 
 @Component({
-  selector: 'app-weekly-chart',
+  selector: 'app-monthly-chart',
   standalone: true,
   imports: [BaseChartDirective],
   template: `
     <div class="bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm shadow-slate-200/50 border border-white p-4 h-full flex flex-col overflow-y-auto">
-      <h3 class="text-slate-800 font-bold mb-3">Weekly Hours</h3>
+      <h3 class="text-slate-800 font-bold mb-3">Monthly Hours</h3>
       <div class="flex-1 min-h-0">
         <canvas
           baseChart
@@ -24,15 +24,15 @@ import { formatHoursToTime } from '../../utils/format';
     </div>
   `,
 })
-export class WeeklyChartComponent implements OnInit {
+export class MonthlyChartComponent implements OnInit {
   private timeEntryService = inject(TimeEntryService);
 
   chartData: ChartConfiguration['data'] = {
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    labels: [],
     datasets: [
       {
         label: 'Hours Worked',
-        data: [0, 0, 0, 0, 0, 0, 0],
+        data: [],
         borderColor: '#4f46e5',
         backgroundColor: (ctx: any) => {
           const chart = ctx.chart;
@@ -43,20 +43,20 @@ export class WeeklyChartComponent implements OnInit {
           gradient.addColorStop(1, 'rgba(79,70,229,0)');
           return gradient;
         },
-        borderWidth: 2,
-        tension: 0.5,
+        borderWidth: 1,
+        tension: 0.4,
         fill: true,
-        pointRadius: 4,
-        pointHoverRadius: 6,
+        pointRadius: 1.5,
+        pointHoverRadius: 4,
         pointBackgroundColor: '#4f46e5',
         order: 2
       },
       {
         label: '8h Target',
-        data: [8, 8, 8, 8, 8, 8, 8],
+        data: [],
         borderColor: 'rgba(99,102,241,0.3)',
         borderWidth: 1,
-        borderDash: [5, 5],
+        borderDash: [4, 4],
         pointRadius: 0,
         pointHoverRadius: 0,
         fill: false,
@@ -95,51 +95,37 @@ export class WeeklyChartComponent implements OnInit {
 
   ngOnInit(): void {
     this.timeEntryService.entries$.subscribe(entries => {
-      const weekData = this.calculateWeekData(entries);
+      const { labels, data } = this.calculateMonthData(entries);
       this.chartData = {
         ...this.chartData,
+        labels,
         datasets: [
-          {
-            ...this.chartData.datasets![0],
-            data: weekData
-          },
-          this.chartData.datasets![1]
+          { ...this.chartData.datasets![0], data },
+          { ...this.chartData.datasets![1], data: labels.map(() => 8) }
         ]
       };
     });
   }
 
-  private calculateWeekData(entries: any[]): number[] {
-    // Get current week boundaries
+  private calculateMonthData(entries: any[]): { labels: string[]; data: number[] } {
     const now = new Date();
-    const dayOfWeek = now.getDay();
-    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + diffToMonday);
-    monday.setHours(0, 0, 0, 0);
+    const hoursPerDay = Array(daysInMonth).fill(0);
 
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    sunday.setHours(23, 59, 59, 999);
+    const monthStart = new Date(year, month, 1).getTime();
+    const monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999).getTime();
 
-    // Initialize 7 days with 0 hours
-    const hoursPerDay = [0, 0, 0, 0, 0, 0, 0];
+    entries
+      .filter(e => e.startTime >= monthStart && e.startTime <= monthEnd)
+      .forEach(entry => {
+        const day = new Date(entry.startTime).getDate() - 1;
+        hoursPerDay[day] += entry.duration / (1000 * 60 * 60);
+      });
 
-    // Filter entries in current week
-    const weekEntries = entries.filter(e =>
-      e.startTime >= monday.getTime() && e.startTime <= sunday.getTime()
-    );
-
-    // Sum hours per day
-    weekEntries.forEach(entry => {
-      const entryDate = new Date(entry.startTime);
-      const dayOfWeek = entryDate.getDay();
-      // Convert Sunday (0) to index 6, Monday (1) to index 0, etc.
-      const index = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-      hoursPerDay[index] += entry.duration / (1000 * 60 * 60);
-    });
-
-    return hoursPerDay;
+    const labels = Array.from({ length: daysInMonth }, (_, i) => String(i + 1));
+    return { labels, data: hoursPerDay };
   }
 }
