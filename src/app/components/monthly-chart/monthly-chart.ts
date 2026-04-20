@@ -12,6 +12,7 @@ import { formatHoursToTime } from '../../utils/format';
   imports: [BaseChartDirective],
   template: `
     <div class="bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm shadow-slate-200/50 border border-white p-4 h-full flex flex-col overflow-y-auto">
+
       <h3 class="text-slate-800 font-bold mb-3">Monthly Hours</h3>
       <div class="flex-1 min-h-0">
         <canvas

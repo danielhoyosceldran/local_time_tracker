@@ -7,6 +7,7 @@ import { DailySummaryComponent } from '../../components/daily-summary/daily-summ
 import { WeeklySummaryComponent } from '../../components/weekly-summary/weekly-summary';
 import { CompactHolidayCalendarComponent } from '../../components/compact-holiday-calendar/compact-holiday-calendar';
 import { MonthlyChartComponent } from '../../components/monthly-chart/monthly-chart';
+import { DashboardNavComponent } from '../../components/dashboard-nav/dashboard-nav';
 import { PomodoroTimerComponent } from '../../components/pomodoro-timer/pomodoro-timer';
 import { MarginConfigComponent } from '../../components/margin-config/margin-config';
 import { LunchConfigComponent } from '../../components/lunch-config/lunch-config';
@@ -22,6 +23,7 @@ import { ReminderNotificationComponent } from '../../components/reminder-notific
     WeeklySummaryComponent,
     CompactHolidayCalendarComponent,
     MonthlyChartComponent,
+    DashboardNavComponent,
     PomodoroTimerComponent,
     MarginConfigComponent,
     LunchConfigComponent,
@@ -30,7 +32,12 @@ import { ReminderNotificationComponent } from '../../components/reminder-notific
   template: `
     <div class="h-screen bg-slate-100 overflow-hidden p-4">
       <div class="h-full overflow-hidden">
-        <div class="h-full grid grid-cols-5 grid-rows-4 gap-4">
+        <div class="h-full grid grid-cols-5 grid-rows-[2rem_1fr_1fr_1fr_1fr] gap-4">
+
+          <!-- Nav row: full width -->
+          <div class="col-span-5 h-full min-h-0">
+            <app-dashboard-nav />
+          </div>
 
           <!-- Col 1, Rows 1-4: Holiday Calendar -->
           <div class="col-span-1 row-span-4 h-full min-h-0">
