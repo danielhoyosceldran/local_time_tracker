@@ -44,7 +44,7 @@ import { ReleaseNotesPanelComponent } from '../release-notes-panel/release-notes
     </div>
 
     @if (panelOpen()) {
-      <app-release-notes-panel (close)="closePanel()" />
+      <app-release-notes-panel [releases]="svc.releases()" (close)="closePanel()" />
     }
   `,
 })

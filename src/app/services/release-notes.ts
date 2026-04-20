@@ -17,7 +17,7 @@ export class ReleaseNotesService {
   hasUnread = signal(false);
 
   load(): void {
-    this.http.get<ReleaseNote[]>('assets/release-notes.json').subscribe(data => {
+    this.http.get<ReleaseNote[]>('release-notes.json').subscribe(data => {
       this.releases.set(data);
       const lastSeen = localStorage.getItem(LS_KEY);
       this.hasUnread.set(lastSeen !== data[0]?.version);
