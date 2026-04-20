@@ -44,7 +44,7 @@ export class MonthlyChartComponent implements OnInit {
           return gradient;
         },
         borderWidth: 1.5,
-        tension: 0.4,
+        tension: 0.2,
         fill: true,
         pointRadius: 3,
         pointHoverRadius: 4,
