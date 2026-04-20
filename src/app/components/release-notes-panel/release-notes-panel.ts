@@ -5,7 +5,7 @@ import { ReleaseNotesService } from '../../services/release-notes';
   selector: 'app-release-notes-panel',
   standalone: true,
   template: `
-    <div class="absolute right-0 top-full mt-2 w-80 bg-white/95 backdrop-blur-xl rounded-2xl shadow-lg border border-slate-200/60 z-50 overflow-hidden">
+    <div class="fixed top-12 right-4 w-80 bg-white/95 backdrop-blur-xl rounded-2xl shadow-lg border border-slate-200/60 z-50 overflow-hidden">
       <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
         <span class="text-sm font-semibold text-slate-700">What's new</span>
         <button (click)="close.emit()" class="text-slate-400 hover:text-slate-600 transition-colors">

@@ -45,7 +45,7 @@ import { Observable, combineLatest } from 'rxjs';
             }
           </div>
           <div class="grid grid-cols-7 gap-1 mt-0.5">
-            @for (d of dayLabels; track d) {
+            @for (d of dayLabels; track $index) {
               <div class="text-[9px] text-slate-400 text-center font-mono">{{ d }}</div>
             }
           </div>
