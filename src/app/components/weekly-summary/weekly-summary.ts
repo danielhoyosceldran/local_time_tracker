@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 import { TimeEntryService } from '../../services/time-entry';
 import { WeeklySummary, GlobalBalance } from '../../models/time-entry.model';
 import { formatHoursToTime } from '../../utils/format';
-import { Observable } from 'rxjs';
+import { Observable, combineLatest } from 'rxjs';
 
 @Component({
   selector: 'app-weekly-summary',
@@ -82,8 +82,8 @@ export class WeeklySummaryComponent {
   private timeEntryService = inject(TimeEntryService);
   private router = inject(Router);
 
-  weekSummary$: Observable<WeeklySummary> = this.timeEntryService.currentWeekSummary$;
-  globalBalance$: Observable<GlobalBalance> = this.timeEntryService.globalBalance$;
+  weekSummary$: Observable<WeeklySummary> = this.timeEntryService.liveWeekSummary$;
+  globalBalance$: Observable<GlobalBalance> = this.timeEntryService.liveGlobalBalance$;
 
   formatHoursToTime = formatHoursToTime;
   Math = Math;
@@ -92,17 +92,22 @@ export class WeeklySummaryComponent {
   dailyHours = signal<number[]>([0, 0, 0, 0, 0, 0, 0]);
 
   constructor() {
-    this.timeEntryService.entries$.subscribe(entries => {
-      const now = new Date();
-      const dayOfWeek = now.getDay();
-      const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-      const monday = new Date(now);
-      monday.setDate(now.getDate() + diffToMonday);
-      monday.setHours(0, 0, 0, 0);
-      const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
-      sunday.setHours(23, 59, 59, 999);
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMonday);
+    monday.setHours(0, 0, 0, 0);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+    const todayIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
 
+    combineLatest([
+      this.timeEntryService.entries$,
+      this.timeEntryService.runningDuration$,
+      this.timeEntryService.runningEntry$
+    ]).subscribe(([entries, runningMs, runningEntry]) => {
       const hours = [0, 0, 0, 0, 0, 0, 0];
       entries
         .filter((e: any) => e.startTime >= monday.getTime() && e.startTime <= sunday.getTime())
@@ -111,6 +116,9 @@ export class WeeklySummaryComponent {
           const idx = dow === 0 ? 6 : dow - 1;
           hours[idx] += e.duration / (1000 * 60 * 60);
         });
+      if (runningEntry && runningMs > 0) {
+        hours[todayIdx] += runningMs / (1000 * 60 * 60);
+      }
       this.dailyHours.set(hours);
     });
   }

@@ -7,7 +7,10 @@
       "mcp__claude_ai_Contex7__resolve-library-id",
       "Bash(npx ng add:*)",
       "Bash(npx ng build:*)",
-      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(list\\(d.get\\(''''devDependencies'''',{}\\).keys\\(\\)\\)\\)\")"
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(list\\(d.get\\(''''devDependencies'''',{}\\).keys\\(\\)\\)\\)\")",
+      "Bash(xargs grep *)",
+      "Bash(grep *)",
+      "Bash(npx tsc *)"
     ],
     "deny": [],
     "ask": []

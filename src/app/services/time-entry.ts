@@ -78,10 +78,14 @@ export class TimeEntryService implements OnDestroy {
     this._currentWeekSummary$$,
     this.runningDuration$
   ]).pipe(
-    map(([summary, runningMs]) => ({
-      ...summary,
-      hoursWorked: summary.hoursWorked + runningMs / (1000 * 60 * 60)
-    }))
+    map(([summary, runningMs]) => {
+      const extraHours = runningMs / (1000 * 60 * 60);
+      return {
+        ...summary,
+        hoursWorked: summary.hoursWorked + extraHours,
+        remainingHours: Math.max(0, summary.remainingHours - extraHours)
+      };
+    })
   );
 
   public readonly liveGlobalBalance$: Observable<GlobalBalance> = combineLatest([
