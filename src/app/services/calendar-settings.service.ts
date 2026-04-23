@@ -19,4 +19,8 @@ export class CalendarSettingsService {
     localStorage.setItem(this.STORAGE_KEY, url);
     this._calendarUrl$$.next(url);
   }
+
+  reloadFromStorage(): void {
+    this._calendarUrl$$.next(this.load());
+  }
 }

@@ -63,6 +63,10 @@ export class HolidayDatesService {
     return this._holidayDates$$.getValue();
   }
 
+  reloadFromStorage(): void {
+    this._holidayDates$$.next(this.loadHolidayDates());
+  }
+
   // Helper: Obtener días de fiesta en un rango de fechas (solo L-V)
   getWeekdayHolidaysInRange(startDate: Date, endDate: Date): string[] {
     const holidays = this._holidayDates$$.getValue();

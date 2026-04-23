@@ -9,8 +9,6 @@ import { CompactHolidayCalendarComponent } from '../../components/compact-holida
 import { MonthlyChartComponent } from '../../components/monthly-chart/monthly-chart';
 import { DashboardNavComponent } from '../../components/dashboard-nav/dashboard-nav';
 import { PomodoroTimerComponent } from '../../components/pomodoro-timer/pomodoro-timer';
-import { MarginConfigComponent } from '../../components/margin-config/margin-config';
-import { LunchConfigComponent } from '../../components/lunch-config/lunch-config';
 import { ReminderNotificationComponent } from '../../components/reminder-notification/reminder-notification';
 
 @Component({
@@ -25,10 +23,8 @@ import { ReminderNotificationComponent } from '../../components/reminder-notific
     MonthlyChartComponent,
     DashboardNavComponent,
     PomodoroTimerComponent,
-    MarginConfigComponent,
-    LunchConfigComponent,
-    ReminderNotificationComponent
-],
+    ReminderNotificationComponent,
+  ],
   template: `
     <div class="h-screen bg-slate-100 overflow-hidden p-4">
       <div class="h-full overflow-hidden">
@@ -83,28 +79,18 @@ import { ReminderNotificationComponent } from '../../components/reminder-notific
             <app-weekly-summary />
           </div>
 
-          <!-- Cols 2-5, Row 3: Weekly Chart -->
+          <!-- Cols 2-5, Row 3: Monthly Chart -->
           <div class="col-span-4 h-full min-h-0">
             <app-monthly-chart />
           </div>
 
-          <!-- Col 2, Row 4: Auto round -->
-          <div class="col-span-1 h-full min-h-0">
-            <app-margin-config />
-          </div>
-
-          <!-- Col 3, Row 4: Lunch break -->
-          <div class="col-span-1 h-full min-h-0">
-            <app-lunch-config />
-          </div>
-
-          <!-- Col 4, Row 4: Reminder -->
+          <!-- Col 2, Row 4: Reminder -->
           <div class="col-span-1 h-full min-h-0">
             <app-reminder-notification />
           </div>
 
-          <!-- Col 5, Row 4: empty -->
-          <div class="col-span-1 h-full min-h-0"></div>
+          <!-- Cols 3-5, Row 4: empty -->
+          <div class="col-span-3 h-full min-h-0"></div>
 
         </div>
       </div>

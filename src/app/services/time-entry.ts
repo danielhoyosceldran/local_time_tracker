@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { TimeEntry, RunningTimeEntry, DailySummary, WeeklySummary, DayGroup, GlobalBalance } from '../models/time-entry.model';
 import { take, tap } from 'rxjs';
 import { HolidayDatesService } from './holiday-dates.service';
+import { SettingsService } from './settings.service';
 
 const STORAGE_KEY = 'timeTrackerEntries';
 const RUNNING_KEY = 'timeTrackerRunningEntry';
@@ -13,13 +14,27 @@ const MARGIN_MINUTES_KEY = 'timeTrackerMarginMinutes';
 const LUNCH_HOUR_KEY = 'timeTrackerLunchHour';
 const LUNCH_DURATION_KEY = 'timeTrackerLunchDurationMin';
 const LUNCH_ENABLED_KEY = 'timeTrackerLunchEnabled';
-const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
+
+const KNOWN_STORAGE_KEYS = [
+  STORAGE_KEY, RUNNING_KEY,
+  MARGIN_ENABLED_KEY, MARGIN_MINUTES_KEY,
+  LUNCH_HOUR_KEY, LUNCH_DURATION_KEY, LUNCH_ENABLED_KEY,
+  'timeTrackerHolidays', 'timeTrackerHolidayDates', 'timeTrackerCalendarUrl',
+  'timeTrackerReminderEnabled', 'timeTrackerReminderTime',
+  'timeTrackerReminderMessage', 'timeTrackerReminderSound',
+  'timeTrackerPomodoroWork', 'timeTrackerPomodoroBreak',
+  'timeTrackerPomodoroSoundWork', 'timeTrackerPomodoroSoundBreak',
+  'timeTrackerPomodoroState',
+  'tt.workdayHours', 'tt.weeklyTargetHours', 'tt.workdays',
+  'tt.firstDayOfWeek', 'tt.timeFormat',
+];
 
 @Injectable({
   providedIn: 'root'
 })
 export class TimeEntryService implements OnDestroy {
   private holidayDatesService = inject(HolidayDatesService);
+  private settings = inject(SettingsService);
   // Single Source of Truth for the history
   private _entries$$ = new BehaviorSubject<TimeEntry[]>(this.loadEntries());
   public readonly entries$: Observable<TimeEntry[]> = this._entries$$.asObservable();
@@ -266,16 +281,17 @@ export class TimeEntryService implements OnDestroy {
     // Apply margin correction if enabled
     if (this._marginEnabled$$.getValue()) {
       const marginMs = this._marginMinutes$$.getValue() * 60 * 1000;
+      const workdayMs = this.settings.workdayMs();
       const today = new Date().toLocaleDateString('en-CA');
       const todayCompletedMs = this._entries$$.getValue()
         .filter(e => new Date(e.startTime).toLocaleDateString('en-CA') === today)
         .reduce((sum, e) => sum + e.duration, 0);
 
       const todayTotalMs = todayCompletedMs + duration;
-      const diff = todayTotalMs - EIGHT_HOURS_MS;
+      const diff = todayTotalMs - workdayMs;
 
       if (Math.abs(diff) <= marginMs) {
-        const targetDuration = EIGHT_HOURS_MS - todayCompletedMs;
+        const targetDuration = workdayMs - todayCompletedMs;
         if (targetDuration > 0) {
           duration = targetDuration;
           endTime = runningEntry.startTime + duration;
@@ -333,19 +349,7 @@ export class TimeEntryService implements OnDestroy {
   // --- New Methods for Weekly/Today Calculations ---
 
   private getCurrentWeekBoundaries(): { start: Date; end: Date } {
-    const now = new Date();
-    const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + diffToMonday);
-    monday.setHours(0, 0, 0, 0);
-
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    sunday.setHours(23, 59, 59, 999);
-
-    return { start: monday, end: sunday };
+    return this.settings.getWeekBoundaries(new Date());
   }
 
   private calculateWeeklySummary(entries: TimeEntry[]): void {
@@ -367,18 +371,19 @@ export class TimeEntryService implements OnDestroy {
     // Calcular horas totales y horas extra
     let totalHoursMs = 0;
     let horasExtraMs = 0;
-    const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
+    const workdayMs = this.settings.workdayMs();
+    const workdayHours = this.settings.workdayHours();
 
     dailyHoursMap.forEach(dailyMs => {
       totalHoursMs += dailyMs;
-      if (dailyMs > EIGHT_HOURS_MS) {
-        horasExtraMs += (dailyMs - EIGHT_HOURS_MS);
+      if (dailyMs > workdayMs) {
+        horasExtraMs += (dailyMs - workdayMs);
       }
     });
 
     // Calcular targetHours ajustado según días de vacaciones
     const holidaysInWeek = this.holidayDatesService.getWeekdayHolidaysInRange(start, end);
-    const targetHours = 40 - (holidaysInWeek.length * 8);
+    const targetHours = this.settings.weeklyTargetHours() - (holidaysInWeek.length * workdayHours);
 
     // Calcular horas pendientes: solo días laborables desde hoy hasta fin de semana
     const toLocalDateStr = (d: Date) =>
@@ -388,11 +393,12 @@ export class TimeEntryService implements OnDestroy {
     todayStart.setHours(0, 0, 0, 0);
 
     const holidaysSet = new Set(holidaysInWeek);
+    const isWorkday = this.settings.isWorkday();
     let remainingWorkingDays = 0;
     const dayIter = new Date(todayStart);
     while (dayIter <= end) {
       const dow = dayIter.getDay();
-      if (dow >= 1 && dow <= 5 && !holidaysSet.has(toLocalDateStr(dayIter))) {
+      if (isWorkday(dow) && !holidaysSet.has(toLocalDateStr(dayIter))) {
         remainingWorkingDays++;
       }
       dayIter.setDate(dayIter.getDate() + 1);
@@ -402,7 +408,7 @@ export class TimeEntryService implements OnDestroy {
       .filter(e => e.startTime >= todayStart.getTime())
       .reduce((sum, e) => sum + e.duration, 0);
 
-    const remainingHours = Math.max(0, remainingWorkingDays * 8 - hoursWorkedFromTodayMs / (1000 * 60 * 60));
+    const remainingHours = Math.max(0, remainingWorkingDays * workdayHours - hoursWorkedFromTodayMs / (1000 * 60 * 60));
 
     this._currentWeekSummary$$.next({
       hoursWorked: totalHoursMs / (1000 * 60 * 60),
@@ -487,8 +493,8 @@ export class TimeEntryService implements OnDestroy {
     // Helper: obtiene el día de la semana (0=Dom, 1=Lun, ..., 6=Sab) en timezone local
     const getLocalDayOfWeek = (ts: number): number => new Date(ts).getDay();
 
-    // Función helper para verificar si un día es L-V
-    const isWeekday = (dayOfWeek: number): boolean => dayOfWeek >= 1 && dayOfWeek <= 5;
+    // Verificar si un día es laborable según la configuración del usuario
+    const isWeekday = this.settings.isWorkday();
 
     // Encontrar la primera entrada (más antigua)
     const sortedEntries = [...entries].sort((a, b) => a.startTime - b.startTime);
@@ -533,10 +539,62 @@ export class TimeEntryService implements OnDestroy {
       }
     });
 
-    // Calcular balance: (horas L-V) - (días L-V × 8) + horas fin de semana
-    const expectedWeekdayHours = weekdayCount * 8;
+    // Calcular balance: (horas L-V) - (días L-V × workday hours) + horas fin de semana
+    const expectedWeekdayHours = weekdayCount * this.settings.workdayHours();
     const balanceHours = (weekdayHours - expectedWeekdayHours) + weekendHours;
 
     this._globalBalance$$.next({ balanceHours });
+  }
+
+  /** Reload in-memory state from localStorage (used after import/reset). */
+  reloadFromStorage(): void {
+    this._entries$$.next(this.loadEntries());
+    this._runningEntry$$.next(this.loadRunningEntry());
+    this._marginEnabled$$.next(localStorage.getItem(MARGIN_ENABLED_KEY) === 'true');
+    this._marginMinutes$$.next(parseInt(localStorage.getItem(MARGIN_MINUTES_KEY) || '10', 10));
+    this._lunchEnabled$$.next(localStorage.getItem(LUNCH_ENABLED_KEY) !== 'false');
+    this._lunchHour$$.next(localStorage.getItem(LUNCH_HOUR_KEY) || '14:00');
+    this._lunchDurationMin$$.next(parseInt(localStorage.getItem(LUNCH_DURATION_KEY) || '60', 10));
+    this.recomputeAll();
+  }
+
+  /** Re-run all derived summaries; used after settings change. */
+  recomputeAll(): void {
+    const entries = this._entries$$.getValue();
+    this.calculateDailySummary(entries);
+    this.calculateWeeklySummary(entries);
+    this.calculateTodaySummary(entries);
+    this.calculateGlobalBalance(entries);
+  }
+
+  // --- Data management ---
+
+  exportAll(): string {
+    const data: Record<string, string | null> = {};
+    for (const key of KNOWN_STORAGE_KEYS) {
+      data[key] = localStorage.getItem(key);
+    }
+    return JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), data }, null, 2);
+  }
+
+  importAll(json: string): void {
+    const parsed = JSON.parse(json);
+    const data = parsed?.data;
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid file shape');
+    }
+    for (const key of KNOWN_STORAGE_KEYS) {
+      if (key in data) {
+        const value = data[key];
+        if (value === null) localStorage.removeItem(key);
+        else localStorage.setItem(key, String(value));
+      }
+    }
+  }
+
+  resetAll(): void {
+    for (const key of KNOWN_STORAGE_KEYS) {
+      localStorage.removeItem(key);
+    }
   }
 }

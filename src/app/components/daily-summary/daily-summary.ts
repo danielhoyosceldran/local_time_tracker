@@ -3,6 +3,7 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { TimeEntryService } from '../../services/time-entry';
+import { SettingsService } from '../../services/settings.service';
 import { formatDuration } from '../../utils/format';
 import { DailySummary } from '../../models/time-entry.model';
 import { Observable } from 'rxjs';
@@ -77,6 +78,7 @@ import { Observable } from 'rxjs';
 export class DailySummaryComponent {
   private timeEntryService = inject(TimeEntryService);
   private router = inject(Router);
+  private settings = inject(SettingsService);
 
   todaySummary$: Observable<DailySummary | null> = this.timeEntryService.liveTodaySummary$;
 
@@ -93,13 +95,11 @@ export class DailySummaryComponent {
   formatDuration = formatDuration;
 
   getProgress(ms: number): number {
-    const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
-    return Math.min((ms / EIGHT_HOURS_MS) * 100, 100);
+    return Math.min((ms / this.settings.workdayMs()) * 100, 100);
   }
 
   getRemaining(ms: number): number {
-    const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
-    return Math.max(EIGHT_HOURS_MS - ms, 0);
+    return Math.max(this.settings.workdayMs() - ms, 0);
   }
 
   getExpectedEndTime(remainingMs: number): string {

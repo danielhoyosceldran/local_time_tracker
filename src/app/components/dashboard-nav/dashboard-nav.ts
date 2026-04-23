@@ -1,18 +1,33 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ReleaseNotesService } from '../../services/release-notes';
 import { ReleaseNotesPanelComponent } from '../release-notes-panel/release-notes-panel';
+import { SettingsModalComponent } from '../settings-modal/settings-modal';
 
 @Component({
   selector: 'app-dashboard-nav',
   standalone: true,
-  imports: [ReleaseNotesPanelComponent],
+  imports: [ReleaseNotesPanelComponent, SettingsModalComponent],
   template: `
     <div class="h-full grid grid-cols-5 gap-4">
       <!-- Left section: col-1, aligned with holiday calendar -->
       <div class="col-span-1 bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm shadow-slate-200/50 border border-white"></div>
 
       <!-- Right section: cols 2-5 -->
-      <div class="col-span-4 bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm shadow-slate-200/50 border border-white flex items-center justify-end px-4 gap-3">
+      <div class="col-span-4 bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm shadow-slate-200/50 border border-white flex items-center px-4 gap-3">
+
+        <!-- Settings button -->
+        <button
+          (click)="toggleSettings()"
+          class="flex items-center text-slate-500 hover:text-slate-800 transition-colors"
+          title="Settings"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+
+        <div class="ml-auto flex items-center gap-3">
 
         <a
           href="https://github.com/danielhoyosceldran/local_time_tracker"
@@ -40,17 +55,30 @@ import { ReleaseNotesPanelComponent } from '../release-notes-panel/release-notes
           }
         </button>
 
+        </div>
       </div>
     </div>
 
     @if (panelOpen()) {
       <app-release-notes-panel [releases]="svc.releases()" (close)="closePanel()" />
     }
+    @if (settingsOpen()) {
+      <app-settings-modal (close)="closeSettings()" />
+    }
   `,
 })
 export class DashboardNavComponent implements OnInit {
   svc = inject(ReleaseNotesService);
   panelOpen = signal(false);
+  settingsOpen = signal(false);
+
+  toggleSettings(): void {
+    this.settingsOpen.update(v => !v);
+  }
+
+  closeSettings(): void {
+    this.settingsOpen.set(false);
+  }
 
   ngOnInit(): void {
     this.svc.load();

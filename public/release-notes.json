@@ -1,27 +1,15 @@
 [
   {
-    "version": "1.3.0",
-    "date": "2026-04-20",
+    "version": "0.1.0-alpha",
+    "date": "2026-04-23",
     "notes": [
-      "New dashboard navigation bar",
-      "Improved monthly chart with gradient and larger points"
-    ]
-  },
-  {
-    "version": "1.2.0",
-    "date": "2026-03-01",
-    "notes": [
-      "Weekly chart redesign",
-      "General dashboard restyling"
-    ]
-  },
-  {
-    "version": "1.1.0",
-    "date": "2026-02-01",
-    "notes": [
-      "Pomodoro timer",
-      "Lunch break configuration",
-      "Rounding margin configuration"
+      "Unified Settings modal opened from the nav gear button",
+      "Sidebar tabs: Work schedule, Tracking, Focus, Data",
+      "Configurable workday: target hours/day, weekly target, workdays, first day of week, time format",
+      "Auto-round, lunch break and Pomodoro settings centralized in the modal",
+      "Save / Cancel flow: changes are buffered and only applied on Save",
+      "Data tab: export, import and reset — applied live without reloading the page",
+      "Reminder keeps running in the background via a dedicated service"
     ]
   }
 ]

@@ -39,4 +39,8 @@ export class HolidayService {
   updateTotal(newTotal: number): void {
     this.save({ total: newTotal });
   }
+
+  reloadFromStorage(): void {
+    this._holidays$$.next(this.load());
+  }
 }
