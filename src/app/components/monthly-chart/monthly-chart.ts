@@ -4,6 +4,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration } from 'chart.js';
 import { TimeEntryService } from '../../services/time-entry';
+import { SettingsService } from '../../services/settings.service';
 import { formatHoursToTime } from '../../utils/format';
 
 @Component({
@@ -27,6 +28,7 @@ import { formatHoursToTime } from '../../utils/format';
 })
 export class MonthlyChartComponent implements OnInit {
   private timeEntryService = inject(TimeEntryService);
+  private settings = inject(SettingsService);
 
   chartData: ChartConfiguration['data'] = {
     labels: [],
@@ -62,6 +64,17 @@ export class MonthlyChartComponent implements OnInit {
         pointHoverRadius: 0,
         fill: false,
         order: 1
+      },
+      {
+        label: 'Monthly Average',
+        data: [],
+        borderColor: 'rgba(34,197,94,0.5)',
+        borderWidth: 1,
+        borderDash: [2, 3],
+        pointRadius: 0,
+        pointHoverRadius: 0,
+        fill: false,
+        order: 0
       }
     ]
   };
@@ -96,19 +109,20 @@ export class MonthlyChartComponent implements OnInit {
 
   ngOnInit(): void {
     this.timeEntryService.entries$.subscribe(entries => {
-      const { labels, data } = this.calculateMonthData(entries);
+      const { labels, data, average } = this.calculateMonthData(entries);
       this.chartData = {
         ...this.chartData,
         labels,
         datasets: [
           { ...this.chartData.datasets![0], data },
-          { ...this.chartData.datasets![1], data: labels.map(() => 8) }
+          { ...this.chartData.datasets![1], data: labels.map(() => 8) },
+          { ...this.chartData.datasets![2], data: labels.map(() => average) }
         ]
       };
     });
   }
 
-  private calculateMonthData(entries: any[]): { labels: string[]; data: number[] } {
+  private calculateMonthData(entries: any[]): { labels: string[]; data: number[]; average: number } {
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth();
@@ -126,7 +140,19 @@ export class MonthlyChartComponent implements OnInit {
         hoursPerDay[day] += entry.duration / (1000 * 60 * 60);
       });
 
+    const isWorkday = this.settings.isWorkday();
+    const isCurrentMonth = now.getFullYear() === year && now.getMonth() === month;
+    const lastDay = isCurrentMonth ? now.getDate() : daysInMonth;
+
+    let totalHours = 0;
+    let workdayCount = 0;
+    for (let d = 1; d <= lastDay; d++) {
+      totalHours += hoursPerDay[d - 1];
+      if (isWorkday(new Date(year, month, d).getDay())) workdayCount++;
+    }
+    const average = workdayCount > 0 ? totalHours / workdayCount : 0;
+
     const labels = Array.from({ length: daysInMonth }, (_, i) => String(i + 1));
-    return { labels, data: hoursPerDay };
+    return { labels, data: hoursPerDay, average };
   }
 }
