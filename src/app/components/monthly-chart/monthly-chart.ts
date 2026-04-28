@@ -5,6 +5,7 @@ import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration } from 'chart.js';
 import { TimeEntryService } from '../../services/time-entry';
 import { SettingsService } from '../../services/settings.service';
+import { HolidayDatesService } from '../../services/holiday-dates.service';
 import { formatHoursToTime } from '../../utils/format';
 
 @Component({
@@ -29,6 +30,7 @@ import { formatHoursToTime } from '../../utils/format';
 export class MonthlyChartComponent implements OnInit {
   private timeEntryService = inject(TimeEntryService);
   private settings = inject(SettingsService);
+  private holidays = inject(HolidayDatesService);
 
   chartData: ChartConfiguration['data'] = {
     labels: [],
@@ -141,14 +143,18 @@ export class MonthlyChartComponent implements OnInit {
       });
 
     const isWorkday = this.settings.isWorkday();
+    const holidaySet = new Set(this.holidays.getHolidayDates());
     const isCurrentMonth = now.getFullYear() === year && now.getMonth() === month;
     const lastDay = isCurrentMonth ? now.getDate() : daysInMonth;
+    const pad = (n: number) => String(n).padStart(2, '0');
 
     let totalHours = 0;
     let workdayCount = 0;
     for (let d = 1; d <= lastDay; d++) {
       totalHours += hoursPerDay[d - 1];
-      if (isWorkday(new Date(year, month, d).getDay())) workdayCount++;
+      const date = new Date(year, month, d);
+      const dateStr = `${year}-${pad(month + 1)}-${pad(d)}`;
+      if (isWorkday(date.getDay()) && !holidaySet.has(dateStr)) workdayCount++;
     }
     const average = workdayCount > 0 ? totalHours / workdayCount : 0;
 
