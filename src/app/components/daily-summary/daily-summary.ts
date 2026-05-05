@@ -1,8 +1,8 @@
 // src/app/components/daily-summary/daily-summary.component.ts
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
-import { Router } from '@angular/router';
 import { TimeEntryService } from '../../services/time-entry';
+import { ViewStateService } from '../../services/view-state.service';
 import { SettingsService } from '../../services/settings.service';
 import { formatDuration } from '../../utils/format';
 import { DailySummary } from '../../models/time-entry.model';
@@ -77,7 +77,7 @@ import { Observable } from 'rxjs';
 })
 export class DailySummaryComponent {
   private timeEntryService = inject(TimeEntryService);
-  private router = inject(Router);
+  private viewState = inject(ViewStateService);
   private settings = inject(SettingsService);
 
   todaySummary$: Observable<DailySummary | null> = this.timeEntryService.liveTodaySummary$;
@@ -120,6 +120,6 @@ export class DailySummaryComponent {
   }
 
   navigateToIntervals(): void {
-    this.router.navigate(['/intervals']);
+    this.viewState.setTab('intervals');
   }
 }

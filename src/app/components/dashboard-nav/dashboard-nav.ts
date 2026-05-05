@@ -2,6 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { ReleaseNotesService } from '../../services/release-notes';
 import { ReleaseNotesPanelComponent } from '../release-notes-panel/release-notes-panel';
 import { SettingsModalComponent } from '../settings-modal/settings-modal';
+import { ViewStateService, LeftPanelTab } from '../../services/view-state.service';
 
 @Component({
   selector: 'app-dashboard-nav',
@@ -10,7 +11,20 @@ import { SettingsModalComponent } from '../settings-modal/settings-modal';
   template: `
     <div class="h-full grid grid-cols-5 gap-4">
       <!-- Left section: col-1, aligned with holiday calendar -->
-      <div class="col-span-1 bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm shadow-slate-200/50 border border-white"></div>
+      <div class="col-span-1 bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm shadow-slate-200/50 border border-white flex items-center px-2 gap-1">
+        <button
+          (click)="setTab('calendar')"
+          [class]="tabClass('calendar')"
+        >
+          Calendar
+        </button>
+        <button
+          (click)="setTab('intervals')"
+          [class]="tabClass('intervals')"
+        >
+          Intervals
+        </button>
+      </div>
 
       <!-- Right section: cols 2-5 -->
       <div class="col-span-4 bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm shadow-slate-200/50 border border-white flex items-center px-4 gap-3">
@@ -69,8 +83,20 @@ import { SettingsModalComponent } from '../settings-modal/settings-modal';
 })
 export class DashboardNavComponent implements OnInit {
   svc = inject(ReleaseNotesService);
+  viewState = inject(ViewStateService);
   panelOpen = signal(false);
   settingsOpen = signal(false);
+
+  setTab(tab: LeftPanelTab): void {
+    this.viewState.setTab(tab);
+  }
+
+  tabClass(tab: LeftPanelTab): string {
+    const base = 'flex-1 px-2 py-1 text-xs font-medium rounded-lg transition-colors';
+    return this.viewState.activeTab() === tab
+      ? `${base} bg-indigo-100 text-indigo-700`
+      : `${base} text-slate-500 hover:text-slate-800 hover:bg-slate-100`;
+  }
 
   toggleSettings(): void {
     this.settingsOpen.update(v => !v);

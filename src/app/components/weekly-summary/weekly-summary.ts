@@ -1,8 +1,8 @@
 // src/app/components/weekly-summary/weekly-summary.ts
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
 import { TimeEntryService } from '../../services/time-entry';
+import { ViewStateService } from '../../services/view-state.service';
 import { WeeklySummary, GlobalBalance } from '../../models/time-entry.model';
 import { formatHoursToTime } from '../../utils/format';
 import { Observable, combineLatest } from 'rxjs';
@@ -80,7 +80,7 @@ import { Observable, combineLatest } from 'rxjs';
 })
 export class WeeklySummaryComponent {
   private timeEntryService = inject(TimeEntryService);
-  private router = inject(Router);
+  private viewState = inject(ViewStateService);
 
   weekSummary$: Observable<WeeklySummary> = this.timeEntryService.liveWeekSummary$;
   globalBalance$: Observable<GlobalBalance> = this.timeEntryService.liveGlobalBalance$;
@@ -138,6 +138,6 @@ export class WeeklySummaryComponent {
   }
 
   navigateToIntervals(): void {
-    this.router.navigate(['/intervals']);
+    this.viewState.setTab('intervals');
   }
 }

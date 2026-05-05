@@ -1,5 +1,5 @@
 // src/app/pages/dashboard/dashboard.ts
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 
 import { CompactTimerComponent } from '../../components/compact-timer/compact-timer';
 import { QuickIntervalInputComponent } from '../../components/quick-interval-input/quick-interval-input';
@@ -10,6 +10,8 @@ import { MonthlyChartComponent } from '../../components/monthly-chart/monthly-ch
 import { DashboardNavComponent } from '../../components/dashboard-nav/dashboard-nav';
 import { PomodoroTimerComponent } from '../../components/pomodoro-timer/pomodoro-timer';
 import { ReminderNotificationComponent } from '../../components/reminder-notification/reminder-notification';
+import { IntervalsViewComponent } from '../../components/intervals-view/intervals-view';
+import { ViewStateService } from '../../services/view-state.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -24,6 +26,7 @@ import { ReminderNotificationComponent } from '../../components/reminder-notific
     DashboardNavComponent,
     PomodoroTimerComponent,
     ReminderNotificationComponent,
+    IntervalsViewComponent,
   ],
   template: `
     <div class="h-screen bg-slate-100 overflow-hidden p-4">
@@ -35,9 +38,13 @@ import { ReminderNotificationComponent } from '../../components/reminder-notific
             <app-dashboard-nav />
           </div>
 
-          <!-- Col 1, Rows 1-4: Holiday Calendar -->
+          <!-- Col 1, Rows 1-4: Calendar / Intervals (tabs in nav) -->
           <div class="col-span-1 row-span-4 h-full min-h-0">
-            <app-compact-holiday-calendar />
+            @if (viewState.activeTab() === 'calendar') {
+              <app-compact-holiday-calendar />
+            } @else {
+              <app-intervals-view />
+            }
           </div>
 
           <!-- Col 2, Rows 1-2: Timer / Add Interval (toggle) -->
@@ -99,4 +106,5 @@ import { ReminderNotificationComponent } from '../../components/reminder-notific
 })
 export class DashboardComponent {
   showTimer = signal(true);
+  viewState = inject(ViewStateService);
 }
