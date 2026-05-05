@@ -2,7 +2,7 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HolidayDatesService } from '../../services/holiday-dates.service';
+import { HolidayDatesService, HolidayType, PresetOption } from '../../services/holiday-dates.service';
 import { HolidayService, HolidayData } from '../../services/holiday.service';
 import { Observable } from 'rxjs';
 
@@ -39,7 +39,6 @@ function buildMonthData(year: number, month: number): MonthData {
     const dateStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     cells.push({ date: dateStr, day: d, isWeekend: dow === 0 || dow === 6 });
   }
-  // Pad to full weeks
   while (cells.length % 7 !== 0) {
     cells.push({ date: null, day: null, isWeekend: false });
   }
@@ -65,7 +64,7 @@ function buildMonthData(year: number, month: number): MonthData {
   template: `
     <div class="bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm shadow-slate-200/50 border border-white p-3 h-full flex flex-col overflow-hidden">
       <!-- Header row -->
-      <div class="flex items-center justify-between mb-2 shrink-0">
+      <div class="flex items-center justify-between mb-2 shrink-0 gap-2 flex-wrap">
         <div class="flex items-center gap-2">
           <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -73,7 +72,38 @@ function buildMonthData(year: number, month: number): MonthData {
           </svg>
           <h3 class="text-slate-800 font-bold text-sm">Holiday Calendar {{ currentYear }}</h3>
         </div>
-        <span class="text-xs text-slate-400 font-mono">{{ holidayCount() }} public</span>
+        <div class="flex items-center gap-2 text-[10px]">
+          <!-- Type toggle -->
+          <div class="flex items-center bg-slate-100 rounded-md p-0.5" title="Type to add when clicking a day">
+            <button
+              type="button"
+              (click)="addType.set('personal')"
+              class="px-2 py-0.5 rounded transition-colors"
+              [ngClass]="addType() === 'personal' ? 'bg-indigo-600 text-white shadow' : 'text-slate-500 hover:text-slate-700'"
+            >Personal</button>
+            <button
+              type="button"
+              (click)="addType.set('public')"
+              class="px-2 py-0.5 rounded transition-colors"
+              [ngClass]="addType() === 'public' ? 'bg-amber-500 text-white shadow' : 'text-slate-500 hover:text-slate-700'"
+            >Public</button>
+          </div>
+
+          <!-- Preset loader -->
+          @if (presets.length > 0) {
+            <select
+              [ngModel]="''"
+              (ngModelChange)="onPresetChange($event)"
+              class="text-[10px] border border-slate-200 rounded-md px-1.5 py-0.5 bg-white text-slate-600 hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-amber-400"
+              title="Load city public holidays for a year"
+            >
+              <option value="" disabled>Load preset…</option>
+              @for (p of presets; track p.city + p.year) {
+                <option [value]="p.city + '|' + p.year">{{ p.city }} {{ p.year }} ({{ p.count }})</option>
+              }
+            </select>
+          }
+        </div>
       </div>
 
       <!-- Vacation Days bar -->
@@ -81,7 +111,7 @@ function buildMonthData(year: number, month: number): MonthData {
         <div class="flex items-center gap-2 mb-2 px-2 py-1.5 bg-indigo-50 rounded-lg border border-indigo-100 shrink-0 text-xs">
           <!-- Remaining badge -->
           <div class="flex items-center gap-1 mr-1">
-            <span class="text-xl font-extrabold font-mono text-indigo-600 leading-none">{{ h.total - holidayCount() }}</span>
+            <span class="text-xl font-extrabold font-mono text-indigo-600 leading-none">{{ h.total - personalCount() }}</span>
             <span class="text-indigo-400 leading-none">left</span>
           </div>
           <div class="w-px h-5 bg-indigo-200"></div>
@@ -115,9 +145,13 @@ function buildMonthData(year: number, month: number): MonthData {
             </button>
           }
           <div class="w-px h-5 bg-indigo-200"></div>
-          <!-- Used (auto-counted from marked days) -->
+          <!-- Personal used (counts toward quota) -->
           <span class="text-slate-500">Used</span>
-          <span class="font-semibold text-orange-600 min-w-[1.25rem] text-center">{{ holidayCount() }}</span>
+          <span class="font-semibold text-orange-600 min-w-[1.25rem] text-center">{{ personalCount() }}</span>
+          <div class="w-px h-5 bg-indigo-200"></div>
+          <!-- Public count (informational) -->
+          <span class="text-slate-500">Public</span>
+          <span class="font-semibold text-amber-600 min-w-[1.25rem] text-center">{{ publicCount() }}</span>
         </div>
       }
 
@@ -144,10 +178,10 @@ function buildMonthData(year: number, month: number): MonthData {
                       class="aspect-square flex items-center justify-center text-[9px] rounded-sm select-none transition-colors"
                       [ngClass]="{
                         'cursor-default pointer-events-none text-transparent': !cell.date,
-                        'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-200': cell.date && isHoliday(cell.date),
+                        'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-200 cursor-pointer hover:bg-indigo-700': cell.date && isPersonal(cell.date),
+                        'bg-amber-500 text-white font-semibold shadow-md shadow-amber-200 cursor-pointer hover:bg-amber-600': cell.date && isPublic(cell.date),
                         'text-slate-300 bg-slate-50/50': cell.date && !isHoliday(cell.date) && cell.isWeekend,
                         'text-slate-600 cursor-pointer hover:bg-indigo-50': cell.date && !isHoliday(cell.date) && !cell.isWeekend,
-                        'cursor-pointer hover:bg-indigo-700': cell.date && isHoliday(cell.date),
                         'ring-2 ring-indigo-500 bg-indigo-50': cell.date === today && !isHoliday(cell.date)
                       }"
                       (click)="toggleHoliday(cell.date)"
@@ -171,8 +205,13 @@ export class CompactHolidayCalendarComponent implements OnInit {
   dayHeaders = DAY_HEADERS;
   months: MonthData[] = [];
 
-  private holidaySet = signal<Set<string>>(new Set());
-  holidayCount = computed(() => this.holidaySet().size);
+  private personalSet = signal<Set<string>>(new Set());
+  private publicSet = signal<Set<string>>(new Set());
+  personalCount = computed(() => this.personalSet().size);
+  publicCount = computed(() => this.publicSet().size);
+
+  addType = signal<HolidayType>('personal');
+  presets: PresetOption[] = [];
 
   holidays$: Observable<HolidayData> = this.holidayService.holidays$;
   editMode = signal(false);
@@ -180,22 +219,37 @@ export class CompactHolidayCalendarComponent implements OnInit {
 
   ngOnInit(): void {
     this.months = Array.from({ length: 12 }, (_, i) => buildMonthData(this.currentYear, i));
-    this.holidayDatesService.holidayDates$.subscribe(dates => {
-      this.holidaySet.set(new Set(dates));
+    this.presets = this.holidayDatesService.listPresets();
+    this.holidayDatesService.store$.subscribe(store => {
+      this.personalSet.set(new Set(store.personal));
+      this.publicSet.set(new Set(store.public));
     });
   }
 
   isHoliday(date: string | null): boolean {
-    return !!date && this.holidaySet().has(date);
+    return !!date && (this.personalSet().has(date) || this.publicSet().has(date));
+  }
+  isPersonal(date: string | null): boolean {
+    return !!date && this.personalSet().has(date);
+  }
+  isPublic(date: string | null): boolean {
+    return !!date && this.publicSet().has(date);
   }
 
   toggleHoliday(date: string | null): void {
     if (!date) return;
-    if (this.holidaySet().has(date)) {
+    if (this.isHoliday(date)) {
       this.holidayDatesService.removeHolidayDate(date);
     } else {
-      this.holidayDatesService.addHolidayDate(date);
+      this.holidayDatesService.addHolidayDate(date, this.addType());
     }
+  }
+
+  onPresetChange(value: string): void {
+    if (!value) return;
+    const [city, year] = value.split('|');
+    if (!city || !year) return;
+    this.holidayDatesService.loadPreset(city, year);
   }
 
   startEdit(current: number): void {
