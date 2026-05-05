@@ -175,15 +175,7 @@ function buildMonthData(year: number, month: number): MonthData {
                 <div class="grid grid-cols-7">
                   @for (cell of week; track $index) {
                     <div
-                      class="aspect-square flex items-center justify-center text-[9px] rounded-sm select-none transition-colors"
-                      [ngClass]="{
-                        'cursor-default pointer-events-none text-transparent': !cell.date,
-                        'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-200 cursor-pointer hover:bg-indigo-700': cell.date && isPersonal(cell.date),
-                        'bg-amber-500 text-white font-semibold shadow-md shadow-amber-200 cursor-pointer hover:bg-amber-600': cell.date && isPublic(cell.date),
-                        'text-slate-300 bg-slate-50/50': cell.date && !isHoliday(cell.date) && cell.isWeekend,
-                        'text-slate-600 cursor-pointer hover:bg-indigo-50': cell.date && !isHoliday(cell.date) && !cell.isWeekend,
-                        'ring-2 ring-indigo-500 bg-indigo-50': cell.date === today && !isHoliday(cell.date)
-                      }"
+                      [class]="cellClass(cell)"
                       (click)="toggleHoliday(cell.date)"
                     >{{ cell.day }}</div>
                   }
@@ -234,6 +226,26 @@ export class CompactHolidayCalendarComponent implements OnInit {
   }
   isPublic(date: string | null): boolean {
     return !!date && this.publicSet().has(date);
+  }
+
+  cellClass(cell: DayCell): string {
+    const base = 'aspect-square flex items-center justify-center text-[9px] rounded-sm select-none transition-colors';
+    if (!cell.date) {
+      return `${base} cursor-default pointer-events-none text-transparent`;
+    }
+    if (this.personalSet().has(cell.date)) {
+      return `${base} bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-200 cursor-pointer hover:bg-indigo-700`;
+    }
+    if (this.publicSet().has(cell.date)) {
+      return `${base} bg-amber-500 text-white font-semibold shadow-md shadow-amber-200 cursor-pointer hover:bg-amber-600`;
+    }
+    if (cell.date === this.today) {
+      return `${base} text-slate-600 cursor-pointer ring-2 ring-indigo-500 bg-indigo-50`;
+    }
+    if (cell.isWeekend) {
+      return `${base} text-slate-300 bg-slate-50/50`;
+    }
+    return `${base} text-slate-600 cursor-pointer hover:bg-indigo-50`;
   }
 
   toggleHoliday(date: string | null): void {
