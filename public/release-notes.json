@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.2.0-alpha",
+    "date": "2026-05-05",
+    "notes": [
+      "Holiday calendar distinguishes personal vacation days (indigo) from public holidays (amber)",
+      "Both types are discounted from hour counters; only personal days count toward the yearly quota",
+      "Type toggle in the calendar header chooses what gets added on click",
+      "Load preset dropdown imports a city's public holidays for a year (Barcelona 2026 included)",
+      "City/year presets are editable in src/app/data/public-holidays.ts"
+    ]
+  },
+  {
     "version": "0.1.0-alpha",
     "date": "2026-04-23",
     "notes": [
