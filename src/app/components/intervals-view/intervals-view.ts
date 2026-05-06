@@ -3,9 +3,22 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { KENDO_DATETIMEPICKER } from '@progress/kendo-angular-dateinputs';
 import { TimeEntryService } from '../../services/time-entry';
+import { SettingsService } from '../../services/settings.service';
+import { HolidayDatesService } from '../../services/holiday-dates.service';
 import { DayGroup, TimeEntry } from '../../models/time-entry.model';
-import { formatDuration } from '../../utils/format';
-import { Observable, take } from 'rxjs';
+import { formatDuration, formatHoursToTime } from '../../utils/format';
+import { Observable, combineLatest, map, take } from 'rxjs';
+
+interface WeekGroup {
+  weekKey: string;
+  weekNumber: number;
+  year: number;
+  startDate: Date;
+  endDate: Date;
+  days: DayGroup[];
+  hoursWorked: number;
+  targetHours: number;
+}
 
 @Component({
   selector: 'app-intervals-view',
@@ -17,9 +30,9 @@ import { Observable, take } from 'rxjs';
       <div class="flex items-center justify-between px-3 py-2 border-b border-slate-100 shrink-0">
         <div class="flex gap-1">
           <button
-            (click)="expandAll()"
+            (click)="expandAllWeeks()"
             class="px-2 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition"
-            title="Expand all"
+            title="Expand all weeks"
           >
             Expand
           </button>
@@ -42,137 +55,167 @@ import { Observable, take } from 'rxjs';
         </button>
       </div>
 
-      <!-- Day groups -->
-      <div class="flex-1 min-h-0 overflow-y-auto p-2 space-y-2">
-        @if (dayGroups$ | async; as dayGroups) {
-          @if (dayGroups.length === 0) {
+      <!-- Week groups -->
+      <div class="flex-1 min-h-0 overflow-y-auto p-2 space-y-12">
+        @if (weekGroups$ | async; as weeks) {
+          @if (weeks.length === 0) {
             <div class="text-center text-slate-500 text-sm py-8">
               No time entries yet.
             </div>
           } @else {
-            @for (day of dayGroups; track day.date) {
-              <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
-                <button
-                  (click)="toggleDay(day.date)"
-                  class="w-full px-3 py-2 flex items-center justify-between hover:bg-slate-50 transition gap-2"
-                >
-                  <div class="flex items-center gap-2 min-w-0 flex-1">
-                    <svg
-                      class="w-4 h-4 text-slate-400 transition-transform shrink-0"
-                      [class.rotate-90]="expandedDays().has(day.date)"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                    </svg>
-                    <div class="min-w-0 text-left">
-                      <div class="text-xs font-semibold text-slate-900 truncate">{{ day.date | date:'mediumDate' }}</div>
-                      <div class="text-[10px] text-slate-500">{{ day.entries.length }} interval{{ day.entries.length === 1 ? '' : 's' }}</div>
+            @for (week of weeks; track week.weekKey) {
+              <div>
+                <!-- Week title -->
+                <div class="flex items-end justify-between gap-2 px-1 pb-1.5 mb-1.5 border-b-2 border-emerald-200">
+                  <div class="min-w-0">
+                    <div class="text-sm font-bold text-slate-900">
+                      Week {{ week.weekNumber }} · {{ week.year }}
+                    </div>
+                    <div class="text-[10px] text-slate-500">
+                      {{ week.startDate | date:'mediumDate' }} – {{ week.endDate | date:'mediumDate' }}
                     </div>
                   </div>
-                  <div class="text-sm font-bold font-mono text-indigo-600 shrink-0">
-                    {{ formatDuration(day.totalDurationMs) }}
+                  <div class="text-right shrink-0">
+                    <div class="text-sm font-bold font-mono"
+                         [class.text-emerald-600]="week.hoursWorked >= week.targetHours"
+                         [class.text-indigo-600]="week.hoursWorked < week.targetHours">
+                      {{ formatHoursToTime(week.hoursWorked) }}
+                      <span class="text-slate-400 font-normal">/</span>
+                      {{ formatHoursToTime(week.targetHours) }}
+                    </div>
+                    <div class="text-[10px] text-slate-500">
+                      {{ week.days.length }} day{{ week.days.length === 1 ? '' : 's' }}
+                    </div>
                   </div>
-                </button>
+                </div>
 
-                @if (expandedDays().has(day.date)) {
-                  <div class="border-t border-slate-100">
-                    @for (entry of day.entries; track entry.id) {
-                      <div class="px-3 py-2 border-b border-slate-50 last:border-b-0 hover:bg-slate-50">
-                        @if (editingEntry() === entry.id) {
-                          <div class="space-y-2">
-                            <input
-                              type="text"
-                              [ngModel]="editTitle()"
-                              (ngModelChange)="editTitle.set($event)"
-                              placeholder="Title"
-                              class="w-full px-2 py-1 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
-                            />
-                            <textarea
-                              [ngModel]="editDescription()"
-                              (ngModelChange)="editDescription.set($event)"
-                              rows="2"
-                              placeholder="Description"
-                              class="w-full px-2 py-1 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
-                            ></textarea>
-                            <div class="space-y-1">
-                              <kendo-datetimepicker
-                                [value]="editStart()"
-                                (valueChange)="editStart.set($event)"
-                                [format]="'dd/MM/yyyy HH:mm'"
-                                [fillMode]="'outline'"
-                              ></kendo-datetimepicker>
-                              <kendo-datetimepicker
-                                [value]="editEnd()"
-                                (valueChange)="editEnd.set($event)"
-                                [format]="'dd/MM/yyyy HH:mm'"
-                                [fillMode]="'outline'"
-                              ></kendo-datetimepicker>
-                            </div>
-                            <div class="flex justify-end gap-1">
-                              <button
-                                (click)="cancelEdit()"
-                                class="px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 rounded transition"
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                (click)="saveEdit(entry.id)"
-                                class="px-2 py-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded transition"
-                              >
-                                Save
-                              </button>
+                <div class="space-y-2">
+                  @for (day of week.days; track day.date) {
+                    <div class="bg-white rounded-md border border-slate-200 overflow-hidden">
+                        <button
+                          (click)="toggleDay(day.date)"
+                          class="w-full px-3 py-2 flex items-center justify-between hover:bg-slate-50 transition gap-2"
+                        >
+                          <div class="flex items-center gap-2 min-w-0 flex-1">
+                            <svg
+                              class="w-4 h-4 text-slate-400 transition-transform shrink-0"
+                              [class.rotate-90]="expandedDays().has(day.date)"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                            <div class="min-w-0 text-left">
+                              <div class="text-xs font-semibold text-slate-900 truncate">{{ day.date | date:'mediumDate' }}</div>
+                              <div class="text-[10px] text-slate-500">{{ day.entries.length }} interval{{ day.entries.length === 1 ? '' : 's' }}</div>
                             </div>
                           </div>
-                        } @else {
-                          <div class="flex items-start justify-between gap-2">
-                            <div class="flex-1 min-w-0">
-                              <div class="text-xs font-semibold text-slate-900 truncate">
-                                {{ entry.title || '(No title)' }}
+                          <div class="text-sm font-bold font-mono text-indigo-600 shrink-0">
+                            {{ formatDuration(day.totalDurationMs) }}
+                          </div>
+                        </button>
+
+                        @if (expandedDays().has(day.date)) {
+                          <div class="border-t border-slate-100">
+                            @for (entry of day.entries; track entry.id) {
+                              <div class="px-3 py-2 border-b border-slate-50 last:border-b-0 hover:bg-slate-50">
+                                @if (editingEntry() === entry.id) {
+                                  <div class="space-y-2">
+                                    <input
+                                      type="text"
+                                      [ngModel]="editTitle()"
+                                      (ngModelChange)="editTitle.set($event)"
+                                      placeholder="Title"
+                                      class="w-full px-2 py-1 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                                    />
+                                    <textarea
+                                      [ngModel]="editDescription()"
+                                      (ngModelChange)="editDescription.set($event)"
+                                      rows="2"
+                                      placeholder="Description"
+                                      class="w-full px-2 py-1 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                                    ></textarea>
+                                    <div class="space-y-1">
+                                      <kendo-datetimepicker
+                                        [value]="editStart()"
+                                        (valueChange)="editStart.set($event)"
+                                        [format]="'dd/MM/yyyy HH:mm'"
+                                        [fillMode]="'outline'"
+                                      ></kendo-datetimepicker>
+                                      <kendo-datetimepicker
+                                        [value]="editEnd()"
+                                        (valueChange)="editEnd.set($event)"
+                                        [format]="'dd/MM/yyyy HH:mm'"
+                                        [fillMode]="'outline'"
+                                      ></kendo-datetimepicker>
+                                    </div>
+                                    <div class="flex justify-end gap-1">
+                                      <button
+                                        (click)="cancelEdit()"
+                                        class="px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 rounded transition"
+                                      >
+                                        Cancel
+                                      </button>
+                                      <button
+                                        (click)="saveEdit(entry.id)"
+                                        class="px-2 py-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded transition"
+                                      >
+                                        Save
+                                      </button>
+                                    </div>
+                                  </div>
+                                } @else {
+                                  <div class="flex items-start justify-between gap-2">
+                                    <div class="flex-1 min-w-0">
+                                      <div class="text-xs font-semibold text-slate-900 truncate">
+                                        {{ entry.title || '(No title)' }}
+                                      </div>
+                                      @if (entry.description) {
+                                        <div class="text-[11px] text-slate-600 truncate">
+                                          {{ entry.description }}
+                                        </div>
+                                      }
+                                      <div class="flex items-center gap-1 text-[10px] text-slate-500 mt-0.5">
+                                        <span>{{ entry.startTime | date:'shortTime' }}</span>
+                                        <span>→</span>
+                                        <span>{{ entry.endTime | date:'shortTime' }}</span>
+                                      </div>
+                                    </div>
+                                    <div class="flex flex-col items-end gap-1 shrink-0">
+                                      <div class="text-xs font-bold font-mono text-slate-900">
+                                        {{ formatDuration(entry.duration) }}
+                                      </div>
+                                      <div class="flex gap-0.5">
+                                        <button
+                                          (click)="startEdit(entry)"
+                                          class="p-1 text-indigo-600 hover:bg-indigo-50 rounded transition"
+                                          title="Edit"
+                                        >
+                                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                          </svg>
+                                        </button>
+                                        <button
+                                          (click)="deleteEntry(entry.id)"
+                                          class="p-1 text-red-600 hover:bg-red-50 rounded transition"
+                                          title="Delete"
+                                        >
+                                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                          </svg>
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                }
                               </div>
-                              @if (entry.description) {
-                                <div class="text-[11px] text-slate-600 truncate">
-                                  {{ entry.description }}
-                                </div>
-                              }
-                              <div class="flex items-center gap-1 text-[10px] text-slate-500 mt-0.5">
-                                <span>{{ entry.startTime | date:'shortTime' }}</span>
-                                <span>→</span>
-                                <span>{{ entry.endTime | date:'shortTime' }}</span>
-                              </div>
-                            </div>
-                            <div class="flex flex-col items-end gap-1 shrink-0">
-                              <div class="text-xs font-bold font-mono text-slate-900">
-                                {{ formatDuration(entry.duration) }}
-                              </div>
-                              <div class="flex gap-0.5">
-                                <button
-                                  (click)="startEdit(entry)"
-                                  class="p-1 text-indigo-600 hover:bg-indigo-50 rounded transition"
-                                  title="Edit"
-                                >
-                                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                  </svg>
-                                </button>
-                                <button
-                                  (click)="deleteEntry(entry.id)"
-                                  class="p-1 text-red-600 hover:bg-red-50 rounded transition"
-                                  title="Delete"
-                                >
-                                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                  </svg>
-                                </button>
-                              </div>
-                            </div>
+                            }
                           </div>
                         }
                       </div>
                     }
                   </div>
-                }
               </div>
             }
           }
@@ -183,9 +226,17 @@ import { Observable, take } from 'rxjs';
 })
 export class IntervalsViewComponent {
   private timeEntryService = inject(TimeEntryService);
+  private settings = inject(SettingsService);
+  private holidayDatesService = inject(HolidayDatesService);
 
-  dayGroups$: Observable<DayGroup[]> = this.timeEntryService.getEntriesGroupedByDay();
+  weekGroups$: Observable<WeekGroup[]> = combineLatest([
+    this.timeEntryService.entries$,
+    this.holidayDatesService.holidayDates$
+  ]).pipe(
+    map(([entries]) => this.buildWeekGroups(entries))
+  );
 
+  expandedWeeks = signal(new Set<string>());
   expandedDays = signal(new Set<string>());
   editingEntry = signal<string | null>(null);
   editTitle = signal<string | null>(null);
@@ -194,6 +245,94 @@ export class IntervalsViewComponent {
   editEnd = signal<Date | null>(null);
 
   formatDuration = formatDuration;
+  formatHoursToTime = formatHoursToTime;
+
+  constructor() {
+    // Default: expand current week
+    const currentKey = this.weekKeyFor(new Date());
+    this.expandedWeeks.set(new Set([currentKey]));
+  }
+
+  private buildWeekGroups(entries: TimeEntry[]): WeekGroup[] {
+    if (entries.length === 0) return [];
+
+    // Group entries by day first
+    const dayMap = new Map<string, TimeEntry[]>();
+    entries.forEach(entry => {
+      const dateKey = new Date(entry.startTime).toLocaleDateString('en-CA');
+      if (!dayMap.has(dateKey)) dayMap.set(dateKey, []);
+      dayMap.get(dateKey)!.push(entry);
+    });
+
+    // Group days by week
+    const weekMap = new Map<string, { startDate: Date; endDate: Date; days: DayGroup[] }>();
+    dayMap.forEach((dayEntries, dateKey) => {
+      const refDate = new Date(dateKey + 'T12:00:00');
+      const { start, end } = this.settings.getWeekBoundaries(refDate);
+      const key = this.weekKeyFromDate(start);
+      if (!weekMap.has(key)) {
+        weekMap.set(key, { startDate: start, endDate: end, days: [] });
+      }
+      weekMap.get(key)!.days.push({
+        date: dateKey,
+        entries: dayEntries.sort((a, b) => a.startTime - b.startTime),
+        totalDurationMs: dayEntries.reduce((sum, e) => sum + e.duration, 0)
+      });
+    });
+
+    const workdayHours = this.settings.workdayHours();
+    const weeklyTarget = this.settings.weeklyTargetHours();
+
+    const groups: WeekGroup[] = [];
+    weekMap.forEach((data, key) => {
+      data.days.sort((a, b) => b.date.localeCompare(a.date));
+
+      const hoursWorked = data.days.reduce((s, d) => s + d.totalDurationMs, 0) / (1000 * 60 * 60);
+      const holidaysInWeek = this.holidayDatesService.getWeekdayHolidaysInRange(data.startDate, data.endDate);
+      const targetHours = Math.max(0, weeklyTarget - holidaysInWeek.length * workdayHours);
+
+      const { year, week } = this.isoWeek(data.startDate);
+      groups.push({
+        weekKey: key,
+        weekNumber: week,
+        year,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        days: data.days,
+        hoursWorked,
+        targetHours
+      });
+    });
+
+    groups.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
+    return groups;
+  }
+
+  private weekKeyFor(date: Date): string {
+    const { start } = this.settings.getWeekBoundaries(date);
+    return this.weekKeyFromDate(start);
+  }
+
+  private weekKeyFromDate(start: Date): string {
+    return start.toLocaleDateString('en-CA');
+  }
+
+  private isoWeek(d: Date): { year: number; week: number } {
+    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNum = date.getUTCDay() || 7;
+    date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+    const week = Math.ceil(((+date - +yearStart) / 86400000 + 1) / 7);
+    return { year: date.getUTCFullYear(), week };
+  }
+
+  toggleWeek(key: string): void {
+    this.expandedWeeks.update(set => {
+      const next = new Set(set);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
 
   toggleDay(date: string): void {
     this.expandedDays.update(set => {
@@ -203,13 +342,14 @@ export class IntervalsViewComponent {
     });
   }
 
-  expandAll(): void {
-    this.dayGroups$.pipe(take(1)).subscribe(groups => {
-      this.expandedDays.set(new Set(groups.map(g => g.date)));
+  expandAllWeeks(): void {
+    this.weekGroups$.pipe(take(1)).subscribe(groups => {
+      this.expandedWeeks.set(new Set(groups.map(g => g.weekKey)));
     });
   }
 
   collapseAll(): void {
+    this.expandedWeeks.set(new Set());
     this.expandedDays.set(new Set());
   }
 
