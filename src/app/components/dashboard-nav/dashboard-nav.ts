@@ -1,13 +1,14 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
-import { ReleaseNotesService } from '../../services/release-notes';
+import { Component, effect, inject, OnInit, signal } from '@angular/core';
+import { ReleaseNote, ReleaseNotesService } from '../../services/release-notes';
 import { ReleaseNotesPanelComponent } from '../release-notes-panel/release-notes-panel';
+import { ReleaseNotesModalComponent } from '../release-notes-modal/release-notes-modal';
 import { SettingsModalComponent } from '../settings-modal/settings-modal';
 import { ViewStateService, LeftPanelTab } from '../../services/view-state.service';
 
 @Component({
   selector: 'app-dashboard-nav',
   standalone: true,
-  imports: [ReleaseNotesPanelComponent, SettingsModalComponent],
+  imports: [ReleaseNotesPanelComponent, ReleaseNotesModalComponent, SettingsModalComponent],
   template: `
     <div class="h-full grid grid-cols-5 gap-4">
       <!-- Left section: col-1, aligned with holiday calendar -->
@@ -76,6 +77,9 @@ import { ViewStateService, LeftPanelTab } from '../../services/view-state.servic
     @if (panelOpen()) {
       <app-release-notes-panel [releases]="svc.releases()" (close)="closePanel()" />
     }
+    @if (modalOpen()) {
+      <app-release-notes-modal [releases]="modalReleases()" (close)="closeModal()" />
+    }
     @if (settingsOpen()) {
       <app-settings-modal (close)="closeSettings()" />
     }
@@ -86,6 +90,25 @@ export class DashboardNavComponent implements OnInit {
   viewState = inject(ViewStateService);
   panelOpen = signal(false);
   settingsOpen = signal(false);
+  modalOpen = signal(false);
+  modalReleases = signal<ReleaseNote[]>([]);
+  private modalShown = false;
+
+  constructor() {
+    effect(() => {
+      const unread = this.svc.unreadReleases();
+      if (!this.modalShown && unread.length > 0) {
+        this.modalShown = true;
+        this.modalReleases.set(unread);
+        this.modalOpen.set(true);
+      }
+    });
+  }
+
+  closeModal(): void {
+    this.modalOpen.set(false);
+    this.svc.markAllRead();
+  }
 
   setTab(tab: LeftPanelTab): void {
     this.viewState.setTab(tab);
