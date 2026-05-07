@@ -171,11 +171,11 @@ function buildMonthData(year: number, month: number): MonthData {
                 }
               </div>
               <!-- Weeks -->
-              @for (week of month.weeks; track $index) {
+              @for (week of month.weeks; track $index; let wi = $index) {
                 <div class="grid grid-cols-7">
                   @for (cell of week; track $index) {
                     <div
-                      [class]="cellClass(cell)"
+                      [class]="cellClass(cell, month.weeks, wi, $index)"
                       (click)="toggleHoliday(cell.date)"
                     >{{ cell.day }}</div>
                   }
@@ -228,24 +228,41 @@ export class CompactHolidayCalendarComponent implements OnInit {
     return !!date && this.publicSet().has(date);
   }
 
-  cellClass(cell: DayCell): string {
-    const base = 'aspect-square flex items-center justify-center text-[9px] rounded-sm select-none transition-colors';
+  private cellType(cell: DayCell): 'personal' | 'public' | null {
+    if (!cell.date) return null;
+    if (this.personalSet().has(cell.date)) return 'personal';
+    if (this.publicSet().has(cell.date)) return 'public';
+    return null;
+  }
+
+  cellClass(cell: DayCell, weeks: DayCell[][], wi: number, di: number): string {
+    const baseCore = 'aspect-square flex items-center justify-center text-[9px] select-none transition-colors';
     if (!cell.date) {
-      return `${base} cursor-default pointer-events-none text-transparent`;
+      return `${baseCore} rounded-sm cursor-default pointer-events-none text-transparent`;
     }
-    if (this.personalSet().has(cell.date)) {
-      return `${base} bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-200 cursor-pointer hover:bg-indigo-700`;
-    }
-    if (this.publicSet().has(cell.date)) {
-      return `${base} bg-amber-500 text-white font-semibold shadow-md shadow-amber-200 cursor-pointer hover:bg-amber-600`;
+    const type = this.cellType(cell);
+    if (type) {
+      const week = weeks[wi];
+      const left = di > 0 && this.cellType(week[di - 1]) !== null;
+      const right = di < week.length - 1 && this.cellType(week[di + 1]) !== null;
+      const up = wi > 0 && this.cellType(weeks[wi - 1][di]) !== null;
+      const down = wi < weeks.length - 1 && this.cellType(weeks[wi + 1][di]) !== null;
+      const tl = left || up ? '' : 'rounded-tl-sm';
+      const tr = right || up ? '' : 'rounded-tr-sm';
+      const bl = left || down ? '' : 'rounded-bl-sm';
+      const br = right || down ? '' : 'rounded-br-sm';
+      const colors = type === 'personal'
+        ? 'bg-indigo-600 text-white font-semibold cursor-pointer hover:bg-indigo-700'
+        : 'bg-amber-500 text-white font-semibold cursor-pointer hover:bg-amber-600';
+      return `${baseCore} ${tl} ${tr} ${bl} ${br} ${colors}`.replace(/\s+/g, ' ').trim();
     }
     if (cell.date === this.today) {
-      return `${base} text-slate-600 cursor-pointer ring-2 ring-indigo-500 bg-indigo-50`;
+      return `${baseCore} rounded-sm text-slate-600 cursor-pointer ring-2 ring-indigo-500 bg-indigo-50`;
     }
     if (cell.isWeekend) {
-      return `${base} text-slate-300 bg-slate-50/50`;
+      return `${baseCore} rounded-sm text-slate-300 bg-slate-50/50`;
     }
-    return `${base} text-slate-600 cursor-pointer hover:bg-indigo-50`;
+    return `${baseCore} rounded-sm text-slate-600 cursor-pointer hover:bg-indigo-50`;
   }
 
   toggleHoliday(date: string | null): void {
