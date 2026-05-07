@@ -5,6 +5,7 @@ import { SettingsSectionComponent } from '../shared/section';
 import { SettingRowComponent } from '../shared/setting-row';
 import { ToggleComponent } from '../shared/toggle';
 import { NumberInputComponent } from '../shared/number-input';
+import { TranslatePipe } from '../../../i18n/translate.pipe';
 
 function timeStringToDate(time: string): Date {
   const [h, m] = time.split(':').map(Number);
@@ -26,9 +27,10 @@ function dateToTimeString(d: Date): string {
     SettingRowComponent,
     ToggleComponent,
     NumberInputComponent,
+    TranslatePipe,
   ],
   template: `
-    <app-settings-section title="Lunch break" iconBg="bg-orange-100 text-orange-700">
+    <app-settings-section [title]="'lunch.sectionTitle' | t" iconBg="bg-orange-100 text-orange-700">
       <svg icon class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
       </svg>
@@ -40,7 +42,7 @@ function dateToTimeString(d: Date): string {
         />
       </div>
 
-      <app-setting-row label="Hour" hint="Added to the estimated finish time if it hasn't passed.">
+      <app-setting-row [label]="'lunch.hourLabel' | t" [hint]="'lunch.hourHint' | t">
         <kendo-timepicker
           #tp
           [value]="hourDate()"
@@ -52,7 +54,7 @@ function dateToTimeString(d: Date): string {
         ></kendo-timepicker>
       </app-setting-row>
 
-      <app-setting-row label="Duration (min)">
+      <app-setting-row [label]="'lunch.durationLabel' | t">
         <app-number-input
           [value]="draft.lunchDurationMin()"
           [min]="0" [max]="180"

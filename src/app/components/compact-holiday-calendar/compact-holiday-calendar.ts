@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { HolidayDatesService, HolidayType, PresetOption } from '../../services/holiday-dates.service';
 import { HolidayService, HolidayData } from '../../services/holiday.service';
 import { Observable } from 'rxjs';
+import { TranslatePipe } from '../../i18n/translate.pipe';
 
 interface DayCell {
   date: string | null; // 'YYYY-MM-DD' or null for padding
@@ -53,7 +54,7 @@ function buildMonthData(year: number, month: number): MonthData {
 @Component({
   selector: 'app-compact-holiday-calendar',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslatePipe],
   styles: [`
     .month-cell {
       flex: 1 1 250px;
@@ -70,23 +71,23 @@ function buildMonthData(year: number, month: number): MonthData {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
           </svg>
-          <h3 class="text-slate-800 font-bold text-sm">Holiday Calendar {{ currentYear }}</h3>
+          <h3 class="text-slate-800 font-bold text-sm">{{ 'holiday.title' | t }} {{ currentYear }}</h3>
         </div>
         <div class="flex items-center gap-2 text-[10px]">
           <!-- Type toggle -->
-          <div class="flex items-center bg-slate-100 rounded-md p-0.5" title="Type to add when clicking a day">
+          <div class="flex items-center bg-slate-100 rounded-md p-0.5" [attr.title]="'holiday.typeTooltip' | t">
             <button
               type="button"
               (click)="addType.set('personal')"
               class="px-2 py-0.5 rounded transition-colors"
               [ngClass]="addType() === 'personal' ? 'bg-indigo-600 text-white shadow' : 'text-slate-500 hover:text-slate-700'"
-            >Personal</button>
+            >{{ 'holiday.personal' | t }}</button>
             <button
               type="button"
               (click)="addType.set('public')"
               class="px-2 py-0.5 rounded transition-colors"
               [ngClass]="addType() === 'public' ? 'bg-amber-500 text-white shadow' : 'text-slate-500 hover:text-slate-700'"
-            >Public</button>
+            >{{ 'holiday.public' | t }}</button>
           </div>
 
           <!-- Preset loader -->
@@ -95,9 +96,9 @@ function buildMonthData(year: number, month: number): MonthData {
               [ngModel]="''"
               (ngModelChange)="onPresetChange($event)"
               class="text-[10px] border border-slate-200 rounded-md px-1.5 py-0.5 bg-white text-slate-600 hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-amber-400"
-              title="Load city public holidays for a year"
+              [attr.title]="'holiday.presetTooltip' | t"
             >
-              <option value="" disabled>Load preset…</option>
+              <option value="" disabled>{{ 'holiday.loadPreset' | t }}</option>
               @for (p of presets; track p.city + p.year) {
                 <option [value]="p.city + '|' + p.year">{{ p.city }} {{ p.year }} ({{ p.count }})</option>
               }
@@ -112,11 +113,11 @@ function buildMonthData(year: number, month: number): MonthData {
           <!-- Remaining badge -->
           <div class="flex items-center gap-1 mr-1">
             <span class="text-xl font-extrabold font-mono text-indigo-600 leading-none">{{ h.total - personalCount() }}</span>
-            <span class="text-indigo-400 leading-none">left</span>
+            <span class="text-indigo-400 leading-none">{{ 'holiday.left' | t }}</span>
           </div>
           <div class="w-px h-5 bg-indigo-200"></div>
           <!-- Total -->
-          <span class="text-slate-500">Total</span>
+          <span class="text-slate-500">{{ 'holiday.total' | t }}</span>
           @if (editMode()) {
             <input
               type="number"
@@ -126,19 +127,19 @@ function buildMonthData(year: number, month: number): MonthData {
               class="w-10 px-1 py-0.5 border border-indigo-300 rounded text-slate-900 font-semibold text-center focus:ring-1 focus:ring-indigo-500"
               autofocus
             />
-            <button (click)="saveEdit()" class="text-green-600 hover:text-green-700" title="Save">
+            <button (click)="saveEdit()" class="text-green-600 hover:text-green-700" [attr.title]="'holiday.saveTitle' | t">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
               </svg>
             </button>
-            <button (click)="cancelEdit()" class="text-red-500 hover:text-red-600" title="Cancel">
+            <button (click)="cancelEdit()" class="text-red-500 hover:text-red-600" [attr.title]="'holiday.cancelTitle' | t">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
               </svg>
             </button>
           } @else {
             <span class="font-semibold text-slate-700">{{ h.total }}</span>
-            <button (click)="startEdit(h.total)" class="text-slate-400 hover:text-indigo-500" title="Edit total">
+            <button (click)="startEdit(h.total)" class="text-slate-400 hover:text-indigo-500" [attr.title]="'holiday.editTotal' | t">
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
               </svg>
@@ -146,11 +147,11 @@ function buildMonthData(year: number, month: number): MonthData {
           }
           <div class="w-px h-5 bg-indigo-200"></div>
           <!-- Personal used (counts toward quota) -->
-          <span class="text-slate-500">Used</span>
+          <span class="text-slate-500">{{ 'holiday.used' | t }}</span>
           <span class="font-semibold text-orange-600 min-w-[1.25rem] text-center">{{ personalCount() }}</span>
           <div class="w-px h-5 bg-indigo-200"></div>
           <!-- Public count (informational) -->
-          <span class="text-slate-500">Public</span>
+          <span class="text-slate-500">{{ 'holiday.publicLabel' | t }}</span>
           <span class="font-semibold text-amber-600 min-w-[1.25rem] text-center">{{ publicCount() }}</span>
         </div>
       }

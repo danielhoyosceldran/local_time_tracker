@@ -8,6 +8,8 @@ import { HolidayDatesService } from '../../services/holiday-dates.service';
 import { DayGroup, TimeEntry } from '../../models/time-entry.model';
 import { formatDuration, formatHoursToTime } from '../../utils/format';
 import { Observable, combineLatest, map, take } from 'rxjs';
+import { TranslatePipe } from '../../i18n/translate.pipe';
+import { TranslationService } from '../../i18n';
 
 interface WeekGroup {
   weekKey: string;
@@ -23,7 +25,7 @@ interface WeekGroup {
 @Component({
   selector: 'app-intervals-view',
   standalone: true,
-  imports: [CommonModule, FormsModule, KENDO_DATETIMEPICKER],
+  imports: [CommonModule, FormsModule, KENDO_DATETIMEPICKER, TranslatePipe],
   template: `
     <div class="h-full flex flex-col bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm shadow-slate-200/50 border border-white overflow-hidden">
       <!-- Toolbar -->
@@ -32,22 +34,22 @@ interface WeekGroup {
           <button
             (click)="expandAllWeeks()"
             class="px-2 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition"
-            title="Expand all weeks"
+            [attr.title]="'intervals.expandAll' | t"
           >
-            Expand
+            {{ 'intervals.expand' | t }}
           </button>
           <button
             (click)="collapseAll()"
             class="px-2 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition"
-            title="Collapse all"
+            [attr.title]="'intervals.collapseAll' | t"
           >
-            Collapse
+            {{ 'intervals.collapse' | t }}
           </button>
         </div>
         <button
           (click)="downloadCSV()"
           class="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-md transition"
-          title="Export CSV"
+          [attr.title]="'intervals.exportCsv' | t"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -60,7 +62,7 @@ interface WeekGroup {
         @if (weekGroups$ | async; as weeks) {
           @if (weeks.length === 0) {
             <div class="text-center text-slate-500 text-sm py-8">
-              No time entries yet.
+              {{ 'intervals.noEntries' | t }}
             </div>
           } @else {
             @for (week of weeks; track week.weekKey) {
@@ -69,7 +71,7 @@ interface WeekGroup {
                 <div class="flex items-end justify-between gap-2 px-1 pb-1.5 mb-1.5 border-b-2 border-emerald-200">
                   <div class="min-w-0">
                     <div class="text-sm font-bold text-slate-900">
-                      Week {{ week.weekNumber }} · {{ week.year }}
+                      {{ 'intervals.weekLabel' | t }} {{ week.weekNumber }} · {{ week.year }}
                     </div>
                     <div class="text-[10px] text-slate-500">
                       {{ week.startDate | date:'mediumDate' }} – {{ week.endDate | date:'mediumDate' }}
@@ -84,7 +86,7 @@ interface WeekGroup {
                       {{ formatHoursToTime(week.targetHours) }}
                     </div>
                     <div class="text-[10px] text-slate-500">
-                      {{ week.days.length }} day{{ week.days.length === 1 ? '' : 's' }}
+                      {{ week.days.length }} {{ week.days.length === 1 ? ('intervals.daySingular' | t) : ('intervals.dayPlural' | t) }}
                     </div>
                   </div>
                 </div>
@@ -108,7 +110,7 @@ interface WeekGroup {
                             </svg>
                             <div class="min-w-0 text-left">
                               <div class="text-xs font-semibold text-slate-900 truncate">{{ day.date | date:'mediumDate' }}</div>
-                              <div class="text-[10px] text-slate-500">{{ day.entries.length }} interval{{ day.entries.length === 1 ? '' : 's' }}</div>
+                              <div class="text-[10px] text-slate-500">{{ day.entries.length }} {{ day.entries.length === 1 ? ('intervals.intervalSingular' | t) : ('intervals.intervalPlural' | t) }}</div>
                             </div>
                           </div>
                           <div class="text-sm font-bold font-mono text-indigo-600 shrink-0">
@@ -126,14 +128,14 @@ interface WeekGroup {
                                       type="text"
                                       [ngModel]="editTitle()"
                                       (ngModelChange)="editTitle.set($event)"
-                                      placeholder="Title"
+                                      [placeholder]="'intervals.titlePlaceholder' | t"
                                       class="w-full px-2 py-1 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
                                     />
                                     <textarea
                                       [ngModel]="editDescription()"
                                       (ngModelChange)="editDescription.set($event)"
                                       rows="2"
-                                      placeholder="Description"
+                                      [placeholder]="'intervals.descriptionPlaceholder' | t"
                                       class="w-full px-2 py-1 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
                                     ></textarea>
                                     <div class="space-y-1">
@@ -155,13 +157,13 @@ interface WeekGroup {
                                         (click)="cancelEdit()"
                                         class="px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 rounded transition"
                                       >
-                                        Cancel
+                                        {{ 'intervals.cancelBtn' | t }}
                                       </button>
                                       <button
                                         (click)="saveEdit(entry.id)"
                                         class="px-2 py-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded transition"
                                       >
-                                        Save
+                                        {{ 'intervals.saveBtn' | t }}
                                       </button>
                                     </div>
                                   </div>
@@ -169,7 +171,7 @@ interface WeekGroup {
                                   <div class="flex items-start justify-between gap-2">
                                     <div class="flex-1 min-w-0">
                                       <div class="text-xs font-semibold text-slate-900 truncate">
-                                        {{ entry.title || '(No title)' }}
+                                        {{ entry.title || ('intervals.noTitle' | t) }}
                                       </div>
                                       @if (entry.description) {
                                         <div class="text-[11px] text-slate-600 truncate">
@@ -190,7 +192,7 @@ interface WeekGroup {
                                         <button
                                           (click)="startEdit(entry)"
                                           class="p-1 text-indigo-600 hover:bg-indigo-50 rounded transition"
-                                          title="Edit"
+                                          [attr.title]="'intervals.editTitle' | t"
                                         >
                                           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -199,7 +201,7 @@ interface WeekGroup {
                                         <button
                                           (click)="deleteEntry(entry.id)"
                                           class="p-1 text-red-600 hover:bg-red-50 rounded transition"
-                                          title="Delete"
+                                          [attr.title]="'intervals.deleteTitle' | t"
                                         >
                                           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -228,6 +230,7 @@ export class IntervalsViewComponent {
   private timeEntryService = inject(TimeEntryService);
   private settings = inject(SettingsService);
   private holidayDatesService = inject(HolidayDatesService);
+  private translation = inject(TranslationService);
 
   weekGroups$: Observable<WeekGroup[]> = combineLatest([
     this.timeEntryService.entries$,
@@ -370,7 +373,7 @@ export class IntervalsViewComponent {
     const end = this.editEnd();
 
     if (!start || !end) {
-      alert('Please fill in all time fields');
+      alert(this.translation.t('intervals.fillTimes'));
       return;
     }
 
@@ -378,7 +381,7 @@ export class IntervalsViewComponent {
     const endTime = end.getTime();
 
     if (endTime <= startTime) {
-      alert('End time must be after start time');
+      alert(this.translation.t('intervals.endAfterStart'));
       return;
     }
 
@@ -391,12 +394,12 @@ export class IntervalsViewComponent {
     if (timesOk) {
       this.editingEntry.set(null);
     } else {
-      alert('Failed to update entry');
+      alert(this.translation.t('intervals.failedUpdate'));
     }
   }
 
   deleteEntry(id: string): void {
-    if (confirm('Are you sure you want to delete this entry?')) {
+    if (confirm(this.translation.t('intervals.deleteConfirm'))) {
       this.timeEntryService.deleteEntry(id);
     }
   }

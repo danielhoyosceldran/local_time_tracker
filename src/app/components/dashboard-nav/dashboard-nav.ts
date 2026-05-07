@@ -4,11 +4,12 @@ import { ReleaseNotesPanelComponent } from '../release-notes-panel/release-notes
 import { ReleaseNotesModalComponent } from '../release-notes-modal/release-notes-modal';
 import { SettingsModalComponent } from '../settings-modal/settings-modal';
 import { ViewStateService, LeftPanelTab } from '../../services/view-state.service';
+import { TranslatePipe } from '../../i18n/translate.pipe';
 
 @Component({
   selector: 'app-dashboard-nav',
   standalone: true,
-  imports: [ReleaseNotesPanelComponent, ReleaseNotesModalComponent, SettingsModalComponent],
+  imports: [ReleaseNotesPanelComponent, ReleaseNotesModalComponent, SettingsModalComponent, TranslatePipe],
   template: `
     <div class="h-full grid grid-cols-5 gap-4">
       <!-- Left section: col-1, aligned with holiday calendar -->
@@ -17,13 +18,13 @@ import { ViewStateService, LeftPanelTab } from '../../services/view-state.servic
           (click)="setTab('calendar')"
           [class]="tabClass('calendar')"
         >
-          Calendar
+          {{ 'nav.calendar' | t }}
         </button>
         <button
           (click)="setTab('intervals')"
           [class]="tabClass('intervals')"
         >
-          Intervals
+          {{ 'nav.intervals' | t }}
         </button>
       </div>
 
@@ -34,7 +35,7 @@ import { ViewStateService, LeftPanelTab } from '../../services/view-state.servic
         <button
           (click)="toggleSettings()"
           class="flex items-center text-slate-500 hover:text-slate-800 transition-colors"
-          title="Settings"
+          [attr.title]="'nav.settings' | t"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="3"/>
@@ -65,6 +66,7 @@ import { ViewStateService, LeftPanelTab } from '../../services/view-state.servic
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
           </svg>
+          <span>{{ 'nav.whatsNew' | t }}</span>
           @if (svc.hasUnread()) {
             <span class="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full"></span>
           }

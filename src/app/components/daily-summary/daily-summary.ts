@@ -7,11 +7,12 @@ import { SettingsService } from '../../services/settings.service';
 import { formatDuration } from '../../utils/format';
 import { DailySummary } from '../../models/time-entry.model';
 import { Observable } from 'rxjs';
+import { TranslatePipe } from '../../i18n/translate.pipe';
 
 @Component({
   selector: 'app-daily-summary',
   standalone: true,
-  imports: [CommonModule, DecimalPipe],
+  imports: [CommonModule, DecimalPipe, TranslatePipe],
   template: `
     <div
       (click)="navigateToIntervals()"
@@ -34,7 +35,7 @@ import { Observable } from 'rxjs';
           <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
           </svg>
-          <h3 class="text-slate-800 font-bold text-sm">Daily Progress</h3>
+          <h3 class="text-slate-800 font-bold text-sm">{{ 'daily.progress' | t }}</h3>
         </div>
 
         @if (todaySummary$ | async; as summary) {
@@ -43,7 +44,7 @@ import { Observable } from 'rxjs';
               <div class="text-4xl font-extrabold font-mono text-indigo-600 leading-none">
                 {{ formatDuration(summary.totalDurationMs) }}
               </div>
-              <div class="text-xs text-slate-500 mt-1">of 08:00:00</div>
+              <div class="text-xs text-slate-500 mt-1">{{ 'daily.of' | t }} 08:00:00</div>
             </div>
 
             <div class="text-center mt-3">
@@ -53,22 +54,22 @@ import { Observable } from 'rxjs';
             </div>
 
             <div class="text-xs text-slate-500 text-center mt-2">
-              Remaining: <span class="font-mono font-medium text-slate-700">{{ formatDuration(getRemaining(summary.totalDurationMs)) }}</span>
+              {{ 'daily.remainingLabel' | t }} <span class="font-mono font-medium text-slate-700">{{ formatDuration(getRemaining(summary.totalDurationMs)) }}</span>
             </div>
 
             @if (getRemaining(summary.totalDurationMs) > 0) {
               <div class="text-xs text-indigo-500 font-medium text-center mt-1">
-                Est. finish: <span class="font-mono">{{ getExpectedEndTime(getRemaining(summary.totalDurationMs)) }}</span>
+                {{ 'daily.estFinish' | t }} <span class="font-mono">{{ getExpectedEndTime(getRemaining(summary.totalDurationMs)) }}</span>
               </div>
             } @else {
               <div class="text-xs text-emerald-600 font-bold text-center mt-1">
-                Daily target reached!
+                {{ 'daily.targetReached' | t }}
               </div>
             }
           </div>
         } @else {
           <div class="flex-1 flex items-center justify-center text-slate-400 text-sm">
-            No entries today
+            {{ 'daily.noEntriesShort' | t }}
           </div>
         }
       </div>

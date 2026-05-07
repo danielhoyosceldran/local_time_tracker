@@ -1,11 +1,13 @@
-import { Component, input, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SOUNDS, SoundId, playSound } from './sounds';
+import { TranslatePipe } from '../i18n/translate.pipe';
+import { TranslationService } from '../i18n';
 
 @Component({
   selector: 'app-sound-picker-modal',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslatePipe],
   template: `
     <!-- Backdrop -->
     <div
@@ -71,7 +73,7 @@ import { SOUNDS, SoundId, playSound } from './sounds';
                   type="button"
                   (click)="preview($event, s.id)"
                   class="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors shrink-0"
-                  title="Preview"
+                  [attr.title]="'sound.preview' | t"
                 >
                   <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z"/>
@@ -89,7 +91,7 @@ import { SOUNDS, SoundId, playSound } from './sounds';
             (click)="closed.emit()"
             class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors"
           >
-            Done
+            {{ 'sound.done' | t }}
           </button>
         </div>
       </div>
@@ -97,7 +99,8 @@ import { SOUNDS, SoundId, playSound } from './sounds';
   `,
 })
 export class SoundPickerModalComponent {
-  title  = input<string>('Select sound');
+  private translation = inject(TranslationService);
+  title  = input<string>(this.translation.t('sound.title'));
   current = input.required<SoundId>();
 
   soundSelected = output<SoundId>();

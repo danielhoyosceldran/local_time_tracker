@@ -1,9 +1,11 @@
 import { Component, HostListener, input, output } from '@angular/core';
 import { ReleaseNote } from '../../services/release-notes';
+import { TranslatePipe } from '../../i18n/translate.pipe';
 
 @Component({
   selector: 'app-release-notes-modal',
   standalone: true,
+  imports: [TranslatePipe],
   template: `
     <div
       class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
@@ -19,12 +21,12 @@ import { ReleaseNote } from '../../services/release-notes';
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
               <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
-            <span class="text-sm font-semibold text-slate-700">What's new</span>
+            <span class="text-sm font-semibold text-slate-700">{{ 'nav.whatsNew' | t }}</span>
           </div>
           <button
             (click)="close.emit()"
             class="text-slate-400 hover:text-slate-600 transition-colors"
-            title="Close"
+            [attr.title]="'common.close' | t"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -55,7 +57,7 @@ import { ReleaseNote } from '../../services/release-notes';
             (click)="close.emit()"
             class="px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
           >
-            Got it
+            {{ 'release.gotIt' | t }}
           </button>
         </div>
       </div>

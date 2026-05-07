@@ -8,6 +8,8 @@ import { TimeEntryService } from '../../services/time-entry';
 import { SettingsService } from '../../services/settings.service';
 import { HolidayDatesService } from '../../services/holiday-dates.service';
 import { formatHoursToTime } from '../../utils/format';
+import { TranslationService } from '../../i18n';
+import { TranslatePipe } from '../../i18n/translate.pipe';
 
 type Period = 'week' | 'month' | 'year';
 
@@ -23,7 +25,7 @@ interface PeriodResult {
 @Component({
   selector: 'app-monthly-chart',
   standalone: true,
-  imports: [BaseChartDirective, CommonModule],
+  imports: [BaseChartDirective, CommonModule, TranslatePipe],
   template: `
     <div class="bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm shadow-slate-200/50 border border-white p-4 h-full flex flex-col overflow-y-auto">
       <div class="flex items-start justify-between mb-2 gap-2">
@@ -36,16 +38,16 @@ interface PeriodResult {
             <div class="absolute left-0 top-full mt-1 z-10 hidden group-hover:block w-56 bg-slate-800 text-white text-[11px] leading-snug rounded-lg shadow-lg p-2.5 pointer-events-none">
               <div class="flex items-center gap-2 mb-1">
                 <span class="inline-block w-3 h-1.5 rounded-sm bg-indigo-600"></span>
-                <span>Horas trabajadas (área)</span>
+                <span>{{ 'monthly.workedArea' | t }}</span>
               </div>
               @if (settings.showExpectedLine()) {
                 <div class="flex items-center gap-2">
                   <span class="inline-block w-3 h-0.5 rounded-sm bg-indigo-300"></span>
-                  <span>Horas esperadas</span>
+                  <span>{{ 'monthly.expectedHours' | t }}</span>
                 </div>
                 <div class="flex items-center gap-2 mt-1">
                   <span class="inline-block w-px h-3 bg-slate-300"></span>
-                  <span>Primer registro</span>
+                  <span>{{ 'monthly.firstEntry' | t }}</span>
                 </div>
               }
             </div>
@@ -81,6 +83,7 @@ export class MonthlyChartComponent implements OnInit {
   private timeEntryService = inject(TimeEntryService);
   protected settings = inject(SettingsService);
   private holidays = inject(HolidayDatesService);
+  private translation = inject(TranslationService);
 
   formatHoursToTime = formatHoursToTime;
 
@@ -226,13 +229,15 @@ export class MonthlyChartComponent implements OnInit {
   }
 
   labelFor(p: Period): string {
-    return p === 'week' ? 'Week' : p === 'month' ? 'Month' : 'Year';
+    return p === 'week' ? this.translation.t('monthly.week')
+      : p === 'month' ? this.translation.t('monthly.month')
+      : this.translation.t('monthly.year');
   }
 
   titleFor(p: Period): string {
-    return p === 'week' ? 'Weekly Hours'
-      : p === 'month' ? 'Monthly Hours'
-      : 'Yearly Hours';
+    return p === 'week' ? this.translation.t('monthly.weeklyHours')
+      : p === 'month' ? this.translation.t('monthly.monthlyHours')
+      : this.translation.t('monthly.yearlyHours');
   }
 
   private refresh(): void {
@@ -303,7 +308,7 @@ export class MonthlyChartComponent implements OnInit {
       const labels: string[] = [];
       const data: (number | null)[] = [];
       const expectedPerBucket: number[] = [];
-      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const dayNames = [0, 1, 2, 3, 4, 5, 6].map(d => this.translation.t(('day.abbr.' + d) as any));
       for (let i = 0; i < 7; i++) {
         const d = new Date(weekStart);
         d.setDate(weekStart.getDate() + i);

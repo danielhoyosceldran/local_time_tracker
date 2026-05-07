@@ -6,11 +6,13 @@ import { ViewStateService } from '../../services/view-state.service';
 import { WeeklySummary, GlobalBalance } from '../../models/time-entry.model';
 import { formatHoursToTime } from '../../utils/format';
 import { Observable, combineLatest } from 'rxjs';
+import { TranslatePipe } from '../../i18n/translate.pipe';
+import { TranslationService } from '../../i18n';
 
 @Component({
   selector: 'app-weekly-summary',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslatePipe],
   template: `
     <div
       (click)="navigateToIntervals()"
@@ -21,7 +23,7 @@ import { Observable, combineLatest } from 'rxjs';
         <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
         </svg>
-        <h3 class="text-slate-800 font-bold text-sm">Weekly Progress</h3>
+        <h3 class="text-slate-800 font-bold text-sm">{{ 'weekly.progress' | t }}</h3>
       </div>
 
       @if (weekSummary$ | async; as summary) {
@@ -30,7 +32,7 @@ import { Observable, combineLatest } from 'rxjs';
           <div class="text-4xl font-extrabold font-mono text-emerald-600 leading-none">
             {{ formatHoursToTime(summary.hoursWorked) }}
           </div>
-          <div class="text-xs text-slate-500 mt-1">of {{ formatHoursToTime(summary.targetHours) }}</div>
+          <div class="text-xs text-slate-500 mt-1">{{ 'weekly.of' | t }} {{ formatHoursToTime(summary.targetHours) }}</div>
         </div>
 
         <!-- Mini bar chart -->
@@ -52,18 +54,18 @@ import { Observable, combineLatest } from 'rxjs';
         </div>
 
         <div class="text-xs text-slate-500 text-center mt-1">
-          Remaining: <span class="font-mono font-medium text-slate-700">{{ formatHoursToTime(summary.remainingHours) }}</span>
+          {{ 'weekly.remainingLabel' | t }} <span class="font-mono font-medium text-slate-700">{{ formatHoursToTime(summary.remainingHours) }}</span>
         </div>
       } @else {
         <div class="flex-1 flex items-center justify-center text-slate-400 text-sm">
-          No entries this week
+          {{ 'weekly.noEntries' | t }}
         </div>
       }
 
       <!-- Divider + Global Balance -->
       <div class="border-t border-slate-50 mt-2 pt-2 flex items-center justify-between">
         @if (globalBalance$ | async; as balance) {
-          <span class="text-xs text-slate-500 font-medium">Total Balance</span>
+          <span class="text-xs text-slate-500 font-medium">{{ 'weekly.totalBalance' | t }}</span>
           <div
             class="px-3 py-0.5 rounded-full text-xs font-bold font-mono"
             [class.bg-emerald-100]="balance.balanceHours >= 0"
@@ -81,6 +83,7 @@ import { Observable, combineLatest } from 'rxjs';
 export class WeeklySummaryComponent {
   private timeEntryService = inject(TimeEntryService);
   private viewState = inject(ViewStateService);
+  private translation = inject(TranslationService);
 
   weekSummary$: Observable<WeeklySummary> = this.timeEntryService.liveWeekSummary$;
   globalBalance$: Observable<GlobalBalance> = this.timeEntryService.liveGlobalBalance$;
@@ -88,7 +91,9 @@ export class WeeklySummaryComponent {
   formatHoursToTime = formatHoursToTime;
   Math = Math;
 
-  dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  get dayLabels(): string[] {
+    return [1, 2, 3, 4, 5, 6, 0].map(d => this.translation.t(('day.short.' + d) as any));
+  }
   dailyHours = signal<number[]>([0, 0, 0, 0, 0, 0, 0]);
 
   constructor() {

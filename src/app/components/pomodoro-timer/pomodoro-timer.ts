@@ -4,6 +4,8 @@ import { NotificationService } from '../../services/notification.service';
 import { FaviconService } from '../../services/favicon.service';
 import { PomodoroSettingsService } from '../../services/pomodoro-settings.service';
 import { playSound } from '../../shared/sounds';
+import { TranslatePipe } from '../../i18n/translate.pipe';
+import { TranslationService } from '../../i18n';
 
 type PomodoroPhase = 'work' | 'break';
 
@@ -20,7 +22,7 @@ interface PomodoroState {
 @Component({
   selector: 'app-pomodoro-timer',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslatePipe],
   template: `
     <div
       class="rounded-2xl p-3 h-full flex flex-col overflow-y-auto transition-all duration-500"
@@ -30,13 +32,13 @@ interface PomodoroState {
         <svg class="w-4 h-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
-        <h3 class="font-bold text-sm text-white">Pomodoro</h3>
+        <h3 class="font-bold text-sm text-white">{{ 'pomodoro.title' | t }}</h3>
       </div>
 
       <div class="flex justify-center mb-1">
         @if (running()) {
           <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-white">
-            {{ phase() === 'work' ? 'Working' : 'Break' }}
+            {{ phase() === 'work' ? ('pomodoro.working' | t) : ('pomodoro.break' | t) }}
           </span>
         } @else {
           <div
@@ -48,13 +50,13 @@ interface PomodoroState {
               (click)="setPhase('work')"
               class="px-3 py-0.5 transition-all active:scale-95"
               [ngClass]="phase() === 'work' ? 'bg-white/20 text-white' : 'text-white/40 hover:bg-white/10'"
-            >Work</button>
+            >{{ 'pomodoro.work' | t }}</button>
             <button
               type="button"
               (click)="setPhase('break')"
               class="px-3 py-0.5 transition-all active:scale-95"
               [ngClass]="phase() === 'break' ? 'bg-white/20 text-white' : 'text-white/40 hover:bg-white/10'"
-            >Break</button>
+            >{{ 'pomodoro.break' | t }}</button>
           </div>
         }
       </div>
@@ -96,6 +98,7 @@ export class PomodoroTimerComponent implements OnInit, OnDestroy {
   private notifications = inject(NotificationService);
   private favicon = inject(FaviconService);
   private settings = inject(PomodoroSettingsService);
+  private translation = inject(TranslationService);
 
   phase            = signal<PomodoroPhase>('work');
   running          = signal(false);
@@ -234,14 +237,14 @@ export class PomodoroTimerComponent implements OnInit, OnDestroy {
       this.remainingSeconds.set(breakMin * 60);
       this.endTime = Date.now() + breakMin * 60 * 1000;
       this.favicon.setBreak();
-      this.notifications.notify('Pomodoro - Break time!', `Take a ${breakMin} min break.`);
+      this.notifications.notify(this.translation.t('pomodoro.breakTitle'), this.translation.t('pomodoro.breakBody', { min: breakMin }));
       playSound(this.settings.breakSound());
     } else {
       this.phase.set('work');
       this.remainingSeconds.set(workMin * 60);
       this.endTime = Date.now() + workMin * 60 * 1000;
       this.favicon.setWork();
-      this.notifications.notify('Pomodoro - Focus time!', `Work session started: ${workMin} min.`);
+      this.notifications.notify(this.translation.t('pomodoro.focusTitle'), this.translation.t('pomodoro.focusBody', { min: workMin }));
       playSound(this.settings.workSound());
     }
     this.saveState();

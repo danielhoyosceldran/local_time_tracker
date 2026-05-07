@@ -4,6 +4,8 @@ import { KENDO_TIMEPICKER, TimePickerComponent } from '@progress/kendo-angular-d
 import { ReminderService } from '../../services/reminder.service';
 import { SOUNDS, SoundId } from '../../shared/sounds';
 import { SoundPickerService } from '../../shared/sound-picker.service';
+import { TranslatePipe } from '../../i18n/translate.pipe';
+import { TranslationService } from '../../i18n';
 
 function timeStringToDate(time: string): Date {
   const [h, m] = time.split(':').map(Number);
@@ -19,7 +21,7 @@ function dateToTimeString(d: Date): string {
 @Component({
   selector: 'app-reminder-notification',
   standalone: true,
-  imports: [FormsModule, KENDO_TIMEPICKER],
+  imports: [FormsModule, KENDO_TIMEPICKER, TranslatePipe],
   styles: [`
     .switch { position: relative; display: inline-block; width: 36px; height: 20px; }
     .switch input { opacity: 0; width: 0; height: 0; }
@@ -38,7 +40,7 @@ function dateToTimeString(d: Date): string {
               d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
             </path>
           </svg>
-          <h3 class="font-bold text-slate-800 text-sm">Reminder</h3>
+          <h3 class="font-bold text-slate-800 text-sm">{{ 'reminder.title' | t }}</h3>
         </div>
         <label class="switch">
           <input type="checkbox" [checked]="svc.enabled()" (change)="toggleEnabled($event)" />
@@ -47,13 +49,13 @@ function dateToTimeString(d: Date): string {
       </div>
 
       <p class="text-[11px] text-slate-500 mb-2 leading-tight">
-        Sends a browser notification at the configured time every day.
+        {{ 'reminder.subtitle' | t }}
       </p>
 
       <div class="mt-auto flex flex-col gap-2" [class.opacity-40]="!svc.enabled()" [class.pointer-events-none]="!svc.enabled()">
 
         <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Time</label>
+          <label class="block text-xs font-medium text-slate-600 mb-1">{{ 'reminder.time' | t }}</label>
           <kendo-timepicker
             #timePicker
             [value]="timeDate()"
@@ -66,12 +68,12 @@ function dateToTimeString(d: Date): string {
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Message</label>
+          <label class="block text-xs font-medium text-slate-600 mb-1">{{ 'reminder.messageLabel' | t }}</label>
           <input
             type="text"
             [ngModel]="svc.message()"
             (ngModelChange)="svc.setMessage($event)"
-            placeholder="Reminder!"
+            [placeholder]="'reminder.placeholder' | t"
             maxlength="80"
             class="w-full px-2 py-1 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-violet-400 focus:border-transparent"
           />
@@ -87,7 +89,7 @@ function dateToTimeString(d: Date): string {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
             </svg>
-            <span class="text-xs font-medium text-slate-600">Sound</span>
+            <span class="text-xs font-medium text-slate-600">{{ 'reminder.sound' | t }}</span>
           </div>
           <span class="text-xs text-slate-400">{{ soundLabel() }}</span>
         </button>
@@ -101,13 +103,14 @@ export class ReminderNotificationComponent implements AfterViewInit {
   svc = inject(ReminderService);
   private cdr = inject(ChangeDetectorRef);
   private soundPicker = inject(SoundPickerService);
+  private translation = inject(TranslationService);
 
   timeDate(): Date { return timeStringToDate(this.svc.time()); }
   soundLabel(): string { return SOUNDS.find(s => s.id === this.svc.sound())?.label ?? ''; }
 
   openSoundPicker(): void {
     this.soundPicker.open({
-      title: 'Reminder sound',
+      title: this.translation.t('sound.reminderTitle'),
       current: this.svc.sound,
       onSelect: (id) => this.svc.setSound(id),
     });

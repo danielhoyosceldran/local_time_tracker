@@ -5,6 +5,8 @@ import { SoundPickerService } from '../../../shared/sound-picker.service';
 import { SettingsSectionComponent } from '../shared/section';
 import { SettingRowComponent } from '../shared/setting-row';
 import { NumberInputComponent } from '../shared/number-input';
+import { TranslatePipe } from '../../../i18n/translate.pipe';
+import { TranslationService } from '../../../i18n';
 
 @Component({
   selector: 'app-pomodoro-section',
@@ -13,14 +15,15 @@ import { NumberInputComponent } from '../shared/number-input';
     SettingsSectionComponent,
     SettingRowComponent,
     NumberInputComponent,
+    TranslatePipe,
   ],
   template: `
-    <app-settings-section title="Pomodoro" iconBg="bg-emerald-100 text-emerald-700">
+    <app-settings-section [title]="'pomoSection.title' | t" iconBg="bg-emerald-100 text-emerald-700">
       <svg icon class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
       </svg>
 
-      <app-setting-row label="Work (min)">
+      <app-setting-row [label]="'pomoSection.workMin' | t">
         <app-number-input
           [value]="draft.pomoWork()"
           [min]="0"
@@ -28,7 +31,7 @@ import { NumberInputComponent } from '../shared/number-input';
         />
       </app-setting-row>
 
-      <app-setting-row label="Break (min)">
+      <app-setting-row [label]="'pomoSection.breakMin' | t">
         <app-number-input
           [value]="draft.pomoBreak()"
           [min]="0"
@@ -36,7 +39,7 @@ import { NumberInputComponent } from '../shared/number-input';
         />
       </app-setting-row>
 
-      <app-setting-row label="Work sound">
+      <app-setting-row [label]="'pomoSection.workSoundLabel' | t">
         <button
           type="button"
           (click)="openWork()"
@@ -44,7 +47,7 @@ import { NumberInputComponent } from '../shared/number-input';
         >{{ label(draft.pomoWorkSound()) }}</button>
       </app-setting-row>
 
-      <app-setting-row label="Break sound">
+      <app-setting-row [label]="'pomoSection.breakSoundLabel' | t">
         <button
           type="button"
           (click)="openBreak()"
@@ -57,6 +60,7 @@ import { NumberInputComponent } from '../shared/number-input';
 export class PomodoroSectionComponent {
   draft = inject(SettingsDraftService);
   private soundPicker = inject(SoundPickerService);
+  private translation = inject(TranslationService);
 
   label(id: SoundId): string {
     return SOUNDS.find(s => s.id === id)?.label ?? '';
@@ -64,7 +68,7 @@ export class PomodoroSectionComponent {
 
   openWork(): void {
     this.soundPicker.open({
-      title: 'Work sound',
+      title: this.translation.t('sound.workTitle'),
       current: this.draft.pomoWorkSound,
       onSelect: (id) => this.draft.pomoWorkSound.set(id),
     });
@@ -72,7 +76,7 @@ export class PomodoroSectionComponent {
 
   openBreak(): void {
     this.soundPicker.open({
-      title: 'Break sound',
+      title: this.translation.t('sound.breakTitle'),
       current: this.draft.pomoBreakSound,
       onSelect: (id) => this.draft.pomoBreakSound.set(id),
     });

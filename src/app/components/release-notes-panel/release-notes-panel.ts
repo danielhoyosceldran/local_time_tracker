@@ -1,13 +1,15 @@
 import { Component, input, output } from '@angular/core';
 import { ReleaseNote } from '../../services/release-notes';
+import { TranslatePipe } from '../../i18n/translate.pipe';
 
 @Component({
   selector: 'app-release-notes-panel',
   standalone: true,
+  imports: [TranslatePipe],
   template: `
     <div class="fixed top-12 right-4 w-80 bg-white/95 backdrop-blur-xl rounded-2xl shadow-lg border border-slate-200/60 z-50 flex flex-col" style="max-height: 22rem;">
       <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between shrink-0">
-        <span class="text-sm font-semibold text-slate-700">What's new</span>
+        <span class="text-sm font-semibold text-slate-700">{{ 'nav.whatsNew' | t }}</span>
         <button (click)="close.emit()" class="text-slate-400 hover:text-slate-600 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
