@@ -21,6 +21,7 @@ export class SettingsDraftService {
   readonly workdays = signal<DayOfWeek[]>([]);
   readonly firstDayOfWeek = signal<DayOfWeek>(1);
   readonly timeFormat = signal<TimeFormat>('24h');
+  readonly showExpectedLine = signal<boolean>(true);
 
   // Auto-round
   readonly marginEnabled = signal(false);
@@ -43,6 +44,7 @@ export class SettingsDraftService {
     this.workdays.set([...this.settings.workdays()]);
     this.firstDayOfWeek.set(this.settings.firstDayOfWeek());
     this.timeFormat.set(this.settings.timeFormat());
+    this.showExpectedLine.set(this.settings.showExpectedLine());
 
     this.marginEnabled.set(await firstValueFrom(this.timeEntry.marginEnabled$.pipe(take(1))));
     this.marginMinutes.set(await firstValueFrom(this.timeEntry.marginMinutes$.pipe(take(1))));
@@ -63,6 +65,7 @@ export class SettingsDraftService {
     this.settings.setWorkdays(this.workdays());
     this.settings.setFirstDayOfWeek(this.firstDayOfWeek());
     this.settings.setTimeFormat(this.timeFormat());
+    this.settings.setShowExpectedLine(this.showExpectedLine());
 
     this.timeEntry.setMarginEnabled(this.marginEnabled());
     this.timeEntry.setMarginMinutes(this.marginMinutes());

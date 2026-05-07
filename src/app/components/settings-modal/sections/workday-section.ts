@@ -6,6 +6,7 @@ import { SettingsSectionComponent } from '../shared/section';
 import { SettingRowComponent } from '../shared/setting-row';
 import { NumberInputComponent } from '../shared/number-input';
 import { SegmentedComponent, SegmentedOption } from '../shared/segmented';
+import { ToggleComponent } from '../shared/toggle';
 
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -18,6 +19,7 @@ const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
     SettingRowComponent,
     NumberInputComponent,
     SegmentedComponent,
+    ToggleComponent,
   ],
   template: `
     <app-settings-section title="Workday" iconBg="bg-slate-900 text-white">
@@ -69,6 +71,13 @@ const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
           [options]="timeFormatOptions"
           [value]="draft.timeFormat()"
           (changed)="draft.timeFormat.set($any($event))"
+        />
+      </app-setting-row>
+
+      <app-setting-row label="Show expected hours line" hint="Overlay expected hours per period on the chart.">
+        <app-toggle
+          [checked]="draft.showExpectedLine()"
+          (changed)="draft.showExpectedLine.set($event)"
         />
       </app-setting-row>
     </app-settings-section>

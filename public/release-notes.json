@@ -1,5 +1,20 @@
 [
   {
+    "version": "0.4.0-alpha",
+    "date": "2026-05-07",
+    "notes": [
+      "Monthly chart redesigned with Week / Month / Year period selector",
+      "Week view honors the configured first day of week (Mon–Sun or Sun–Sat)",
+      "Month view spans the 1st to the last day of the current month",
+      "Year view buckets the current calendar year (Jan 1 – Dec 31) by week",
+      "New Expected hours line overlaid per X-axis bucket — accounts for workdays, holidays and personal vacation days",
+      "Info icon on the chart header shows a legend on hover",
+      "Toggle in Settings → Workday to show or hide the Expected line",
+      "Chart period selection (Week / Month / Year) is persisted across reloads",
+      "Thin gray vertical marker shows the bucket of the first recorded entry when visible in the current view (toggles together with the Expected line)"
+    ]
+  },
+  {
     "version": "0.3.0-alpha",
     "date": "2026-05-05",
     "notes": [

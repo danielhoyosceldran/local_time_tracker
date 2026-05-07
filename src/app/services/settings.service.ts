@@ -9,6 +9,7 @@ const KEYS = {
   workdays: 'tt.workdays',
   firstDayOfWeek: 'tt.firstDayOfWeek',
   timeFormat: 'tt.timeFormat',
+  showExpectedLine: 'tt.showExpectedLine',
 } as const;
 
 const DEFAULTS = {
@@ -17,6 +18,7 @@ const DEFAULTS = {
   workdays: [1, 2, 3, 4, 5] as DayOfWeek[],
   firstDayOfWeek: 1 as DayOfWeek,
   timeFormat: '24h' as TimeFormat,
+  showExpectedLine: true,
 };
 
 function loadNumber(key: string, def: number): number {
@@ -48,6 +50,9 @@ export class SettingsService {
   );
   readonly timeFormat = signal<TimeFormat>(
     loadString(KEYS.timeFormat, DEFAULTS.timeFormat) as TimeFormat
+  );
+  readonly showExpectedLine = signal<boolean>(
+    loadString(KEYS.showExpectedLine, String(DEFAULTS.showExpectedLine)) === 'true'
   );
 
   readonly workdayMs = computed(() => this.workdayHours() * 60 * 60 * 1000);
@@ -90,12 +95,18 @@ export class SettingsService {
     localStorage.setItem(KEYS.timeFormat, format);
   }
 
+  setShowExpectedLine(value: boolean): void {
+    this.showExpectedLine.set(value);
+    localStorage.setItem(KEYS.showExpectedLine, String(value));
+  }
+
   reloadFromStorage(): void {
     this.workdayHours.set(loadNumber(KEYS.workdayHours, DEFAULTS.workdayHours));
     this.weeklyTargetHours.set(loadNumber(KEYS.weeklyTargetHours, DEFAULTS.weeklyTargetHours));
     this.workdays.set(loadJSON<DayOfWeek[]>(KEYS.workdays, DEFAULTS.workdays));
     this.firstDayOfWeek.set(loadNumber(KEYS.firstDayOfWeek, DEFAULTS.firstDayOfWeek) as DayOfWeek);
     this.timeFormat.set(loadString(KEYS.timeFormat, DEFAULTS.timeFormat) as TimeFormat);
+    this.showExpectedLine.set(loadString(KEYS.showExpectedLine, String(DEFAULTS.showExpectedLine)) === 'true');
   }
 
   resetDefaults(): void {
@@ -104,6 +115,7 @@ export class SettingsService {
     this.setWorkdays(DEFAULTS.workdays);
     this.setFirstDayOfWeek(DEFAULTS.firstDayOfWeek);
     this.setTimeFormat(DEFAULTS.timeFormat);
+    this.setShowExpectedLine(DEFAULTS.showExpectedLine);
   }
 
   /** Compute week boundaries (start/end) respecting firstDayOfWeek. */
