@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.6.0-alpha",
+    "date": "2026-05-07",
+    "notes": [
+      "App is now multilingual: English, Spanish and Catalan",
+      "Default language is English; choice is persisted across reloads",
+      "New General tab in Settings with a language selector",
+      "All UI strings (timer, summaries, monthly chart, pomodoro, calendar, intervals, settings, release notes) translated",
+      "Day and month names follow the selected language",
+      "Language change applies live on Save without reloading the page"
+    ]
+  },
+  {
     "version": "0.5.0-alpha",
     "date": "2026-05-07",
     "notes": [
