@@ -1,9 +1,9 @@
-import { AfterViewInit, Component, ChangeDetectorRef, ViewChild, inject, signal } from '@angular/core';
+import { AfterViewInit, Component, ChangeDetectorRef, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { KENDO_TIMEPICKER, TimePickerComponent } from '@progress/kendo-angular-dateinputs';
 import { ReminderService } from '../../services/reminder.service';
 import { SOUNDS, SoundId } from '../../shared/sounds';
-import { SoundPickerModalComponent } from '../../shared/sound-picker-modal';
+import { SoundPickerService } from '../../shared/sound-picker.service';
 
 function timeStringToDate(time: string): Date {
   const [h, m] = time.split(':').map(Number);
@@ -19,7 +19,7 @@ function dateToTimeString(d: Date): string {
 @Component({
   selector: 'app-reminder-notification',
   standalone: true,
-  imports: [FormsModule, KENDO_TIMEPICKER, SoundPickerModalComponent],
+  imports: [FormsModule, KENDO_TIMEPICKER],
   styles: [`
     .switch { position: relative; display: inline-block; width: 36px; height: 20px; }
     .switch input { opacity: 0; width: 0; height: 0; }
@@ -79,7 +79,7 @@ function dateToTimeString(d: Date): string {
 
         <button
           type="button"
-          (click)="soundModalOpen.set(true)"
+          (click)="openSoundPicker()"
           class="w-full flex items-center justify-between px-2 py-1.5 border border-slate-200 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
         >
           <div class="flex items-center gap-1.5">
@@ -92,15 +92,6 @@ function dateToTimeString(d: Date): string {
           <span class="text-xs text-slate-400">{{ soundLabel() }}</span>
         </button>
 
-        @if (soundModalOpen()) {
-          <app-sound-picker-modal
-            title="Reminder sound"
-            [current]="svc.sound()"
-            (soundSelected)="svc.setSound($event)"
-            (closed)="soundModalOpen.set(false)"
-          />
-        }
-
       </div>
     </div>
   `,
@@ -109,11 +100,18 @@ export class ReminderNotificationComponent implements AfterViewInit {
   @ViewChild('timePicker') timePicker!: TimePickerComponent;
   svc = inject(ReminderService);
   private cdr = inject(ChangeDetectorRef);
-
-  soundModalOpen = signal(false);
+  private soundPicker = inject(SoundPickerService);
 
   timeDate(): Date { return timeStringToDate(this.svc.time()); }
   soundLabel(): string { return SOUNDS.find(s => s.id === this.svc.sound())?.label ?? ''; }
+
+  openSoundPicker(): void {
+    this.soundPicker.open({
+      title: 'Reminder sound',
+      current: this.svc.sound,
+      onSelect: (id) => this.svc.setSound(id),
+    });
+  }
 
   async toggleEnabled(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;

@@ -5,12 +5,16 @@ import { Title } from '@angular/platform-browser';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TimeEntryService } from './services/time-entry';
 import { formatDuration } from './utils/format';
+import { SoundPickerHostComponent } from './shared/sound-picker-host';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet],
-  template: `<router-outlet />`,
+  imports: [RouterOutlet, SoundPickerHostComponent],
+  template: `
+    <router-outlet />
+    <app-sound-picker-host />
+  `,
 })
 export class AppComponent implements OnInit {
   private titleService = inject(Title);
