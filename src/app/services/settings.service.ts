@@ -10,6 +10,7 @@ const KEYS = {
   firstDayOfWeek: 'tt.firstDayOfWeek',
   timeFormat: 'tt.timeFormat',
   showExpectedLine: 'tt.showExpectedLine',
+  truncateWorkedAtToday: 'tt.truncateWorkedAtToday',
 } as const;
 
 const DEFAULTS = {
@@ -19,6 +20,7 @@ const DEFAULTS = {
   firstDayOfWeek: 1 as DayOfWeek,
   timeFormat: '24h' as TimeFormat,
   showExpectedLine: true,
+  truncateWorkedAtToday: true,
 };
 
 function loadNumber(key: string, def: number): number {
@@ -53,6 +55,9 @@ export class SettingsService {
   );
   readonly showExpectedLine = signal<boolean>(
     loadString(KEYS.showExpectedLine, String(DEFAULTS.showExpectedLine)) === 'true'
+  );
+  readonly truncateWorkedAtToday = signal<boolean>(
+    loadString(KEYS.truncateWorkedAtToday, String(DEFAULTS.truncateWorkedAtToday)) === 'true'
   );
 
   readonly workdayMs = computed(() => this.workdayHours() * 60 * 60 * 1000);
@@ -100,6 +105,11 @@ export class SettingsService {
     localStorage.setItem(KEYS.showExpectedLine, String(value));
   }
 
+  setTruncateWorkedAtToday(value: boolean): void {
+    this.truncateWorkedAtToday.set(value);
+    localStorage.setItem(KEYS.truncateWorkedAtToday, String(value));
+  }
+
   reloadFromStorage(): void {
     this.workdayHours.set(loadNumber(KEYS.workdayHours, DEFAULTS.workdayHours));
     this.weeklyTargetHours.set(loadNumber(KEYS.weeklyTargetHours, DEFAULTS.weeklyTargetHours));
@@ -107,6 +117,7 @@ export class SettingsService {
     this.firstDayOfWeek.set(loadNumber(KEYS.firstDayOfWeek, DEFAULTS.firstDayOfWeek) as DayOfWeek);
     this.timeFormat.set(loadString(KEYS.timeFormat, DEFAULTS.timeFormat) as TimeFormat);
     this.showExpectedLine.set(loadString(KEYS.showExpectedLine, String(DEFAULTS.showExpectedLine)) === 'true');
+    this.truncateWorkedAtToday.set(loadString(KEYS.truncateWorkedAtToday, String(DEFAULTS.truncateWorkedAtToday)) === 'true');
   }
 
   resetDefaults(): void {
@@ -116,6 +127,7 @@ export class SettingsService {
     this.setFirstDayOfWeek(DEFAULTS.firstDayOfWeek);
     this.setTimeFormat(DEFAULTS.timeFormat);
     this.setShowExpectedLine(DEFAULTS.showExpectedLine);
+    this.setTruncateWorkedAtToday(DEFAULTS.truncateWorkedAtToday);
   }
 
   /** Compute week boundaries (start/end) respecting firstDayOfWeek. */

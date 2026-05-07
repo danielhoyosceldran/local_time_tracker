@@ -13,7 +13,7 @@ type Period = 'week' | 'month' | 'year';
 
 interface PeriodResult {
   labels: string[];
-  data: number[];
+  data: (number | null)[];
   expectedPerBucket: number[];
   worked: number;
   expected: number;
@@ -195,8 +195,9 @@ export class MonthlyChartComponent implements OnInit {
 
   constructor() {
     effect(() => {
-      // re-run when the setting changes
+      // re-run when the settings change
       this.settings.showExpectedLine();
+      this.settings.truncateWorkedAtToday();
       this.refresh();
     });
   }
@@ -287,6 +288,7 @@ export class MonthlyChartComponent implements OnInit {
   private computeForPeriod(period: Period, entries: any[]): PeriodResult {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const truncate = this.settings.truncateWorkedAtToday();
 
     const isWorkday = this.settings.isWorkday();
     const holidaySet = new Set(this.holidays.getHolidayDates());
@@ -299,7 +301,7 @@ export class MonthlyChartComponent implements OnInit {
     if (period === 'week') {
       const { start: weekStart, end: weekEnd } = this.settings.getWeekBoundaries(now);
       const labels: string[] = [];
-      const data: number[] = [];
+      const data: (number | null)[] = [];
       const expectedPerBucket: number[] = [];
       const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       for (let i = 0; i < 7; i++) {
@@ -308,14 +310,19 @@ export class MonthlyChartComponent implements OnInit {
         labels.push(dayNames[d.getDay()]);
         const dStart = d.getTime();
         const dEnd = dStart + 24 * 60 * 60 * 1000 - 1;
-        const hours = entries
-          .filter(e => e.startTime >= dStart && e.startTime <= dEnd)
-          .reduce((s, e) => s + e.duration / 3600000, 0);
-        data.push(hours);
+        const isFuture = truncate && d.getTime() > today.getTime();
+        if (isFuture) {
+          data.push(null);
+        } else {
+          const hours = entries
+            .filter(e => e.startTime >= dStart && e.startTime <= dEnd)
+            .reduce((s, e) => s + e.duration / 3600000, 0);
+          data.push(hours);
+        }
         const exp = isWorkday(d.getDay()) && !holidaySet.has(this.toDateStr(d)) ? workdayHours : 0;
         expectedPerBucket.push(exp);
       }
-      const worked = data.reduce((s, v) => s + v, 0);
+      const worked = data.reduce((s: number, v) => s + (v ?? 0), 0);
       const expectedEnd = today < weekEnd ? today : weekEnd;
       const expected = this.expectedHoursInRange(weekStart, expectedEnd);
       let firstEntryBucketIndex: number | null = null;
@@ -331,14 +338,18 @@ export class MonthlyChartComponent implements OnInit {
       const year = now.getFullYear();
       const month = now.getMonth();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const data = Array(daysInMonth).fill(0);
+      const data: (number | null)[] = Array(daysInMonth).fill(0);
+      if (truncate) {
+        const todayDay = now.getDate();
+        for (let i = todayDay; i < daysInMonth; i++) data[i] = null;
+      }
       const monthStart = new Date(year, month, 1).getTime();
       const monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999).getTime();
       entries
         .filter(e => e.startTime >= monthStart && e.startTime <= monthEnd)
         .forEach(e => {
           const day = new Date(e.startTime).getDate() - 1;
-          data[day] += e.duration / 3600000;
+          if (data[day] !== null) data[day] = (data[day] as number) + e.duration / 3600000;
         });
       const labels = Array.from({ length: daysInMonth }, (_, i) => String(i + 1));
       const expectedPerBucket: number[] = [];
@@ -347,7 +358,7 @@ export class MonthlyChartComponent implements OnInit {
         const exp = isWorkday(d.getDay()) && !holidaySet.has(this.toDateStr(d)) ? workdayHours : 0;
         expectedPerBucket.push(exp);
       }
-      const worked = data.reduce((s, v) => s + v, 0);
+      const worked = data.reduce((s: number, v) => s + (v ?? 0), 0);
       const lastDay = new Date(year, month, Math.min(now.getDate(), daysInMonth));
       const expected = this.expectedHoursInRange(new Date(year, month, 1), lastDay);
       let firstEntryBucketIndex: number | null = null;
@@ -376,14 +387,15 @@ export class MonthlyChartComponent implements OnInit {
       ws = new Date(ws);
       ws.setDate(ws.getDate() + 7);
     }
-    const data = weeks.map(({ start, end }) =>
-      entries
+    const data: (number | null)[] = weeks.map(({ start, end }) => {
+      if (truncate && start.getTime() > today.getTime()) return null;
+      return entries
         .filter(e => e.startTime >= start.getTime() && e.startTime <= end.getTime())
-        .reduce((s, e) => s + e.duration / 3600000, 0)
-    );
+        .reduce((s, e) => s + e.duration / 3600000, 0);
+    });
     const expectedPerBucket = weeks.map(({ start, end }) => this.expectedHoursInRange(start, end));
     const labels = weeks.map(({ start }) => `${this.pad(start.getMonth() + 1)}/${this.pad(start.getDate())}`);
-    const worked = data.reduce((s, v) => s + v, 0);
+    const worked = data.reduce((s: number, v) => s + (v ?? 0), 0);
     const rangeEnd = today < yearEnd ? today : yearEnd;
     const expected = this.expectedHoursInRange(yearStart, rangeEnd);
     let firstEntryBucketIndex: number | null = null;

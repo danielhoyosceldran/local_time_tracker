@@ -80,6 +80,13 @@ const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
           (changed)="draft.showExpectedLine.set($event)"
         />
       </app-setting-row>
+
+      <app-setting-row label="Truncate worked line at today" hint="Stop the worked-hours line on today instead of drawing future days.">
+        <app-toggle
+          [checked]="draft.truncateWorkedAtToday()"
+          (changed)="draft.truncateWorkedAtToday.set($event)"
+        />
+      </app-setting-row>
     </app-settings-section>
   `,
 })
