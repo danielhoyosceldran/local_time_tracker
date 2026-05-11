@@ -1,6 +1,7 @@
 // src/app/components/monthly-chart/monthly-chart.ts
-import { Component, effect, inject, OnInit, signal } from '@angular/core';
+import { Component, effect, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Subscription, interval } from 'rxjs';
 
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, Plugin } from 'chart.js';
@@ -79,7 +80,7 @@ interface PeriodResult {
     </div>
   `,
 })
-export class MonthlyChartComponent implements OnInit {
+export class MonthlyChartComponent implements OnInit, OnDestroy {
   private timeEntryService = inject(TimeEntryService);
   protected settings = inject(SettingsService);
   private holidays = inject(HolidayDatesService);
@@ -98,6 +99,9 @@ export class MonthlyChartComponent implements OnInit {
 
   private latestEntries: any[] = [];
   private firstEntryBucketIndex: number | null = null;
+  private runningEntry: { startTime: number } | null = null;
+  private liveTickSub: Subscription | null = null;
+  private runningSub: Subscription | null = null;
 
   chartPlugins: Plugin<'line'>[] = [{
     id: 'firstEntryMarker',
@@ -210,6 +214,16 @@ export class MonthlyChartComponent implements OnInit {
       this.latestEntries = entries;
       this.refresh();
     });
+    this.runningSub = this.timeEntryService.runningEntry$.subscribe(entry => {
+      this.runningEntry = entry ? { startTime: entry.startTime } : null;
+      this.updateLiveTick();
+      this.refresh();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.liveTickSub?.unsubscribe();
+    this.runningSub?.unsubscribe();
   }
 
   setPeriod(p: Period): void {
@@ -217,7 +231,18 @@ export class MonthlyChartComponent implements OnInit {
     try {
       localStorage.setItem(MonthlyChartComponent.PERIOD_STORAGE_KEY, p);
     } catch {}
+    this.updateLiveTick();
     this.refresh();
+  }
+
+  private updateLiveTick(): void {
+    const shouldRun = this.runningEntry !== null && this.period() !== 'year';
+    if (shouldRun && !this.liveTickSub) {
+      this.liveTickSub = interval(5 * 60 * 1000).subscribe(() => this.refresh());
+    } else if (!shouldRun && this.liveTickSub) {
+      this.liveTickSub.unsubscribe();
+      this.liveTickSub = null;
+    }
   }
 
   private loadPeriod(): Period {
@@ -303,6 +328,15 @@ export class MonthlyChartComponent implements OnInit {
       ? entries.reduce((m, e) => Math.min(m, e.startTime), Infinity)
       : null;
 
+    const runningHoursToday = this.runningEntry
+      ? (Date.now() - this.runningEntry.startTime) / 3600000
+      : 0;
+    const todayStartMs = today.getTime();
+    const todayEndMs = todayStartMs + 24 * 60 * 60 * 1000 - 1;
+    const runningStartedToday = !!this.runningEntry
+      && this.runningEntry.startTime >= todayStartMs
+      && this.runningEntry.startTime <= todayEndMs;
+
     if (period === 'week') {
       const { start: weekStart, end: weekEnd } = this.settings.getWeekBoundaries(now);
       const labels: string[] = [];
@@ -326,6 +360,13 @@ export class MonthlyChartComponent implements OnInit {
         }
         const exp = isWorkday(d.getDay()) && !holidaySet.has(this.toDateStr(d)) ? workdayHours : 0;
         expectedPerBucket.push(exp);
+      }
+      if (runningStartedToday) {
+        const dayMs = 24 * 60 * 60 * 1000;
+        const todayIdx = Math.floor((today.getTime() - weekStart.getTime()) / dayMs);
+        if (todayIdx >= 0 && todayIdx < 7 && data[todayIdx] !== null) {
+          data[todayIdx] = (data[todayIdx] as number) + runningHoursToday;
+        }
       }
       const worked = data.reduce((s: number, v) => s + (v ?? 0), 0);
       const expectedEnd = today < weekEnd ? today : weekEnd;
@@ -362,6 +403,12 @@ export class MonthlyChartComponent implements OnInit {
         const d = new Date(year, month, i + 1);
         const exp = isWorkday(d.getDay()) && !holidaySet.has(this.toDateStr(d)) ? workdayHours : 0;
         expectedPerBucket.push(exp);
+      }
+      if (runningStartedToday) {
+        const dayIdx = now.getDate() - 1;
+        if (data[dayIdx] !== null) {
+          data[dayIdx] = (data[dayIdx] as number) + runningHoursToday;
+        }
       }
       const worked = data.reduce((s: number, v) => s + (v ?? 0), 0);
       const lastDay = new Date(year, month, Math.min(now.getDate(), daysInMonth));
