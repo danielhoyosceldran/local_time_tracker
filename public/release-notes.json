@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.7.0-alpha",
+    "date": "2026-05-13",
+    "notes": [
+      "New dark / light theme support across the whole app",
+      "Theme can be toggled from Settings → General; choice is persisted across reloads",
+      "Dashboard, summaries, monthly chart, pomodoro, calendar, intervals and modals re-skinned for dark mode",
+      "Kendo date and time pickers (calendar grid, time columns, footer buttons) restyled for dark mode",
+      "Daily progress card 'water tank' gradient and accent text tuned for dark backgrounds"
+    ]
+  },
+  {
     "version": "0.6.0-alpha",
     "date": "2026-05-07",
     "notes": [

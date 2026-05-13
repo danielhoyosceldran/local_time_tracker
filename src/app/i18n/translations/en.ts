@@ -166,6 +166,11 @@ export const en = {
   'general.lang.en': 'English',
   'general.lang.es': 'Spanish',
   'general.lang.ca': 'Catalan',
+  'general.theme': 'Theme',
+  'general.themeHint': 'Use a light theme, a dark theme, or follow the system preference.',
+  'general.theme.light': 'Light',
+  'general.theme.dark': 'Dark',
+  'general.theme.system': 'System',
 
   // Days
   'day.0': 'Sunday', 'day.1': 'Monday', 'day.2': 'Tuesday', 'day.3': 'Wednesday',

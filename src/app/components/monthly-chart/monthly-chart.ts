@@ -8,6 +8,7 @@ import { ChartConfiguration, Plugin } from 'chart.js';
 import { TimeEntryService } from '../../services/time-entry';
 import { SettingsService } from '../../services/settings.service';
 import { HolidayDatesService } from '../../services/holiday-dates.service';
+import { ThemeService } from '../../services/theme.service';
 import { formatHoursToTime } from '../../utils/format';
 import { TranslationService } from '../../i18n';
 import { TranslatePipe } from '../../i18n/translate.pipe';
@@ -85,6 +86,7 @@ export class MonthlyChartComponent implements OnInit, OnDestroy {
   protected settings = inject(SettingsService);
   private holidays = inject(HolidayDatesService);
   private translation = inject(TranslationService);
+  private theme = inject(ThemeService);
 
   formatHoursToTime = formatHoursToTime;
 
@@ -115,7 +117,7 @@ export class MonthlyChartComponent implements OnInit, OnDestroy {
       const x = xScale.getPixelForValue(idx);
       const ctx = chart.ctx;
       ctx.save();
-      ctx.strokeStyle = 'rgba(148,163,184,0.6)';
+      ctx.strokeStyle = this.theme.isDark() ? 'rgba(148,163,184,0.45)' : 'rgba(148,163,184,0.6)';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(x, top);
@@ -176,35 +178,57 @@ export class MonthlyChartComponent implements OnInit, OnDestroy {
     ]
   };
 
-  chartOptions: ChartConfiguration['options'] = {
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: (value) => formatHoursToTime(Number(value))
+  chartOptions: ChartConfiguration['options'] = this.buildChartOptions();
+
+  private buildChartOptions(): ChartConfiguration['options'] {
+    const dark = this.theme.isDark();
+    const tickColor = dark ? '#94a3b8' : '#64748b';
+    const gridColor = dark ? 'rgba(148,163,184,0.18)' : 'rgba(148,163,184,0.25)';
+    const tooltipBg = dark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(15, 23, 42, 0.9)';
+    const tooltipText = dark ? '#e2e8f0' : '#f8fafc';
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            color: tickColor,
+            callback: (value) => formatHoursToTime(Number(value))
+          },
+          grid: { color: gridColor }
+        },
+        x: {
+          ticks: { color: tickColor },
+          grid: { display: false }
         }
       },
-      x: {
-        grid: { display: false }
-      }
-    },
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: {
-          label: (context) => formatHoursToTime(context.parsed.y ?? 0)
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: tooltipBg,
+          titleColor: tooltipText,
+          bodyColor: tooltipText,
+          callbacks: {
+            label: (context) => formatHoursToTime(context.parsed.y ?? 0)
+          }
         }
       }
-    }
-  };
+    };
+  }
 
   constructor() {
     effect(() => {
       // re-run when the settings change
       this.settings.showExpectedLine();
       this.settings.truncateWorkedAtToday();
+      this.refresh();
+    });
+
+    effect(() => {
+      // re-style chart when the theme flips
+      this.theme.isDark();
+      this.chartOptions = this.buildChartOptions();
       this.refresh();
     });
   }

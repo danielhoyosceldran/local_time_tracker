@@ -168,6 +168,11 @@ export const es: Record<TranslationKey, string> = {
   'general.lang.en': 'Inglés',
   'general.lang.es': 'Español',
   'general.lang.ca': 'Catalán',
+  'general.theme': 'Tema',
+  'general.themeHint': 'Usa un tema claro, oscuro o sigue la preferencia del sistema.',
+  'general.theme.light': 'Claro',
+  'general.theme.dark': 'Oscuro',
+  'general.theme.system': 'Sistema',
 
   // Days
   'day.0': 'Domingo', 'day.1': 'Lunes', 'day.2': 'Martes', 'day.3': 'Miércoles',

@@ -4,8 +4,9 @@ import { SettingsDraftService } from '../../../services/settings-draft.service';
 import { SettingsSectionComponent } from '../shared/section';
 import { SettingRowComponent } from '../shared/setting-row';
 import { SegmentedComponent, SegmentedOption } from '../shared/segmented';
-import { Language } from '../../../i18n';
+import { Language, TranslationService } from '../../../i18n';
 import { TranslatePipe } from '../../../i18n/translate.pipe';
+import { ThemeMode } from '../../../services/theme.service';
 
 @Component({
   selector: 'app-general-section',
@@ -30,15 +31,30 @@ import { TranslatePipe } from '../../../i18n/translate.pipe';
           (changed)="draft.language.set($any($event))"
         />
       </app-setting-row>
+
+      <app-setting-row [label]="'general.theme' | t" [hint]="'general.themeHint' | t">
+        <app-segmented
+          [options]="themeOptions()"
+          [value]="draft.theme()"
+          (changed)="draft.theme.set($any($event))"
+        />
+      </app-setting-row>
     </app-settings-section>
   `,
 })
 export class GeneralSectionComponent {
   draft = inject(SettingsDraftService);
+  private translation = inject(TranslationService);
 
   readonly languageOptions: SegmentedOption<Language>[] = [
     { value: 'en', label: 'English' },
     { value: 'es', label: 'Español' },
     { value: 'ca', label: 'Català' },
+  ];
+
+  readonly themeOptions = (): SegmentedOption<ThemeMode>[] => [
+    { value: 'light', label: this.translation.t('general.theme.light' as any) },
+    { value: 'dark', label: this.translation.t('general.theme.dark' as any) },
+    { value: 'system', label: this.translation.t('general.theme.system' as any) },
   ];
 }

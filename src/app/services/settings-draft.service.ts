@@ -5,6 +5,7 @@ import { TimeEntryService } from './time-entry';
 import { PomodoroSettingsService } from './pomodoro-settings.service';
 import { SoundId } from '../shared/sounds';
 import { TranslationService, Language } from '../i18n';
+import { ThemeService, ThemeMode } from './theme.service';
 
 /**
  * Staging layer for the settings modal. Sections write to this draft; nothing
@@ -16,9 +17,11 @@ export class SettingsDraftService {
   private timeEntry = inject(TimeEntryService);
   private pomodoro = inject(PomodoroSettingsService);
   private translation = inject(TranslationService);
+  private themeService = inject(ThemeService);
 
   // General
   readonly language = signal<Language>('en');
+  readonly theme = signal<ThemeMode>('system');
 
   // Workday
   readonly workdayHours = signal(0);
@@ -46,6 +49,7 @@ export class SettingsDraftService {
 
   async load(): Promise<void> {
     this.language.set(this.translation.language());
+    this.theme.set(this.themeService.mode());
     this.workdayHours.set(this.settings.workdayHours());
     this.weeklyTargetHours.set(this.settings.weeklyTargetHours());
     this.workdays.set([...this.settings.workdays()]);
@@ -69,6 +73,7 @@ export class SettingsDraftService {
 
   apply(): void {
     this.translation.setLanguage(this.language());
+    this.themeService.setMode(this.theme());
     this.settings.setWorkdayHours(this.workdayHours());
     this.settings.setWeeklyTargetHours(this.weeklyTargetHours());
     this.settings.setWorkdays(this.workdays());

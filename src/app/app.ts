@@ -7,6 +7,7 @@ import { TimeEntryService } from './services/time-entry';
 import { formatDuration } from './utils/format';
 import { SoundPickerHostComponent } from './shared/sound-picker-host';
 import { TranslationService } from './i18n';
+import { ThemeService } from './services/theme.service';
 
 @Component({
   selector: 'app-root',
@@ -22,6 +23,7 @@ export class AppComponent implements OnInit {
   private timeEntryService = inject(TimeEntryService);
   private destroyRef = inject(DestroyRef);
   private translation = inject(TranslationService);
+  private theme = inject(ThemeService);
 
   ngOnInit(): void {
     this.timeEntryService.liveTodaySummary$
