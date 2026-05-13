@@ -29,26 +29,17 @@ import { ViewStateService } from '../../services/view-state.service';
     IntervalsViewComponent,
   ],
   template: `
-    <div class="h-screen bg-slate-100 overflow-hidden p-4">
-      <div class="h-full overflow-hidden">
-        <div class="h-full grid grid-cols-5 grid-rows-[2rem_1fr_1fr_1fr_1fr] gap-4">
+    <div class="min-h-screen xl:h-screen bg-slate-100 xl:overflow-hidden p-4">
+      <div class="xl:h-full xl:overflow-hidden">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 xl:h-full xl:grid-rows-[2rem_1fr_1fr_1fr_1fr]">
 
-          <!-- Nav row: full width -->
-          <div class="col-span-5 h-full min-h-0">
+          <!-- Nav: full width at every breakpoint -->
+          <div class="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4 xl:col-span-5 min-h-[2.5rem] xl:min-h-0 xl:h-full">
             <app-dashboard-nav />
           </div>
 
-          <!-- Col 1, Rows 1-4: Calendar / Intervals (tabs in nav) -->
-          <div class="col-span-1 row-span-4 h-full min-h-0">
-            @if (viewState.activeTab() === 'calendar') {
-              <app-compact-holiday-calendar />
-            } @else {
-              <app-intervals-view />
-            }
-          </div>
-
-          <!-- Col 2, Rows 1-2: Timer / Add Interval (toggle) -->
-          <div class="col-span-1 row-span-2 h-full min-h-0 relative">
+          <!-- Timer / Quick-interval (toggle) -->
+          <div class="min-h-[280px] xl:min-h-0 xl:h-full xl:row-span-2 xl:col-start-2 xl:row-start-2 relative">
             <button
               (click)="showTimer.set(!showTimer())"
               class="absolute top-2 right-2 z-10 p-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors"
@@ -71,33 +62,39 @@ import { ViewStateService } from '../../services/view-state.service';
             }
           </div>
 
-          <!-- Col 3, Rows 1-2: Pomodoro -->
-          <div class="col-span-1 row-span-2 h-full min-h-0">
-            <app-pomodoro-timer />
-          </div>
-
-          <!-- Col 4, Rows 1-2: Daily Summary -->
-          <div class="col-span-1 row-span-2 h-full min-h-0">
+          <!-- Daily Summary -->
+          <div class="min-h-[280px] xl:min-h-0 xl:h-full xl:row-span-2 xl:col-start-4 xl:row-start-2">
             <app-daily-summary />
           </div>
 
-          <!-- Col 5, Rows 1-2: Weekly Summary -->
-          <div class="col-span-1 row-span-2 h-full min-h-0">
+          <!-- Calendar / Intervals (tabs in nav) -->
+          <div class="min-h-[320px] xl:min-h-0 xl:h-full xl:row-span-4 xl:col-start-1 xl:row-start-2">
+            @if (viewState.activeTab() === 'calendar') {
+              <app-compact-holiday-calendar />
+            } @else {
+              <app-intervals-view />
+            }
+          </div>
+
+          <!-- Weekly Summary -->
+          <div class="min-h-[280px] xl:min-h-0 xl:h-full xl:row-span-2 xl:col-start-5 xl:row-start-2">
             <app-weekly-summary />
           </div>
 
-          <!-- Cols 2-5, Row 3: Monthly Chart -->
-          <div class="col-span-4 h-full min-h-0">
+          <!-- Pomodoro -->
+          <div class="min-h-[280px] xl:min-h-0 xl:h-full xl:row-span-2 xl:col-start-3 xl:row-start-2">
+            <app-pomodoro-timer />
+          </div>
+
+          <!-- Monthly Chart: wide -->
+          <div class="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4 min-h-[300px] xl:min-h-0 xl:h-full xl:col-span-4 xl:col-start-2 xl:row-start-4">
             <app-monthly-chart />
           </div>
 
-          <!-- Col 2, Row 4: Reminder -->
-          <div class="col-span-1 h-full min-h-0">
+          <!-- Reminder -->
+          <div class="min-h-[200px] xl:min-h-0 xl:h-full xl:col-start-2 xl:row-start-5">
             <app-reminder-notification />
           </div>
-
-          <!-- Cols 3-5, Row 4: empty -->
-          <div class="col-span-3 h-full min-h-0"></div>
 
         </div>
       </div>
