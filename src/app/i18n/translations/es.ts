@@ -329,4 +329,18 @@ export const es: Record<TranslationKey, string> = {
 
   // Auto-round section extras
   'autoround.marginHintLong': 'Si el total de hoy está dentro del margen respecto a las horas objetivo, el intervalo se ajusta para alcanzarlas exactamente.',
+
+  // Company tenure
+  'tenure.title': 'En la empresa',
+  'tenure.prompt': 'Configura tu fecha de inicio para ver cuánto tiempo llevas en la empresa.',
+  'tenure.startDate': 'Fecha de inicio',
+  'tenure.future': 'La fecha de inicio está en el futuro.',
+  'tenure.years': 'años',
+  'tenure.yearOne': 'año',
+  'tenure.months': 'meses',
+  'tenure.monthOne': 'mes',
+  'tenure.days': 'días',
+  'tenure.dayOne': 'día',
+  'tenure.totalDays': 'días en total',
+  'tenure.since': 'Desde',
 };

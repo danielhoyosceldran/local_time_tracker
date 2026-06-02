@@ -329,4 +329,18 @@ export const ca: Record<TranslationKey, string> = {
 
   // Auto-round section extras
   'autoround.marginHintLong': 'Si el total d\'avui està dins del marge respecte a les hores objectiu, l\'interval s\'ajusta per assolir-les exactament.',
+
+  // Company tenure
+  'tenure.title': 'A l\'empresa',
+  'tenure.prompt': 'Configura la teva data d\'inici per veure quant temps fa que ets a l\'empresa.',
+  'tenure.startDate': 'Data d\'inici',
+  'tenure.future': 'La data d\'inici és en el futur.',
+  'tenure.years': 'anys',
+  'tenure.yearOne': 'any',
+  'tenure.months': 'mesos',
+  'tenure.monthOne': 'mes',
+  'tenure.days': 'dies',
+  'tenure.dayOne': 'dia',
+  'tenure.totalDays': 'dies en total',
+  'tenure.since': 'Des de',
 };

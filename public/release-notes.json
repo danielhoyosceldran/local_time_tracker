@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.8.0-alpha",
+    "date": "2026-06-02",
+    "notes": [
+      "New 'At the company' dashboard card shows how long you've been at the company",
+      "Configure your start date inline; tenure is shown as years, months and days, plus total days",
+      "Counter updates automatically and rolls over at midnight",
+      "Start date is persisted across reloads and available in English, Spanish and Catalan"
+    ]
+  },
+  {
     "version": "0.7.0-alpha",
     "date": "2026-05-13",
     "notes": [

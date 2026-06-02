@@ -327,6 +327,20 @@ export const en = {
 
   // Auto-round section extras
   'autoround.marginHintLong': 'If today\'s total is within the margin of target hours, the interval adjusts to hit exactly that.',
+
+  // Company tenure
+  'tenure.title': 'At the company',
+  'tenure.prompt': 'Set your start date to see how long you\'ve been at the company.',
+  'tenure.startDate': 'Start date',
+  'tenure.future': 'The start date is in the future.',
+  'tenure.years': 'years',
+  'tenure.yearOne': 'year',
+  'tenure.months': 'months',
+  'tenure.monthOne': 'month',
+  'tenure.days': 'days',
+  'tenure.dayOne': 'day',
+  'tenure.totalDays': 'days in total',
+  'tenure.since': 'Since',
 };
 
 export type TranslationKey = keyof typeof en;

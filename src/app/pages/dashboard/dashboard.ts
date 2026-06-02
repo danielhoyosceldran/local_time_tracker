@@ -11,6 +11,7 @@ import { DashboardNavComponent } from '../../components/dashboard-nav/dashboard-
 import { PomodoroTimerComponent } from '../../components/pomodoro-timer/pomodoro-timer';
 import { ReminderNotificationComponent } from '../../components/reminder-notification/reminder-notification';
 import { IntervalsViewComponent } from '../../components/intervals-view/intervals-view';
+import { CompanyTenureComponent } from '../../components/company-tenure/company-tenure';
 import { ViewStateService } from '../../services/view-state.service';
 
 @Component({
@@ -27,6 +28,7 @@ import { ViewStateService } from '../../services/view-state.service';
     PomodoroTimerComponent,
     ReminderNotificationComponent,
     IntervalsViewComponent,
+    CompanyTenureComponent,
   ],
   template: `
     <div class="min-h-screen xl:h-screen bg-slate-100 xl:overflow-hidden p-4">
@@ -94,6 +96,11 @@ import { ViewStateService } from '../../services/view-state.service';
           <!-- Reminder -->
           <div class="min-h-[200px] xl:min-h-0 xl:h-full xl:col-start-2 xl:row-start-5">
             <app-reminder-notification />
+          </div>
+
+          <!-- Company tenure -->
+          <div class="min-h-[200px] xl:min-h-0 xl:h-full xl:col-start-3 xl:row-start-5">
+            <app-company-tenure />
           </div>
 
         </div>
