@@ -327,6 +327,10 @@ export const en = {
 
   // Auto-round section extras
   'autoround.marginHintLong': 'If today\'s total is within the margin of target hours, the interval adjusts to hit exactly that.',
+  'autoround.window': 'Limit to time window',
+  'autoround.windowHint': 'Only time worked inside the window is rounded; work before or after it counts in full.',
+  'autoround.windowStart': 'Window start',
+  'autoround.windowEnd': 'Window end',
 
   // Company tenure
   'tenure.title': 'At the company',

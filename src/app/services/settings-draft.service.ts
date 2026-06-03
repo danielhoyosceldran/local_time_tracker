@@ -35,6 +35,9 @@ export class SettingsDraftService {
   // Auto-round
   readonly marginEnabled = signal(false);
   readonly marginMinutes = signal(10);
+  readonly marginWindowEnabled = signal(false);
+  readonly marginWindowStart = signal('09:00');
+  readonly marginWindowEnd = signal('18:00');
 
   // Lunch
   readonly lunchEnabled = signal(true);
@@ -60,6 +63,9 @@ export class SettingsDraftService {
 
     this.marginEnabled.set(await firstValueFrom(this.timeEntry.marginEnabled$.pipe(take(1))));
     this.marginMinutes.set(await firstValueFrom(this.timeEntry.marginMinutes$.pipe(take(1))));
+    this.marginWindowEnabled.set(await firstValueFrom(this.timeEntry.marginWindowEnabled$.pipe(take(1))));
+    this.marginWindowStart.set(await firstValueFrom(this.timeEntry.marginWindowStart$.pipe(take(1))));
+    this.marginWindowEnd.set(await firstValueFrom(this.timeEntry.marginWindowEnd$.pipe(take(1))));
 
     this.lunchEnabled.set(await firstValueFrom(this.timeEntry.lunchEnabled$.pipe(take(1))));
     this.lunchHour.set(await firstValueFrom(this.timeEntry.lunchHour$.pipe(take(1))));
@@ -84,6 +90,9 @@ export class SettingsDraftService {
 
     this.timeEntry.setMarginEnabled(this.marginEnabled());
     this.timeEntry.setMarginMinutes(this.marginMinutes());
+    this.timeEntry.setMarginWindowEnabled(this.marginWindowEnabled());
+    this.timeEntry.setMarginWindowStart(this.marginWindowStart());
+    this.timeEntry.setMarginWindowEnd(this.marginWindowEnd());
 
     this.timeEntry.setLunchEnabled(this.lunchEnabled());
     this.timeEntry.setLunchHour(this.lunchHour());

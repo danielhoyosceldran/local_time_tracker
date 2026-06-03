@@ -329,6 +329,10 @@ export const es: Record<TranslationKey, string> = {
 
   // Auto-round section extras
   'autoround.marginHintLong': 'Si el total de hoy está dentro del margen respecto a las horas objetivo, el intervalo se ajusta para alcanzarlas exactamente.',
+  'autoround.window': 'Limitar a franja horaria',
+  'autoround.windowHint': 'Solo se redondea el tiempo trabajado dentro de la franja; el de antes o después cuenta entero.',
+  'autoround.windowStart': 'Inicio de la franja',
+  'autoround.windowEnd': 'Fin de la franja',
 
   // Company tenure
   'tenure.title': 'En la empresa',

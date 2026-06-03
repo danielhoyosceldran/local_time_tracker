@@ -11,6 +11,11 @@ const STORAGE_KEY = 'timeTrackerEntries';
 const RUNNING_KEY = 'timeTrackerRunningEntry';
 const MARGIN_ENABLED_KEY = 'timeTrackerMarginEnabled';
 const MARGIN_MINUTES_KEY = 'timeTrackerMarginMinutes';
+const MARGIN_WINDOW_ENABLED_KEY = 'tt.marginWindowEnabled';
+const MARGIN_WINDOW_START_KEY = 'tt.marginWindowStart';
+const MARGIN_WINDOW_END_KEY = 'tt.marginWindowEnd';
+const MARGIN_WINDOW_START_DEFAULT = '09:00';
+const MARGIN_WINDOW_END_DEFAULT = '18:00';
 const LUNCH_HOUR_KEY = 'timeTrackerLunchHour';
 const LUNCH_DURATION_KEY = 'timeTrackerLunchDurationMin';
 const LUNCH_ENABLED_KEY = 'timeTrackerLunchEnabled';
@@ -18,6 +23,7 @@ const LUNCH_ENABLED_KEY = 'timeTrackerLunchEnabled';
 const KNOWN_STORAGE_KEYS = [
   STORAGE_KEY, RUNNING_KEY,
   MARGIN_ENABLED_KEY, MARGIN_MINUTES_KEY,
+  MARGIN_WINDOW_ENABLED_KEY, MARGIN_WINDOW_START_KEY, MARGIN_WINDOW_END_KEY,
   LUNCH_HOUR_KEY, LUNCH_DURATION_KEY, LUNCH_ENABLED_KEY,
   'timeTrackerHolidays', 'timeTrackerHolidayDates', 'timeTrackerCalendarUrl',
   'timeTrackerReminderEnabled', 'timeTrackerReminderTime',
@@ -221,6 +227,53 @@ export class TimeEntryService implements OnDestroy {
     this._marginMinutes$$.next(clamped);
   }
 
+  // When enabled, the margin only absorbs time worked inside this daily window;
+  // work before the start or after the end is never truncated.
+  private _marginWindowEnabled$$ = new BehaviorSubject<boolean>(
+    localStorage.getItem(MARGIN_WINDOW_ENABLED_KEY) === 'true'
+  );
+  public readonly marginWindowEnabled$ = this._marginWindowEnabled$$.asObservable();
+
+  private _marginWindowStart$$ = new BehaviorSubject<string>(
+    localStorage.getItem(MARGIN_WINDOW_START_KEY) || MARGIN_WINDOW_START_DEFAULT
+  );
+  public readonly marginWindowStart$ = this._marginWindowStart$$.asObservable();
+
+  private _marginWindowEnd$$ = new BehaviorSubject<string>(
+    localStorage.getItem(MARGIN_WINDOW_END_KEY) || MARGIN_WINDOW_END_DEFAULT
+  );
+  public readonly marginWindowEnd$ = this._marginWindowEnd$$.asObservable();
+
+  setMarginWindowEnabled(enabled: boolean): void {
+    localStorage.setItem(MARGIN_WINDOW_ENABLED_KEY, String(enabled));
+    this._marginWindowEnabled$$.next(enabled);
+  }
+
+  setMarginWindowStart(time: string): void {
+    localStorage.setItem(MARGIN_WINDOW_START_KEY, time);
+    this._marginWindowStart$$.next(time);
+  }
+
+  setMarginWindowEnd(time: string): void {
+    localStorage.setItem(MARGIN_WINDOW_END_KEY, time);
+    this._marginWindowEnd$$.next(time);
+  }
+
+  /** Milliseconds of [startTs, endTs] that fall inside the configured daily
+   *  window (evaluated on the interval's start day). Falls back to the full
+   *  interval if the window is misconfigured (end <= start). */
+  private windowOverlapMs(startTs: number, endTs: number): number {
+    if (endTs <= startTs) return 0;
+    const [sh, sm] = (this._marginWindowStart$$.getValue() || MARGIN_WINDOW_START_DEFAULT).split(':').map(Number);
+    const [eh, em] = (this._marginWindowEnd$$.getValue() || MARGIN_WINDOW_END_DEFAULT).split(':').map(Number);
+    const winStart = new Date(startTs); winStart.setHours(sh, sm, 0, 0);
+    const winEnd = new Date(startTs); winEnd.setHours(eh, em, 0, 0);
+    const ws = winStart.getTime();
+    const we = winEnd.getTime();
+    if (we <= ws) return endTs - startTs;
+    return Math.max(0, Math.min(endTs, we) - Math.max(startTs, ws));
+  }
+
   // --- Lunch Config ---
   private _lunchEnabled$$ = new BehaviorSubject<boolean>(
     localStorage.getItem(LUNCH_ENABLED_KEY) !== 'false'
@@ -286,17 +339,31 @@ export class TimeEntryService implements OnDestroy {
       const marginMs = this._marginMinutes$$.getValue() * 60 * 1000;
       const workdayMs = this.settings.workdayMs();
       const today = new Date().toLocaleDateString('en-CA');
-      const todayCompletedMs = this._entries$$.getValue()
-        .filter(e => new Date(e.startTime).toLocaleDateString('en-CA') === today)
-        .reduce((sum, e) => sum + e.duration, 0);
+      const windowed = this._marginWindowEnabled$$.getValue();
 
-      const todayTotalMs = todayCompletedMs + duration;
-      const diff = todayTotalMs - workdayMs;
+      const todayEntries = this._entries$$.getValue()
+        .filter(e => new Date(e.startTime).toLocaleDateString('en-CA') === today);
+
+      // When the window is on, only time inside the window participates in the
+      // margin. Work before/after the window is left untouched (counted in full).
+      const measure = windowed
+        ? (start: number, end: number) => this.windowOverlapMs(start, end)
+        : (start: number, end: number) => end - start;
+
+      const todayCompletedMs = todayEntries
+        .reduce((sum, e) => sum + measure(e.startTime, e.endTime), 0);
+      const currentRelevantMs = measure(runningEntry.startTime, endTime);
+
+      const totalMs = todayCompletedMs + currentRelevantMs;
+      const diff = totalMs - workdayMs;
 
       if (Math.abs(diff) <= marginMs) {
-        const targetDuration = workdayMs - todayCompletedMs;
-        if (targetDuration > 0) {
-          duration = targetDuration;
+        // Trim/extend the running session by the surplus/deficit. The adjusted
+        // tail sits inside the window (that is when the margin can trigger), so
+        // out-of-window time stays intact.
+        const adjusted = duration - diff;
+        if (adjusted > 0) {
+          duration = adjusted;
           endTime = runningEntry.startTime + duration;
         }
       }
@@ -555,6 +622,9 @@ export class TimeEntryService implements OnDestroy {
     this._runningEntry$$.next(this.loadRunningEntry());
     this._marginEnabled$$.next(localStorage.getItem(MARGIN_ENABLED_KEY) === 'true');
     this._marginMinutes$$.next(parseInt(localStorage.getItem(MARGIN_MINUTES_KEY) || '10', 10));
+    this._marginWindowEnabled$$.next(localStorage.getItem(MARGIN_WINDOW_ENABLED_KEY) === 'true');
+    this._marginWindowStart$$.next(localStorage.getItem(MARGIN_WINDOW_START_KEY) || MARGIN_WINDOW_START_DEFAULT);
+    this._marginWindowEnd$$.next(localStorage.getItem(MARGIN_WINDOW_END_KEY) || MARGIN_WINDOW_END_DEFAULT);
     this._lunchEnabled$$.next(localStorage.getItem(LUNCH_ENABLED_KEY) !== 'false');
     this._lunchHour$$.next(localStorage.getItem(LUNCH_HOUR_KEY) || '14:00');
     this._lunchDurationMin$$.next(parseInt(localStorage.getItem(LUNCH_DURATION_KEY) || '60', 10));

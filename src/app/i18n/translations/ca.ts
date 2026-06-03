@@ -329,6 +329,10 @@ export const ca: Record<TranslationKey, string> = {
 
   // Auto-round section extras
   'autoround.marginHintLong': 'Si el total d\'avui està dins del marge respecte a les hores objectiu, l\'interval s\'ajusta per assolir-les exactament.',
+  'autoround.window': 'Limitar a franja horària',
+  'autoround.windowHint': 'Només s\'arrodoneix el temps treballat dins de la franja; el d\'abans o després compta sencer.',
+  'autoround.windowStart': 'Inici de la franja',
+  'autoround.windowEnd': 'Fi de la franja',
 
   // Company tenure
   'tenure.title': 'A l\'empresa',

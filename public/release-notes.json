@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.9.0-alpha",
+    "date": "2026-06-03",
+    "notes": [
+      "Auto-round can now be limited to a daily time window (e.g. 09:00–18:00)",
+      "Only time worked inside the window is rounded to your target; work before or after the window counts in full as overtime",
+      "Optional: toggle it on under Settings → Auto-round and set the start and end times",
+      "Window setting is persisted and included in export / import"
+    ]
+  },
+  {
     "version": "0.8.0-alpha",
     "date": "2026-06-02",
     "notes": [
