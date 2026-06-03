@@ -341,6 +341,14 @@ export const en = {
   'tenure.dayOne': 'day',
   'tenure.totalDays': 'days in total',
   'tenure.since': 'Since',
+
+  // Tenure milestone celebration
+  'celebrate.title': 'Congratulations!',
+  'celebrate.sub.6m': 'You\'ve been with the company for 6 months',
+  'celebrate.sub.1y': 'Today marks your first year with the company',
+  'celebrate.sub.years': 'That\'s {years} years with the company!',
+  'celebrate.message': 'Thanks for all this time. Here\'s to many more! 🎉',
+  'celebrate.button': 'Thanks!',
 };
 
 export type TranslationKey = keyof typeof en;

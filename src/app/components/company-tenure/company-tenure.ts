@@ -1,8 +1,13 @@
 // src/app/components/company-tenure/company-tenure.ts
-import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SettingsService } from '../../services/settings.service';
 import { TranslatePipe } from '../../i18n/translate.pipe';
+import {
+  TenureCelebrationService,
+  TenureMilestone,
+} from '../../services/tenure-celebration.service';
+import { TenureCelebrationModalComponent } from '../tenure-celebration-modal/tenure-celebration-modal';
 
 interface Tenure {
   years: number;
@@ -15,7 +20,7 @@ interface Tenure {
 @Component({
   selector: 'app-company-tenure',
   standalone: true,
-  imports: [CommonModule, TranslatePipe],
+  imports: [CommonModule, TranslatePipe, TenureCelebrationModalComponent],
   template: `
     <div class="bg-white/80 backdrop-blur-xl border border-white rounded-2xl shadow-sm shadow-slate-200/50 p-4 h-full flex flex-col overflow-hidden">
       <!-- Header -->
@@ -117,14 +122,20 @@ interface Tenure {
         </div>
       }
     </div>
+
+    @if (celebration(); as m) {
+      <app-tenure-celebration-modal [milestone]="m" (close)="celebration.set(null)" />
+    }
   `,
 })
-export class CompanyTenureComponent implements OnDestroy {
+export class CompanyTenureComponent implements OnInit, OnDestroy {
   private settings = inject(SettingsService);
+  private celebrations = inject(TenureCelebrationService);
 
   readonly startDate = this.settings.companyStartDate;
   readonly editing = signal(false);
   readonly draft = signal(this.settings.companyStartDate());
+  readonly celebration = signal<TenureMilestone | null>(null);
 
   /** Ticks once per minute so the counter rolls over without a heavy interval. */
   private readonly now = signal(this.startOfMinute());
@@ -183,10 +194,20 @@ export class CompanyTenureComponent implements OnDestroy {
     if (!this.draft()) return;
     this.settings.setCompanyStartDate(this.draft());
     this.editing.set(false);
+    this.checkCelebration();
+  }
+
+  ngOnInit(): void {
+    this.checkCelebration();
   }
 
   ngOnDestroy(): void {
     clearInterval(this.timer);
+  }
+
+  private checkCelebration(): void {
+    const pending = this.celebrations.checkPending(this.startDate());
+    if (pending) this.celebration.set(pending);
   }
 
   private parseDate(raw: string): Date | null {

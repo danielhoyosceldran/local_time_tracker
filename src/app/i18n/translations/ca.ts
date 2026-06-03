@@ -343,4 +343,12 @@ export const ca: Record<TranslationKey, string> = {
   'tenure.dayOne': 'dia',
   'tenure.totalDays': 'dies en total',
   'tenure.since': 'Des de',
+
+  // Tenure milestone celebration
+  'celebrate.title': 'Felicitats!',
+  'celebrate.sub.6m': 'Ja fa 6 mesos que ets a l\'empresa',
+  'celebrate.sub.1y': 'Avui fas el teu primer any a l\'empresa',
+  'celebrate.sub.years': 'Ja són {years} anys a l\'empresa!',
+  'celebrate.message': 'Gràcies per tot aquest temps. Que en vinguin molts més! 🎉',
+  'celebrate.button': 'Gràcies!',
 };
