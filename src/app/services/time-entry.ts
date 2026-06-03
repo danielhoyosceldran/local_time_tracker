@@ -27,6 +27,9 @@ const KNOWN_STORAGE_KEYS = [
   'timeTrackerPomodoroState',
   'tt.workdayHours', 'tt.weeklyTargetHours', 'tt.workdays',
   'tt.firstDayOfWeek', 'tt.timeFormat',
+  'tt.showExpectedLine', 'tt.truncateWorkedAtToday',
+  'tt.companyStartDate', 'tt.tenureCelebrations',
+  'tt.language', 'tt.themeMode',
 ];
 
 @Injectable({

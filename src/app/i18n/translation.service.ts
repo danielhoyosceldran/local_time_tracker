@@ -32,6 +32,11 @@ export class TranslationService {
     localStorage.setItem(STORAGE_KEY, lang);
   }
 
+  /** Re-read the language from localStorage (used after import/reset). */
+  reloadFromStorage(): void {
+    this.language.set(loadLanguage());
+  }
+
   t(key: TranslationKey, params?: Record<string, string | number>): string {
     let str = this.dict()[key] ?? en[key] ?? key;
     if (params) {

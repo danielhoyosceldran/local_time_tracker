@@ -10,6 +10,7 @@ import { SettingsDraftService } from '../../../services/settings-draft.service';
 import { SettingsSectionComponent } from '../shared/section';
 import { TranslatePipe } from '../../../i18n/translate.pipe';
 import { TranslationService } from '../../../i18n';
+import { ThemeService } from '../../../services/theme.service';
 
 @Component({
   selector: 'app-data-section',
@@ -57,6 +58,7 @@ export class DataSectionComponent {
   private calendar = inject(CalendarSettingsService);
   private draft = inject(SettingsDraftService);
   private translation = inject(TranslationService);
+  private theme = inject(ThemeService);
 
   status = signal<string>('');
 
@@ -100,6 +102,8 @@ export class DataSectionComponent {
   }
 
   private async refreshAll(): Promise<void> {
+    this.translation.reloadFromStorage();
+    this.theme.reloadFromStorage();
     this.settings.reloadFromStorage();
     this.pomodoro.reloadFromStorage();
     this.reminder.reloadFromStorage();

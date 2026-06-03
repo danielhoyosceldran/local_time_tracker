@@ -42,4 +42,9 @@ export class ThemeService {
     this.mode.set(mode);
     localStorage.setItem(STORAGE_KEY, mode);
   }
+
+  /** Re-read the theme mode from localStorage (used after import/reset). */
+  reloadFromStorage(): void {
+    this.mode.set(loadMode());
+  }
 }
