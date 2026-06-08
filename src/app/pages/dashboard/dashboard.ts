@@ -41,7 +41,8 @@ import { ViewStateService } from '../../services/view-state.service';
           </div>
 
           <!-- Timer / Quick-interval (toggle) -->
-          <div class="min-h-[280px] xl:min-h-0 xl:h-full xl:row-span-2 xl:col-start-2 xl:row-start-2 relative">
+          <div class="tile min-h-[280px] xl:min-h-0 xl:h-full xl:row-span-2 xl:col-start-2 xl:row-start-2 relative"
+               [class.tile--active]="viewState.mobileView() === 'timer'">
             <button
               (click)="showTimer.set(!showTimer())"
               class="absolute top-2 right-2 z-10 p-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors"
@@ -65,12 +66,14 @@ import { ViewStateService } from '../../services/view-state.service';
           </div>
 
           <!-- Daily Summary -->
-          <div class="min-h-[280px] xl:min-h-0 xl:h-full xl:row-span-2 xl:col-start-4 xl:row-start-2">
+          <div class="tile min-h-[280px] xl:min-h-0 xl:h-full xl:row-span-2 xl:col-start-4 xl:row-start-2"
+               [class.tile--active]="viewState.mobileView() === 'daily'">
             <app-daily-summary />
           </div>
 
           <!-- Calendar / Intervals (tabs in nav) -->
-          <div class="min-h-[320px] xl:min-h-0 xl:h-full xl:row-span-4 xl:col-start-1 xl:row-start-2">
+          <div class="tile min-h-[320px] xl:min-h-0 xl:h-full xl:row-span-4 xl:col-start-1 xl:row-start-2"
+               [class.tile--active]="viewState.mobileView() === 'calendar' || viewState.mobileView() === 'intervals'">
             @if (viewState.activeTab() === 'calendar') {
               <app-compact-holiday-calendar />
             } @else {
@@ -79,34 +82,49 @@ import { ViewStateService } from '../../services/view-state.service';
           </div>
 
           <!-- Weekly Summary -->
-          <div class="min-h-[280px] xl:min-h-0 xl:h-full xl:row-span-2 xl:col-start-5 xl:row-start-2">
+          <div class="tile min-h-[280px] xl:min-h-0 xl:h-full xl:row-span-2 xl:col-start-5 xl:row-start-2"
+               [class.tile--active]="viewState.mobileView() === 'weekly'">
             <app-weekly-summary />
           </div>
 
           <!-- Pomodoro -->
-          <div class="min-h-[280px] xl:min-h-0 xl:h-full xl:row-span-2 xl:col-start-3 xl:row-start-2">
+          <div class="tile min-h-[280px] xl:min-h-0 xl:h-full xl:row-span-2 xl:col-start-3 xl:row-start-2"
+               [class.tile--active]="viewState.mobileView() === 'pomodoro'">
             <app-pomodoro-timer />
           </div>
 
           <!-- Monthly Chart: wide -->
-          <div class="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4 min-h-[300px] xl:min-h-0 xl:h-full xl:col-span-4 xl:col-start-2 xl:row-start-4">
+          <div class="tile col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4 min-h-[300px] xl:min-h-0 xl:h-full xl:col-span-4 xl:col-start-2 xl:row-start-4"
+               [class.tile--active]="viewState.mobileView() === 'chart'">
             <app-monthly-chart />
           </div>
 
           <!-- Reminder -->
-          <div class="min-h-[200px] xl:min-h-0 xl:h-full xl:col-start-2 xl:row-start-5">
+          <div class="tile min-h-[200px] xl:min-h-0 xl:h-full xl:col-start-2 xl:row-start-5"
+               [class.tile--active]="viewState.mobileView() === 'reminder'">
             <app-reminder-notification />
           </div>
 
           <!-- Company tenure -->
-          <div class="min-h-[200px] xl:min-h-0 xl:h-full xl:col-start-3 xl:row-start-5">
+          <div class="tile min-h-[200px] xl:min-h-0 xl:h-full xl:col-start-3 xl:row-start-5"
+               [class.tile--active]="viewState.mobileView() === 'tenure'">
             <app-company-tenure />
           </div>
 
         </div>
       </div>
     </div>
-  `
+  `,
+  styles: [`
+    /* Móvil: solo el panel activo, a pantalla completa. Escritorio intacto. */
+    @media (max-width: 639.98px) {
+      .tile { display: none; }
+      .tile.tile--active {
+        display: block;
+        min-height: calc(100dvh - 6rem);
+      }
+    }
+  `]
 })
 export class DashboardComponent {
   showTimer = signal(true);

@@ -5,6 +5,17 @@ export const en = {
   'nav.intervals': 'Intervals',
   'nav.settings': 'Settings',
   'nav.whatsNew': "What's new",
+  'nav.menu': 'Menu',
+  'mobile.views': 'Views',
+  'view.timer': 'Timer',
+  'view.daily': 'Daily summary',
+  'view.weekly': 'Weekly summary',
+  'view.calendar': 'Calendar',
+  'view.intervals': 'Intervals',
+  'view.pomodoro': 'Pomodoro',
+  'view.chart': 'Monthly chart',
+  'view.reminder': 'Reminder',
+  'view.tenure': 'Seniority',
 
   // Common
   'common.cancel': 'Cancel',

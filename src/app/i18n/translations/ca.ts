@@ -7,6 +7,17 @@ export const ca: Record<TranslationKey, string> = {
   'nav.intervals': 'Intervals',
   'nav.settings': 'Configuració',
   'nav.whatsNew': 'Novetats',
+  'nav.menu': 'Menú',
+  'mobile.views': 'Vistes',
+  'view.timer': 'Temporitzador',
+  'view.daily': 'Resum diari',
+  'view.weekly': 'Resum setmanal',
+  'view.calendar': 'Calendari',
+  'view.intervals': 'Intervals',
+  'view.pomodoro': 'Pomodoro',
+  'view.chart': 'Gràfic mensual',
+  'view.reminder': 'Recordatori',
+  'view.tenure': 'Antiguitat',
 
   // Common
   'common.cancel': 'Cancel·lar',

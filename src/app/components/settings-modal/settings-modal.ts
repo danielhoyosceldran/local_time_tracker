@@ -38,7 +38,7 @@ interface Tab {
       (click)="onCancel()"
     >
       <div
-        class="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(60vw,900px)] min-w-[50vw] h-[min(80vh,700px)] flex flex-col overflow-hidden"
+        class="settings-box bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(60vw,900px)] min-w-[50vw] h-[min(80vh,700px)] flex flex-col overflow-hidden"
         (click)="$event.stopPropagation()"
       >
         <!-- Header -->
@@ -62,10 +62,10 @@ interface Tab {
         </div>
 
         <!-- Body: sidebar + panel -->
-        <div class="flex flex-1 min-h-0">
+        <div class="settings-body flex flex-1 min-h-0">
 
           <!-- Sidebar -->
-          <nav class="w-56 shrink-0 border-r border-slate-100 bg-slate-50/60 p-3 overflow-y-auto">
+          <nav class="settings-sidebar w-56 shrink-0 border-r border-slate-100 bg-slate-50/60 p-3 overflow-y-auto">
             <ul class="space-y-1">
               @for (tab of tabs; track tab.id) {
                 <li>
@@ -84,7 +84,7 @@ interface Tab {
                     ></span>
                     <span class="flex flex-col">
                       <span class="text-sm font-medium">{{ tab.labelKey | t }}</span>
-                      <span class="text-[11px] text-slate-400 leading-tight">{{ tab.descriptionKey | t }}</span>
+                      <span class="tab-desc text-[11px] text-slate-400 leading-tight">{{ tab.descriptionKey | t }}</span>
                     </span>
                   </button>
                 </li>
@@ -141,6 +141,41 @@ interface Tab {
       </div>
     </div>
   `,
+  styles: [`
+    /* Móvil: modal a pantalla completa y sidebar como tira de pestañas horizontal. */
+    @media (max-width: 639.98px) {
+      .settings-box {
+        width: 100%;
+        min-width: 0;
+        height: 100%;
+        max-height: 100%;
+      }
+      .settings-body { flex-direction: column; }
+      .settings-sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--tt-border-soft);
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 0.5rem;
+      }
+      .settings-sidebar ul {
+        display: flex;
+        flex-direction: row;
+        gap: 0.25rem;
+        margin: 0;
+      }
+      .settings-sidebar li { flex: 0 0 auto; }
+      .settings-sidebar button {
+        width: auto;
+        white-space: nowrap;
+        align-items: center;
+        padding: 0.5rem 0.75rem;
+      }
+      /* La descripción de cada pestaña sobra en horizontal. */
+      .tab-desc { display: none; }
+    }
+  `],
 })
 export class SettingsModalComponent implements OnInit {
   close = output<void>();
