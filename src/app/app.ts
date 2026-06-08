@@ -8,14 +8,17 @@ import { formatDuration } from './utils/format';
 import { SoundPickerHostComponent } from './shared/sound-picker-host';
 import { TranslationService } from './i18n';
 import { ThemeService } from './services/theme.service';
+import { GistSyncService } from './services/gist-sync.service';
+import { GistSyncNotificationComponent } from './components/gist-sync-notification/gist-sync-notification';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, SoundPickerHostComponent],
+  imports: [RouterOutlet, SoundPickerHostComponent, GistSyncNotificationComponent],
   template: `
     <router-outlet />
     <app-sound-picker-host />
+    <app-gist-sync-notification />
   `,
 })
 export class AppComponent implements OnInit {
@@ -24,8 +27,12 @@ export class AppComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
   private translation = inject(TranslationService);
   private theme = inject(ThemeService);
+  private gistSync = inject(GistSyncService);
 
   ngOnInit(): void {
+    // Best-effort cloud check: prompts only if the gist has more entries.
+    this.gistSync.checkOnStartup();
+
     this.timeEntryService.liveTodaySummary$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(summary => {

@@ -1,16 +1,9 @@
 import { Component, inject, signal } from '@angular/core';
 import { TimeEntryService } from '../../../services/time-entry';
-import { SettingsService } from '../../../services/settings.service';
-import { PomodoroSettingsService } from '../../../services/pomodoro-settings.service';
-import { ReminderService } from '../../../services/reminder.service';
-import { HolidayService } from '../../../services/holiday.service';
-import { HolidayDatesService } from '../../../services/holiday-dates.service';
-import { CalendarSettingsService } from '../../../services/calendar-settings.service';
-import { SettingsDraftService } from '../../../services/settings-draft.service';
+import { DataRefreshService } from '../../../services/data-refresh.service';
 import { SettingsSectionComponent } from '../shared/section';
 import { TranslatePipe } from '../../../i18n/translate.pipe';
 import { TranslationService } from '../../../i18n';
-import { ThemeService } from '../../../services/theme.service';
 
 @Component({
   selector: 'app-data-section',
@@ -50,15 +43,8 @@ import { ThemeService } from '../../../services/theme.service';
 })
 export class DataSectionComponent {
   private time = inject(TimeEntryService);
-  private settings = inject(SettingsService);
-  private pomodoro = inject(PomodoroSettingsService);
-  private reminder = inject(ReminderService);
-  private holiday = inject(HolidayService);
-  private holidayDates = inject(HolidayDatesService);
-  private calendar = inject(CalendarSettingsService);
-  private draft = inject(SettingsDraftService);
+  private dataRefresh = inject(DataRefreshService);
   private translation = inject(TranslationService);
-  private theme = inject(ThemeService);
 
   status = signal<string>('');
 
@@ -102,15 +88,6 @@ export class DataSectionComponent {
   }
 
   private async refreshAll(): Promise<void> {
-    this.translation.reloadFromStorage();
-    this.theme.reloadFromStorage();
-    this.settings.reloadFromStorage();
-    this.pomodoro.reloadFromStorage();
-    this.reminder.reloadFromStorage();
-    this.holiday.reloadFromStorage();
-    this.holidayDates.reloadFromStorage();
-    this.calendar.reloadFromStorage();
-    this.time.reloadFromStorage();
-    await this.draft.load();
+    await this.dataRefresh.refreshAll();
   }
 }

@@ -353,6 +353,12 @@ export const en = {
   'celebrate.sub.years': 'That\'s {years} years with the company!',
   'celebrate.message': 'Thanks for all this time. Here\'s to many more! 🎉',
   'celebrate.button': 'Thanks!',
+
+  // Cloud sync (GitHub Gist)
+  'gistSync.notifTitle': 'Cloud backup has more data',
+  'gistSync.notifBody': 'The cloud copy has {remote} entries vs {local} here. Bring them in?',
+  'gistSync.bringBtn': 'Bring from cloud',
+  'gistSync.dismissBtn': 'Dismiss',
 };
 
 export type TranslationKey = keyof typeof en;

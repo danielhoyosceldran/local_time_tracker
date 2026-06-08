@@ -355,4 +355,10 @@ export const es: Record<TranslationKey, string> = {
   'celebrate.sub.years': '¡Ya son {years} años en la empresa!',
   'celebrate.message': 'Gracias por todo este tiempo. ¡Que vengan muchos más! 🎉',
   'celebrate.button': '¡Gracias!',
+
+  // Cloud sync (GitHub Gist)
+  'gistSync.notifTitle': 'La copia en la nube tiene más datos',
+  'gistSync.notifBody': 'La copia en la nube tiene {remote} registros frente a {local} aquí. ¿Traerlos?',
+  'gistSync.bringBtn': 'Bajar de la nube',
+  'gistSync.dismissBtn': 'Descartar',
 };

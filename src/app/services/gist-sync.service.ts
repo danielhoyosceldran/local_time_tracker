@@ -3,6 +3,9 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Observable, catchError, map, throwError } from 'rxjs';
 
+/** Canonical localStorage key holding the time entries (a JSON array). */
+const ENTRIES_KEY = 'timeTrackerEntries';
+
 /**
  * Optional cloud sync via a private GitHub Gist. This sits ON TOP of the
  * existing localStorage logic: localStorage is ALWAYS the source of truth.
@@ -35,6 +38,13 @@ export interface GistPayload {
   data: Record<string, string | null>;
 }
 
+/** Startup state: the remote gist has more entries than localStorage. */
+export interface PendingRemote {
+  payload: GistPayload;
+  localCount: number;
+  remoteCount: number;
+}
+
 /** Discriminated set of failure modes, mapped to user-friendly messages by the UI. */
 export type GistSyncErrorKind =
   | 'no-config'     // token/gistId missing
@@ -61,6 +71,11 @@ export class GistSyncService {
   // Exposed as a signal so the settings UI reflects the saved config reactively.
   private _config = signal<GistConfig | null>(this.load());
   readonly config = this._config.asReadonly();
+
+  // Set on startup when the gist holds MORE entries than localStorage. The UI
+  // shows a non-destructive prompt offering to bring the remote data in.
+  private _pendingRemote = signal<PendingRemote | null>(null);
+  readonly pendingRemote = this._pendingRemote.asReadonly();
 
   // --- Config persistence ---
 
@@ -169,6 +184,36 @@ export class GistSyncService {
       );
   }
 
+  // --- Startup comparison ---
+
+  /**
+   * On app open: pull the gist and, if it holds MORE entries than localStorage,
+   * stage a non-destructive prompt (localStorage is never overwritten here).
+   * Fully fault-tolerant: missing config or any network/parse error is ignored
+   * so the app keeps working offline on localStorage alone.
+   */
+  checkOnStartup(): void {
+    if (!this.hasConfig()) return;
+    this.pull().subscribe({
+      next: payload => {
+        if (!payload) return;
+        const localCount = countEntries(readLocalEntries());
+        const remoteCount = countEntries(payload.data?.[ENTRIES_KEY] ?? null);
+        // Only prompt when the cloud is strictly ahead. Otherwise localStorage wins.
+        if (remoteCount > localCount) {
+          this._pendingRemote.set({ payload, localCount, remoteCount });
+        }
+      },
+      // Swallow errors: sync is best-effort and must never break startup.
+      error: () => void 0,
+    });
+  }
+
+  /** Dismiss the pending-remote prompt without importing. */
+  dismissPending(): void {
+    this._pendingRemote.set(null);
+  }
+
   // --- Helpers ---
 
   /** Build the GitHub API headers. The token is only ever placed here. */
@@ -185,6 +230,22 @@ export class GistSyncService {
 interface GistApiResponse {
   id: string;
   files: Record<string, { filename: string; content?: string; truncated?: boolean } | undefined>;
+}
+
+/** Raw value of the entries key in localStorage (the JSON-stringified array). */
+function readLocalEntries(): string | null {
+  return localStorage.getItem(ENTRIES_KEY);
+}
+
+/** Count entries in a JSON-stringified array; 0 if absent/invalid/not an array. */
+function countEntries(raw: string | null): number {
+  if (!raw) return 0;
+  try {
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.length : 0;
+  } catch {
+    return 0;
+  }
 }
 
 /** Accept a full gist URL or a bare id and return just the id. */
