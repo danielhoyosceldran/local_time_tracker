@@ -37,6 +37,9 @@ const KNOWN_STORAGE_KEYS = [
   'tt.companyStartDate', 'tt.tenureCelebrations',
   'tt.language', 'tt.themeMode',
 ];
+// NOTE: `gistConfig` (cloud-sync token/gist id) is intentionally NOT listed.
+// It holds the secret PAT and must never travel inside the gist payload or the
+// downloadable backup; it is device-local config, not user-preference data.
 
 @Injectable({
   providedIn: 'root'
