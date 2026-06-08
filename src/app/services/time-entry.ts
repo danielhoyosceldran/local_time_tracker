@@ -6,6 +6,7 @@ import { TimeEntry, RunningTimeEntry, DailySummary, WeeklySummary, DayGroup, Glo
 import { take, tap } from 'rxjs';
 import { HolidayDatesService } from './holiday-dates.service';
 import { SettingsService } from './settings.service';
+import { GistSyncService } from './gist-sync.service';
 
 const STORAGE_KEY = 'timeTrackerEntries';
 const RUNNING_KEY = 'timeTrackerRunningEntry';
@@ -47,6 +48,7 @@ const KNOWN_STORAGE_KEYS = [
 export class TimeEntryService implements OnDestroy {
   private holidayDatesService = inject(HolidayDatesService);
   private settings = inject(SettingsService);
+  private gistSync = inject(GistSyncService);
   // Single Source of Truth for the history
   private _entries$$ = new BehaviorSubject<TimeEntry[]>(this.loadEntries());
   public readonly entries$: Observable<TimeEntry[]> = this._entries$$.asObservable();
@@ -326,6 +328,7 @@ export class TimeEntryService implements OnDestroy {
       duration: 0,
     };
     this.saveRunningEntry(newRunningEntry);
+    this.syncToCloud();
   }
 
   stopTracking(): TimeEntry | null {
@@ -384,7 +387,22 @@ export class TimeEntryService implements OnDestroy {
     // 2. Clear running state
     this.saveRunningEntry(null);
 
+    this.syncToCloud();
+
     return completedEntry;
+  }
+
+  /**
+   * Best-effort cloud push of the current localStorage snapshot. Triggered on
+   * timer start/stop. Does nothing without config; any network error is
+   * swallowed so the timer never breaks. localStorage stays the source of truth.
+   */
+  private syncToCloud(): void {
+    if (!this.gistSync.hasConfig()) return;
+    this.gistSync.push(this.exportAll()).subscribe({
+      next: () => void 0,
+      error: () => void 0,
+    });
   }
 
   // --- CRUD Operations for History ---
