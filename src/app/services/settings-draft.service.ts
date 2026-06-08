@@ -43,6 +43,7 @@ export class SettingsDraftService {
   readonly lunchEnabled = signal(true);
   readonly lunchHour = signal('14:00');
   readonly lunchDurationMin = signal(60);
+  readonly lunchBreakButtonEnabled = signal(false);
 
   // Pomodoro
   readonly pomoWork = signal(25);
@@ -70,6 +71,7 @@ export class SettingsDraftService {
     this.lunchEnabled.set(await firstValueFrom(this.timeEntry.lunchEnabled$.pipe(take(1))));
     this.lunchHour.set(await firstValueFrom(this.timeEntry.lunchHour$.pipe(take(1))));
     this.lunchDurationMin.set(await firstValueFrom(this.timeEntry.lunchDurationMin$.pipe(take(1))));
+    this.lunchBreakButtonEnabled.set(await firstValueFrom(this.timeEntry.lunchBreakButtonEnabled$.pipe(take(1))));
 
     this.pomoWork.set(this.pomodoro.workMinutes());
     this.pomoBreak.set(this.pomodoro.breakMinutes());
@@ -97,6 +99,7 @@ export class SettingsDraftService {
     this.timeEntry.setLunchEnabled(this.lunchEnabled());
     this.timeEntry.setLunchHour(this.lunchHour());
     this.timeEntry.setLunchDurationMin(this.lunchDurationMin());
+    this.timeEntry.setLunchBreakButtonEnabled(this.lunchBreakButtonEnabled());
 
     this.pomodoro.setWorkMinutes(this.pomoWork());
     this.pomodoro.setBreakMinutes(this.pomoBreak());

@@ -61,6 +61,14 @@ function dateToTimeString(d: Date): string {
           (changed)="draft.lunchDurationMin.set($event)"
         />
       </app-setting-row>
+
+      <app-setting-row [label]="'lunch.enableButtonLabel' | t" [hint]="'lunch.enableButtonHint' | t">
+        <app-toggle
+          [checked]="draft.lunchBreakButtonEnabled()"
+          activeClass="bg-orange-500"
+          (changed)="draft.lunchBreakButtonEnabled.set($event)"
+        />
+      </app-setting-row>
     </app-settings-section>
   `,
 })

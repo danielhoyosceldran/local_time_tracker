@@ -320,6 +320,16 @@ export const ca: Record<TranslationKey, string> = {
   'lunch.hourLabel': 'Hora',
   'lunch.hourHint': 'S\'afegeix a l\'hora de sortida estimada si encara no ha passat.',
   'lunch.durationLabel': 'Durada (min)',
+  'lunch.enableButtonLabel': 'Mostra el botó de pausa per dinar',
+  'lunch.enableButtonHint': 'Mostra un botó al temporitzador per pausar el fitxatge durant el dinar.',
+
+  // Lunch break timer extras
+  'timer.lunchBreakTitle': 'Pausa per dinar',
+  'timer.lunchBreakBadge': 'DINAR',
+  'timer.lunchBreakRemaining': 'Restant:',
+  'timer.lunchBreakOver': 'Pausa acabada — llest per continuar!',
+  'timer.lunchBtn': 'Dinar',
+  'timer.resumeFromLunch': 'Reprendre',
 
   // Pomodoro section extras
   'pomoSection.workMin': 'Treball (min)',
