@@ -33,7 +33,8 @@ import { TranslationService } from '../../i18n';
           <!-- Fork & knife icon -->
           <div class="text-orange-400 mb-3">
             <svg class="w-8 h-8 mx-auto" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2M7 4v4a3 3 0 006 0V4M7 4H5M7 4h2M17 4v16M15 4h4"/>
+              <rect x="6" y="4" width="4" height="16" rx="1"/>
+              <rect x="14" y="4" width="4" height="16" rx="1"/>
             </svg>
           </div>
 
@@ -99,9 +100,10 @@ import { TranslationService } from '../../i18n';
               class="py-4 px-4 bg-orange-100 hover:bg-orange-200 active:scale-95 text-orange-600 font-bold rounded-2xl transition-all"
               [title]="'timer.lunchBtn' | t"
             >
-              <!-- Fork icon -->
+              <!-- Pause icon -->
               <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2M7 4v4a3 3 0 006 0V4M7 4H5M7 4h2M17 4v16M15 4h4"/>
+                <rect x="6" y="4" width="4" height="16" rx="1"/>
+                <rect x="14" y="4" width="4" height="16" rx="1"/>
               </svg>
             </button>
           }
