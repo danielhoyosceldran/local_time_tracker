@@ -380,6 +380,13 @@ export const en = {
   'gistSync.errValidation': 'GitHub rejected the request (422).',
   'gistSync.errParse': 'The cloud file is not valid JSON.',
   'gistSync.errNetwork': 'Network error. Check your connection and try again.',
+  // Typed-confirmation modal for manual upload/download
+  'gistSync.confirmTitle': 'Confirm this action',
+  'gistSync.confirmPushBody': 'This overwrites the cloud copy with your local data. Type {word} to confirm.',
+  'gistSync.confirmPullBody': 'This overwrites your local data with the cloud copy. Type {word} to confirm.',
+  'gistSync.confirmPlaceholder': 'Type {word}',
+  'gistSync.confirmBtn': 'Confirm',
+  'gistSync.cancelBtn': 'Cancel',
 };
 
 export type TranslationKey = keyof typeof en;

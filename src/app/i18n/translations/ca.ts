@@ -382,4 +382,11 @@ export const ca: Record<TranslationKey, string> = {
   'gistSync.errValidation': 'GitHub ha rebutjat la petició (422).',
   'gistSync.errParse': 'El fitxer del núvol no és un JSON vàlid.',
   'gistSync.errNetwork': 'Error de xarxa. Comprova la connexió i torna-ho a provar.',
+  // Typed-confirmation modal for manual upload/download
+  'gistSync.confirmTitle': 'Confirma aquesta acció',
+  'gistSync.confirmPushBody': 'Això sobreescriu la còpia al núvol amb les teves dades locals. Escriu {word} per confirmar.',
+  'gistSync.confirmPullBody': 'Això sobreescriu les teves dades locals amb la còpia al núvol. Escriu {word} per confirmar.',
+  'gistSync.confirmPlaceholder': 'Escriu {word}',
+  'gistSync.confirmBtn': 'Confirma',
+  'gistSync.cancelBtn': 'Cancel·la',
 };

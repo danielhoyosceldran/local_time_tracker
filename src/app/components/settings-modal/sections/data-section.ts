@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { TimeEntryService } from '../../../services/time-entry';
@@ -116,6 +116,47 @@ import type { TranslationKey } from '../../../i18n/translations/en';
           </p>
         }
       </div>
+
+      <!-- Typed-confirmation modal: the user must type the exact safe-word
+           ("upload" / "download") before a destructive sync runs. -->
+      @if (confirmAction()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" (click)="cancelConfirm()"></div>
+
+          <div class="relative z-10 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(90vw,380px)] p-6">
+            <h2 class="text-base font-bold text-slate-800">{{ 'gistSync.confirmTitle' | t }}</h2>
+            <p class="mt-2 text-xs text-slate-500">
+              {{ confirmBodyKey() | t: { word: confirmWord() } }}
+            </p>
+
+            <input
+              type="text"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+              [ngModel]="confirmText()"
+              (ngModelChange)="confirmText.set($event)"
+              (keyup.enter)="runConfirm()"
+              [placeholder]="'gistSync.confirmPlaceholder' | t: { word: confirmWord() }"
+              class="mt-4 w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+            />
+
+            <div class="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                (click)="cancelConfirm()"
+                class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 active:scale-95 transition-all"
+              >{{ 'gistSync.cancelBtn' | t }}</button>
+              <button
+                type="button"
+                (click)="runConfirm()"
+                [disabled]="!confirmValid()"
+                class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >{{ 'gistSync.confirmBtn' | t }}</button>
+            </div>
+          </div>
+        </div>
+      }
     </app-settings-section>
   `,
 })
@@ -136,6 +177,18 @@ export class DataSectionComponent {
   syncStatus = signal<string>('');
   syncError = signal<boolean>(false);
   syncBusy = signal<boolean>(false);
+
+  // Typed-confirmation modal state. The user must type the exact safe-word
+  // before a destructive manual sync runs.
+  confirmAction = signal<'push' | 'pull' | null>(null);
+  confirmText = signal<string>('');
+  confirmWord = computed(() => (this.confirmAction() === 'push' ? 'upload' : 'download'));
+  confirmBodyKey = computed<TranslationKey>(() =>
+    this.confirmAction() === 'push' ? 'gistSync.confirmPushBody' : 'gistSync.confirmPullBody',
+  );
+  confirmValid = computed(
+    () => this.confirmText().trim().toLowerCase() === this.confirmWord(),
+  );
 
   onExport(): void {
     const json = this.time.exportAll();
@@ -194,11 +247,42 @@ export class DataSectionComponent {
     this.setSyncStatus('gistSync.configSaved', false);
   }
 
-  async onPush(): Promise<void> {
+  // Push/Pull buttons only open the typed-confirmation modal; the actual
+  // network call runs from runConfirm() once the safe-word is typed.
+  onPush(): void {
+    this.requestConfirm('push');
+  }
+
+  onPull(): void {
+    this.requestConfirm('pull');
+  }
+
+  private requestConfirm(action: 'push' | 'pull'): void {
     if (!this.gist.hasConfig()) {
       this.setSyncStatus('gistSync.errNoConfig', true);
       return;
     }
+    this.confirmText.set('');
+    this.confirmAction.set(action);
+  }
+
+  cancelConfirm(): void {
+    this.confirmAction.set(null);
+    this.confirmText.set('');
+  }
+
+  runConfirm(): void {
+    if (!this.confirmValid()) return;
+    const action = this.confirmAction();
+    this.cancelConfirm();
+    if (action === 'push') {
+      void this.doPush();
+    } else if (action === 'pull') {
+      void this.doPull();
+    }
+  }
+
+  private async doPush(): Promise<void> {
     this.syncBusy.set(true);
     this.setSyncStatus('gistSync.busy', false);
     try {
@@ -211,12 +295,7 @@ export class DataSectionComponent {
     }
   }
 
-  async onPull(): Promise<void> {
-    if (!this.gist.hasConfig()) {
-      this.setSyncStatus('gistSync.errNoConfig', true);
-      return;
-    }
-    if (!confirm(this.translation.t('gistSync.pullConfirm'))) return;
+  private async doPull(): Promise<void> {
     this.syncBusy.set(true);
     this.setSyncStatus('gistSync.busy', false);
     try {

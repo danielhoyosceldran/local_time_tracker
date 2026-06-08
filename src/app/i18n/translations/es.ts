@@ -382,4 +382,11 @@ export const es: Record<TranslationKey, string> = {
   'gistSync.errValidation': 'GitHub rechazó la petición (422).',
   'gistSync.errParse': 'El fichero de la nube no es un JSON válido.',
   'gistSync.errNetwork': 'Error de red. Comprueba tu conexión e inténtalo de nuevo.',
+  // Typed-confirmation modal for manual upload/download
+  'gistSync.confirmTitle': 'Confirma esta acción',
+  'gistSync.confirmPushBody': 'Esto sobrescribe la copia en la nube con tus datos locales. Escribe {word} para confirmar.',
+  'gistSync.confirmPullBody': 'Esto sobrescribe tus datos locales con la copia en la nube. Escribe {word} para confirmar.',
+  'gistSync.confirmPlaceholder': 'Escribe {word}',
+  'gistSync.confirmBtn': 'Confirmar',
+  'gistSync.cancelBtn': 'Cancelar',
 };
