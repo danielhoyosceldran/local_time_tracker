@@ -341,6 +341,8 @@ export const ca: Record<TranslationKey, string> = {
   'timer.lunchBreakOver': 'Pausa acabada — llest per continuar!',
   'timer.lunchBtn': 'Dinar',
   'timer.resumeFromLunch': 'Reprendre',
+  'timer.startedOn': 'Iniciat a {device} · {browser}',
+  'timer.lockedHint': 'Iniciat a {device} ({browser}) — només aquest equip pot pausar o aturar.',
 
   // Pomodoro section extras
   'pomoSection.workMin': 'Treball (min)',

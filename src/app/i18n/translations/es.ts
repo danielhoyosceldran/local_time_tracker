@@ -341,6 +341,8 @@ export const es: Record<TranslationKey, string> = {
   'timer.lunchBreakOver': '¡Pausa terminada — listo para continuar!',
   'timer.lunchBtn': 'Comer',
   'timer.resumeFromLunch': 'Reanudar',
+  'timer.startedOn': 'Iniciado en {device} · {browser}',
+  'timer.lockedHint': 'Iniciado en {device} ({browser}) — solo ese equipo puede pausar o parar.',
 
   // Pomodoro section extras
   'pomoSection.workMin': 'Trabajo (min)',

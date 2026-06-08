@@ -339,6 +339,8 @@ export const en = {
   'timer.lunchBreakOver': 'Break over — ready to resume!',
   'timer.lunchBtn': 'Lunch',
   'timer.resumeFromLunch': 'Resume',
+  'timer.startedOn': 'Started on {device} · {browser}',
+  'timer.lockedHint': 'Started on {device} ({browser}) — only that device can pause or stop it.',
 
   // Pomodoro section extras
   'pomoSection.workMin': 'Work (min)',

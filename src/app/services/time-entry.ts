@@ -7,6 +7,7 @@ import { take, tap } from 'rxjs';
 import { HolidayDatesService } from './holiday-dates.service';
 import { SettingsService } from './settings.service';
 import { GistSyncService } from './gist-sync.service';
+import { DeviceIdentityService } from './device-identity.service';
 
 const STORAGE_KEY = 'timeTrackerEntries';
 const RUNNING_KEY = 'timeTrackerRunningEntry';
@@ -54,6 +55,7 @@ export class TimeEntryService implements OnDestroy {
   private holidayDatesService = inject(HolidayDatesService);
   private settings = inject(SettingsService);
   private gistSync = inject(GistSyncService);
+  private device = inject(DeviceIdentityService);
   // Single Source of Truth for the history
   private _entries$$ = new BehaviorSubject<TimeEntry[]>(this.loadEntries());
   public readonly entries$: Observable<TimeEntry[]> = this._entries$$.asObservable();
@@ -61,6 +63,13 @@ export class TimeEntryService implements OnDestroy {
   // Single Source of Truth for the currently running task
   private _runningEntry$$ = new BehaviorSubject<RunningTimeEntry | null>(this.loadRunningEntry());
   public readonly runningEntry$: Observable<RunningTimeEntry | null> = this._runningEntry$$.asObservable();
+
+  // True when THIS device may pause/stop the running entry. A timer started on
+  // another device (shared via gist) is read-only here. Legacy entries without
+  // an origin are always controllable.
+  public readonly canControlRunning$: Observable<boolean> = this.runningEntry$.pipe(
+    map(entry => this.canControlEntry(entry))
+  );
 
   // Observable for the real-time duration of the running task
   public readonly runningDuration$: Observable<number> = this.runningEntry$.pipe(
@@ -201,6 +210,11 @@ export class TimeEntryService implements OnDestroy {
   private saveEntries(entries: TimeEntry[]): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
     this._entries$$.next(entries);
+    // Any mutation that lands here (add/update/delete/stop) syncs to the cloud.
+    // Centralizing the push at the persistence layer guarantees no future
+    // mutation can forget to sync. (Import/reload write _entries$$ directly and
+    // intentionally do NOT pass through here, so pulling never echoes back.)
+    this.syncToCloud();
   }
 
   private loadRunningEntry(): RunningTimeEntry | null {
@@ -215,6 +229,8 @@ export class TimeEntryService implements OnDestroy {
       localStorage.removeItem(RUNNING_KEY);
     }
     this._runningEntry$$.next(entry);
+    // Play/stop/lunch all flow through here; sync from the persistence layer.
+    this.syncToCloud();
   }
 
   // --- Margin Config ---
@@ -350,6 +366,11 @@ export class TimeEntryService implements OnDestroy {
 
   startLunchBreak(): void {
     const running = this._runningEntry$$.getValue();
+    // Only the device that started the timer may pause it for lunch.
+    if (running && !this.canControlEntry(running)) {
+      console.warn('This timer was started on another device and cannot be paused here.');
+      return;
+    }
     const prevTitle = running?.title ?? null;
     this.stopTracking();
     localStorage.setItem(LUNCH_BREAK_ACTIVE_KEY, 'true');
@@ -388,14 +409,29 @@ export class TimeEntryService implements OnDestroy {
       startTime: now,
       endTime: null,
       duration: 0,
+      startedBy: this.device.current(),
     };
-    this.saveRunningEntry(newRunningEntry);
-    this.syncToCloud();
+    this.saveRunningEntry(newRunningEntry); // persists + syncs to cloud
+  }
+
+  /**
+   * Whether THIS device is allowed to control (pause/stop) the given entry.
+   * Only the device that pressed play may do so. No entry — or a legacy entry
+   * without an origin — is always controllable.
+   */
+  canControlEntry(entry: RunningTimeEntry | TimeEntry | null): boolean {
+    const origin = entry?.startedBy;
+    return !origin || origin.deviceId === this.device.deviceId;
   }
 
   stopTracking(): TimeEntry | null {
     const runningEntry = this._runningEntry$$.getValue();
     if (!runningEntry) {
+      return null;
+    }
+    // A timer started on another device is read-only here.
+    if (!this.canControlEntry(runningEntry)) {
+      console.warn('This timer was started on another device and cannot be stopped here.');
       return null;
     }
 
@@ -446,24 +482,34 @@ export class TimeEntryService implements OnDestroy {
     // 1. Add to history
     this.addEntry(completedEntry);
 
-    // 2. Clear running state
+    // 2. Clear running state (persists + syncs the final snapshot to cloud)
     this.saveRunningEntry(null);
-
-    this.syncToCloud();
 
     return completedEntry;
   }
 
   /**
-   * Best-effort cloud push of the current localStorage snapshot. Triggered on
-   * timer start/stop. Does nothing without config; any network error is
-   * swallowed so the timer never breaks. localStorage stays the source of truth.
+   * Best-effort cloud push of the current localStorage snapshot. Triggered from
+   * the persistence layer (saveEntries/saveRunningEntry) on EVERY data mutation
+   * — start/stop/lunch, add/edit/delete intervals — so the gist never drifts
+   * from local. Does nothing without config; any network error is swallowed so
+   * the timer never breaks. localStorage stays the source of truth.
    */
+  private syncQueued = false;
   private syncToCloud(): void {
     if (!this.gistSync.hasConfig()) return;
-    this.gistSync.push(this.exportAll()).subscribe({
-      next: () => void 0,
-      error: () => void 0,
+    // Coalesce all sync requests fired during a single operation into one push.
+    // A stop, for example, touches both saveEntries() and saveRunningEntry();
+    // deferring to a microtask means we push ONCE, reading the final
+    // localStorage snapshot via exportAll() (running entry already cleared).
+    if (this.syncQueued) return;
+    this.syncQueued = true;
+    queueMicrotask(() => {
+      this.syncQueued = false;
+      this.gistSync.push(this.exportAll()).subscribe({
+        next: () => void 0,
+        error: () => void 0,
+      });
     });
   }
 

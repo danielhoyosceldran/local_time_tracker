@@ -62,7 +62,7 @@ import { TranslationService } from '../../i18n';
         >
           {{ 'timer.resumeFromLunch' | t }}
         </button>
-      } @else if (runningEntry$ | async; as entry) {
+      } @else if (runningView$ | async; as view) {
         <!-- Running State -->
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-slate-800 font-bold">{{ 'timer.compactTitle' | t }}</h3>
@@ -79,10 +79,20 @@ import { TranslationService } from '../../i18n';
           <div class="text-center">
             <input
               type="text"
-              [value]="entry.title || translation.t('timer.noTitle')"
+              [value]="view.entry.title || translation.t('timer.noTitle')"
               readonly
               class="text-slate-700 font-medium text-center bg-transparent border-none outline-none w-full cursor-default"
             />
+            @if (view.entry.startedBy; as origin) {
+              <div class="mt-1 text-xs text-slate-400 flex items-center justify-center gap-1">
+                <!-- Device icon -->
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <rect x="3" y="4" width="18" height="12" rx="2"/>
+                  <path d="M8 20h8M12 16v4"/>
+                </svg>
+                {{ 'timer.startedOn' | t: { device: origin.deviceName, browser: origin.browser } }}
+              </div>
+            }
           </div>
         </div>
 
@@ -90,6 +100,12 @@ import { TranslationService } from '../../i18n';
         <div class="flex gap-2">
           <button
             (click)="stopTracking()"
+            [disabled]="!view.canControl"
+            [title]="view.canControl
+              ? ('timer.stopBtn' | t)
+              : ('timer.lockedHint' | t: { device: view.entry.startedBy?.deviceName ?? '', browser: view.entry.startedBy?.browser ?? '' })"
+            [class.opacity-40]="!view.canControl"
+            [class.cursor-not-allowed]="!view.canControl"
             class="flex-1 py-4 px-4 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white font-bold rounded-2xl shadow-lg shadow-rose-200 transition-all"
           >
             {{ 'timer.stopBtn' | t }}
@@ -97,8 +113,13 @@ import { TranslationService } from '../../i18n';
           @if (lunchButtonEnabled$ | async) {
             <button
               (click)="startLunch()"
+              [disabled]="!view.canControl"
+              [class.opacity-40]="!view.canControl"
+              [class.cursor-not-allowed]="!view.canControl"
               class="py-4 px-4 bg-orange-100 hover:bg-orange-200 active:scale-95 text-orange-600 font-bold rounded-2xl transition-all"
-              [title]="'timer.lunchBtn' | t"
+              [title]="view.canControl
+                ? ('timer.lunchBtn' | t)
+                : ('timer.lockedHint' | t: { device: view.entry.startedBy?.deviceName ?? '', browser: view.entry.startedBy?.browser ?? '' })"
             >
               <!-- Pause icon -->
               <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -144,6 +165,12 @@ export class CompactTimerComponent {
   timerForm: FormGroup = this.fb.group({ title: [''] });
 
   runningEntry$: Observable<RunningTimeEntry | null> = this.timeEntryService.runningEntry$;
+  // Running entry paired with whether THIS device may pause/stop it. A timer
+  // started on another device (shared via gist) is shown read-only here.
+  runningView$: Observable<{ entry: RunningTimeEntry; canControl: boolean } | null> = combineLatest([
+    this.timeEntryService.runningEntry$,
+    this.timeEntryService.canControlRunning$,
+  ]).pipe(map(([entry, canControl]) => (entry ? { entry, canControl } : null)));
   runningTime$: Observable<string> = this.timeEntryService.runningDuration$.pipe(map(formatDuration));
   lunchBreakActive$: Observable<boolean> = this.timeEntryService.lunchBreakActive$;
   lunchButtonEnabled$: Observable<boolean> = this.timeEntryService.lunchBreakButtonEnabled$;
