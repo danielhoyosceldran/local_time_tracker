@@ -329,6 +329,16 @@ export const en = {
   'lunch.hourLabel': 'Hour',
   'lunch.hourHint': 'Added to the estimated finish time if it hasn\'t passed.',
   'lunch.durationLabel': 'Duration (min)',
+  'lunch.enableButtonLabel': 'Show lunch break button',
+  'lunch.enableButtonHint': 'Show a button in the timer to pause tracking during lunch.',
+
+  // Lunch break timer extras
+  'timer.lunchBreakTitle': 'Lunch break',
+  'timer.lunchBreakBadge': 'LUNCH',
+  'timer.lunchBreakRemaining': 'Remaining:',
+  'timer.lunchBreakOver': 'Break over — ready to resume!',
+  'timer.lunchBtn': 'Lunch',
+  'timer.resumeFromLunch': 'Resume',
 
   // Pomodoro section extras
   'pomoSection.workMin': 'Work (min)',

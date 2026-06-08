@@ -86,11 +86,13 @@ export class DailySummaryComponent {
   private lunchEnabled = signal(true);
   private lunchHour = signal('14:00');
   private lunchDurationMin = signal(60);
+  private lunchBreakActive = signal(false);
 
   constructor() {
     this.timeEntryService.lunchEnabled$.subscribe(v => this.lunchEnabled.set(v));
     this.timeEntryService.lunchHour$.subscribe(v => this.lunchHour.set(v));
     this.timeEntryService.lunchDurationMin$.subscribe(v => this.lunchDurationMin.set(v));
+    this.timeEntryService.lunchBreakActive$.subscribe(v => this.lunchBreakActive.set(v));
   }
 
   formatDuration = formatDuration;
@@ -112,7 +114,7 @@ export class DailySummaryComponent {
     const lunchTime = new Date();
     lunchTime.setHours(lh, lm, 0, 0);
 
-    if (this.lunchEnabled() && now < lunchTime) {
+    if (this.lunchEnabled() && !this.lunchBreakActive() && now < lunchTime) {
       totalRemainingMs += this.lunchDurationMin() * 60 * 1000;
     }
 

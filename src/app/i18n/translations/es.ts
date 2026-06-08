@@ -331,6 +331,16 @@ export const es: Record<TranslationKey, string> = {
   'lunch.hourLabel': 'Hora',
   'lunch.hourHint': 'Se añade a la hora de salida estimada si aún no ha pasado.',
   'lunch.durationLabel': 'Duración (min)',
+  'lunch.enableButtonLabel': 'Mostrar botón de pausa para comer',
+  'lunch.enableButtonHint': 'Muestra un botón en el temporizador para pausar el fichaje durante la comida.',
+
+  // Lunch break timer extras
+  'timer.lunchBreakTitle': 'Pausa para comer',
+  'timer.lunchBreakBadge': 'COMIDA',
+  'timer.lunchBreakRemaining': 'Restante:',
+  'timer.lunchBreakOver': '¡Pausa terminada — listo para continuar!',
+  'timer.lunchBtn': 'Comer',
+  'timer.resumeFromLunch': 'Reanudar',
 
   // Pomodoro section extras
   'pomoSection.workMin': 'Trabajo (min)',

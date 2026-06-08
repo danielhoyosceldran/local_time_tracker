@@ -20,12 +20,17 @@ const MARGIN_WINDOW_END_DEFAULT = '18:00';
 const LUNCH_HOUR_KEY = 'timeTrackerLunchHour';
 const LUNCH_DURATION_KEY = 'timeTrackerLunchDurationMin';
 const LUNCH_ENABLED_KEY = 'timeTrackerLunchEnabled';
+const LUNCH_BREAK_BUTTON_KEY = 'tt.lunchBreakButtonEnabled';
+const LUNCH_BREAK_ACTIVE_KEY = 'tt.lunchBreakActive';
+const LUNCH_BREAK_START_KEY = 'tt.lunchBreakStartTime';
+const LUNCH_BREAK_PREV_TITLE_KEY = 'tt.lunchBreakPrevTitle';
 
 const KNOWN_STORAGE_KEYS = [
   STORAGE_KEY, RUNNING_KEY,
   MARGIN_ENABLED_KEY, MARGIN_MINUTES_KEY,
   MARGIN_WINDOW_ENABLED_KEY, MARGIN_WINDOW_START_KEY, MARGIN_WINDOW_END_KEY,
   LUNCH_HOUR_KEY, LUNCH_DURATION_KEY, LUNCH_ENABLED_KEY,
+  LUNCH_BREAK_BUTTON_KEY,
   'timeTrackerHolidays', 'timeTrackerHolidayDates', 'timeTrackerCalendarUrl',
   'timeTrackerReminderEnabled', 'timeTrackerReminderTime',
   'timeTrackerReminderMessage', 'timeTrackerReminderSound',
@@ -309,6 +314,63 @@ export class TimeEntryService implements OnDestroy {
     const clamped = Math.max(0, Math.min(180, minutes));
     localStorage.setItem(LUNCH_DURATION_KEY, String(clamped));
     this._lunchDurationMin$$.next(clamped);
+  }
+
+  // --- Lunch Break Button Config ---
+  private _lunchBreakButtonEnabled$$ = new BehaviorSubject<boolean>(
+    localStorage.getItem(LUNCH_BREAK_BUTTON_KEY) === 'true'
+  );
+  public readonly lunchBreakButtonEnabled$ = this._lunchBreakButtonEnabled$$.asObservable();
+
+  setLunchBreakButtonEnabled(enabled: boolean): void {
+    localStorage.setItem(LUNCH_BREAK_BUTTON_KEY, String(enabled));
+    this._lunchBreakButtonEnabled$$.next(enabled);
+  }
+
+  // --- Lunch Break Active State (session state, not in backup) ---
+  private _lunchBreakActive$$ = new BehaviorSubject<boolean>(
+    localStorage.getItem(LUNCH_BREAK_ACTIVE_KEY) === 'true'
+  );
+  public readonly lunchBreakActive$ = this._lunchBreakActive$$.asObservable();
+
+  private _lunchBreakStartTime$$ = new BehaviorSubject<number | null>(
+    (() => { const v = localStorage.getItem(LUNCH_BREAK_START_KEY); return v ? Number(v) : null; })()
+  );
+
+  /** Elapsed ms since lunch break started; ticks every second while active. */
+  public readonly lunchBreakElapsedMs$: Observable<number> = combineLatest([
+    this._lunchBreakActive$$,
+    this._lunchBreakStartTime$$,
+  ]).pipe(
+    switchMap(([active, startTime]) => {
+      if (!active || !startTime) return of(0);
+      return interval(1000).pipe(map(() => Date.now() - startTime));
+    })
+  );
+
+  startLunchBreak(): void {
+    const running = this._runningEntry$$.getValue();
+    const prevTitle = running?.title ?? null;
+    this.stopTracking();
+    localStorage.setItem(LUNCH_BREAK_ACTIVE_KEY, 'true');
+    localStorage.setItem(LUNCH_BREAK_START_KEY, String(Date.now()));
+    if (prevTitle !== null) {
+      localStorage.setItem(LUNCH_BREAK_PREV_TITLE_KEY, prevTitle);
+    } else {
+      localStorage.removeItem(LUNCH_BREAK_PREV_TITLE_KEY);
+    }
+    this._lunchBreakActive$$.next(true);
+    this._lunchBreakStartTime$$.next(Date.now());
+  }
+
+  resumeFromLunchBreak(): void {
+    const prevTitle = localStorage.getItem(LUNCH_BREAK_PREV_TITLE_KEY) ?? null;
+    localStorage.removeItem(LUNCH_BREAK_ACTIVE_KEY);
+    localStorage.removeItem(LUNCH_BREAK_START_KEY);
+    localStorage.removeItem(LUNCH_BREAK_PREV_TITLE_KEY);
+    this._lunchBreakActive$$.next(false);
+    this._lunchBreakStartTime$$.next(null);
+    this.startTracking(prevTitle, null);
   }
 
   // --- Core Logic: Start/Stop Tracking ---
@@ -649,6 +711,7 @@ export class TimeEntryService implements OnDestroy {
     this._lunchEnabled$$.next(localStorage.getItem(LUNCH_ENABLED_KEY) !== 'false');
     this._lunchHour$$.next(localStorage.getItem(LUNCH_HOUR_KEY) || '14:00');
     this._lunchDurationMin$$.next(parseInt(localStorage.getItem(LUNCH_DURATION_KEY) || '60', 10));
+    this._lunchBreakButtonEnabled$$.next(localStorage.getItem(LUNCH_BREAK_BUTTON_KEY) === 'true');
     this.recomputeAll();
   }
 
