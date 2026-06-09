@@ -40,6 +40,26 @@ Tres idiomas (`en`, `es`, `ca`) en
 o el build falla. Uso en plantilla: `{{ 'clave' | t }}`; admite parámetros con
 `{{ 'clave' | t: { years: 5 } }}` interpolando `{years}`.
 
+## Formato de hora (12h / 24h)
+
+El ajuste `tt.timeFormat` (`SettingsService.timeFormat()`, valores `'12h'`/`'24h'`)
+gobierna cómo se muestra **cualquier hora de reloj** (hora del día), nunca las
+duraciones/temporizadores (esos usan `formatDuration`/`formatHoursToTime`).
+
+**Cuando muestres o edites una hora de reloj nueva, no la formatees a mano.** Usa
+los helpers centralizados de [src/app/utils/format.ts](src/app/utils/format.ts):
+
+- **En plantilla:** `{{ valor | clockTime }}`
+  ([ClockTimePipe](src/app/pipes/clock-time.pipe.ts), impuro, lee el signal).
+- **En TypeScript:** `formatClockTime(valor, this.settings.timeFormat())`.
+- **En pickers de Kendo** (`kendo-timepicker` / `kendo-datetimepicker`): enlaza
+  `[format]` a un `computed` con `kendoTimeFormat(fmt)` o `kendoDateTimeFormat(fmt)`
+  en vez de codificar `'HH:mm'`. Dentro del modal de ajustes usa
+  `draft.timeFormat()` para que el cambio se refleje en vivo.
+
+El almacenamiento interno de horas sigue en `"HH:mm"` 24h; el ajuste solo afecta a
+la presentación.
+
 ## Tema oscuro
 
 Se activa con la clase `dark` en `<html>` (via `ThemeService`). En vez de anotar
