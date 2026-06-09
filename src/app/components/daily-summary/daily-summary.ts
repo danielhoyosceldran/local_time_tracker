@@ -68,7 +68,7 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
             }
 
             @if (getBalanceAdjustedRemaining() > 0) {
-              <div class="text-xs text-amber-600 font-medium text-center mt-1">
+              <div class="text-xs text-indigo-300 font-medium text-center mt-1">
                 {{ 'daily.estFinishBalance' | t }} <span class="font-mono">{{ getExpectedEndTime(getBalanceAdjustedRemaining()) }}</span>
               </div>
             } @else {
