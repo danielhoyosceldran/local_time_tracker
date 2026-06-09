@@ -6,11 +6,12 @@ import { TimeEntry } from '../../models/time-entry.model';
 import { Observable, take } from 'rxjs';
 import { formatDuration } from '../../utils/format';
 import { FormsModule } from '@angular/forms';
+import { ClockTimePipe } from '../../pipes/clock-time.pipe';
 
 @Component({
   selector: 'app-time-entry-list',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ClockTimePipe],
   template: `
     <div class="p-6 bg-white shadow-xl rounded-lg border border-gray-100 mt-8">
       <div class="flex justify-between items-center mb-4">
@@ -56,9 +57,9 @@ import { FormsModule } from '@angular/forms';
                   
 
                   <div class="text-xs text-gray-500 space-x-2 mt-2">
-                    <span>Start: {{ entry.startTime | date:'medium' }}</span>
+                    <span>Start: {{ entry.startTime | date:'mediumDate' }} {{ entry.startTime | clockTime }}</span>
                     <span class="font-bold text-primary">|</span>
-                    <span>End: {{ entry.endTime | date:'medium' }}</span>
+                    <span>End: {{ entry.endTime | date:'mediumDate' }} {{ entry.endTime | clockTime }}</span>
                   </div>
                 </div>
 

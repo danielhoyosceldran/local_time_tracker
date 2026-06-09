@@ -1,6 +1,7 @@
-import { AfterViewInit, Component, ChangeDetectorRef, QueryList, ViewChildren, inject } from '@angular/core';
+import { AfterViewInit, Component, ChangeDetectorRef, QueryList, ViewChildren, computed, inject } from '@angular/core';
 import { KENDO_TIMEPICKER, TimePickerComponent } from '@progress/kendo-angular-dateinputs';
 import { SettingsDraftService } from '../../../services/settings-draft.service';
+import { kendoTimeFormat } from '../../../utils/format';
 import { SettingsSectionComponent } from '../shared/section';
 import { SettingRowComponent } from '../shared/setting-row';
 import { ToggleComponent } from '../shared/toggle';
@@ -69,7 +70,7 @@ function dateToTimeString(d: Date): string {
           <kendo-timepicker
             [value]="startDate()"
             (valueChange)="onStartChange($event)"
-            [format]="'HH:mm'"
+            [format]="timeFormat()"
             [steps]="{ hour: 1, minute: 15 }"
             [fillMode]="'outline'"
             [size]="'small'"
@@ -80,7 +81,7 @@ function dateToTimeString(d: Date): string {
           <kendo-timepicker
             [value]="endDate()"
             (valueChange)="onEndChange($event)"
-            [format]="'HH:mm'"
+            [format]="timeFormat()"
             [steps]="{ hour: 1, minute: 15 }"
             [fillMode]="'outline'"
             [size]="'small'"
@@ -94,6 +95,8 @@ export class AutoroundSectionComponent implements AfterViewInit {
   @ViewChildren(TimePickerComponent) pickers!: QueryList<TimePickerComponent>;
   draft = inject(SettingsDraftService);
   private cdr = inject(ChangeDetectorRef);
+
+  readonly timeFormat = computed(() => kendoTimeFormat(this.draft.timeFormat()));
 
   startDate(): Date { return timeStringToDate(this.draft.marginWindowStart()); }
   endDate(): Date { return timeStringToDate(this.draft.marginWindowEnd()); }

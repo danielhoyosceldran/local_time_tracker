@@ -1,6 +1,7 @@
-import { AfterViewInit, Component, ChangeDetectorRef, ViewChild, inject } from '@angular/core';
+import { AfterViewInit, Component, ChangeDetectorRef, ViewChild, computed, inject } from '@angular/core';
 import { KENDO_TIMEPICKER, TimePickerComponent } from '@progress/kendo-angular-dateinputs';
 import { SettingsDraftService } from '../../../services/settings-draft.service';
+import { kendoTimeFormat } from '../../../utils/format';
 import { SettingsSectionComponent } from '../shared/section';
 import { SettingRowComponent } from '../shared/setting-row';
 import { ToggleComponent } from '../shared/toggle';
@@ -47,7 +48,7 @@ function dateToTimeString(d: Date): string {
           #tp
           [value]="hourDate()"
           (valueChange)="onHourChange($event)"
-          [format]="'HH:mm'"
+          [format]="timeFormat()"
           [steps]="{ hour: 1, minute: 15 }"
           [fillMode]="'outline'"
           [size]="'small'"
@@ -76,6 +77,8 @@ export class LunchSectionComponent implements AfterViewInit {
   @ViewChild('tp') tp!: TimePickerComponent;
   draft = inject(SettingsDraftService);
   private cdr = inject(ChangeDetectorRef);
+
+  readonly timeFormat = computed(() => kendoTimeFormat(this.draft.timeFormat()));
 
   hourDate(): Date { return timeStringToDate(this.draft.lunchHour()); }
 

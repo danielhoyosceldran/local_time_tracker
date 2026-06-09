@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { KENDO_DATETIMEPICKER } from '@progress/kendo-angular-dateinputs';
@@ -6,9 +6,10 @@ import { TimeEntryService } from '../../services/time-entry';
 import { SettingsService } from '../../services/settings.service';
 import { HolidayDatesService } from '../../services/holiday-dates.service';
 import { DayGroup, TimeEntry } from '../../models/time-entry.model';
-import { formatDuration, formatHoursToTime } from '../../utils/format';
+import { formatDuration, formatHoursToTime, kendoDateTimeFormat } from '../../utils/format';
 import { Observable, combineLatest, map, take } from 'rxjs';
 import { TranslatePipe } from '../../i18n/translate.pipe';
+import { ClockTimePipe } from '../../pipes/clock-time.pipe';
 import { TranslationService } from '../../i18n';
 
 interface WeekGroup {
@@ -25,7 +26,7 @@ interface WeekGroup {
 @Component({
   selector: 'app-intervals-view',
   standalone: true,
-  imports: [CommonModule, FormsModule, KENDO_DATETIMEPICKER, TranslatePipe],
+  imports: [CommonModule, FormsModule, KENDO_DATETIMEPICKER, TranslatePipe, ClockTimePipe],
   template: `
     <div class="h-full flex flex-col bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm shadow-slate-200/50 border border-white overflow-hidden">
       <!-- Toolbar -->
@@ -142,13 +143,13 @@ interface WeekGroup {
                                       <kendo-datetimepicker
                                         [value]="editStart()"
                                         (valueChange)="editStart.set($event)"
-                                        [format]="'dd/MM/yyyy HH:mm'"
+                                        [format]="dateTimeFormat()"
                                         [fillMode]="'outline'"
                                       ></kendo-datetimepicker>
                                       <kendo-datetimepicker
                                         [value]="editEnd()"
                                         (valueChange)="editEnd.set($event)"
-                                        [format]="'dd/MM/yyyy HH:mm'"
+                                        [format]="dateTimeFormat()"
                                         [fillMode]="'outline'"
                                       ></kendo-datetimepicker>
                                     </div>
@@ -179,9 +180,9 @@ interface WeekGroup {
                                         </div>
                                       }
                                       <div class="flex items-center gap-1 text-[10px] text-slate-500 mt-0.5">
-                                        <span>{{ entry.startTime | date:'shortTime' }}</span>
+                                        <span>{{ entry.startTime | clockTime }}</span>
                                         <span>→</span>
-                                        <span>{{ entry.endTime | date:'shortTime' }}</span>
+                                        <span>{{ entry.endTime | clockTime }}</span>
                                       </div>
                                     </div>
                                     <div class="flex flex-col items-end gap-1 shrink-0">
@@ -249,6 +250,7 @@ export class IntervalsViewComponent {
 
   formatDuration = formatDuration;
   formatHoursToTime = formatHoursToTime;
+  readonly dateTimeFormat = computed(() => kendoDateTimeFormat(this.settings.timeFormat()));
 
   constructor() {
     // Default: expand current week

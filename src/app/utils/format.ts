@@ -1,4 +1,31 @@
 // src/app/utils/format.ts
+import type { TimeFormat } from '../services/settings.service';
+
+/**
+ * Formats a clock time (hour of day) respecting the 12h/24h user setting.
+ * Use for any wall-clock time shown to the user (start/end of an entry,
+ * expected finish time…) — NOT for durations/timers (see formatDuration).
+ * @param value A Date, timestamp, or parseable date string.
+ * @param format '12h' → "2:05 PM", '24h' → "14:05".
+ */
+export function formatClockTime(value: Date | number | string, format: TimeFormat): string {
+  const d = value instanceof Date ? value : new Date(value);
+  return d.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: format === '12h',
+  });
+}
+
+/** Kendo `format` string for a time-only picker, respecting 12h/24h. */
+export function kendoTimeFormat(format: TimeFormat): string {
+  return format === '12h' ? 'hh:mm a' : 'HH:mm';
+}
+
+/** Kendo `format` string for a date+time picker, respecting 12h/24h. */
+export function kendoDateTimeFormat(format: TimeFormat): string {
+  return format === '12h' ? 'dd/MM/yyyy hh:mm a' : 'dd/MM/yyyy HH:mm';
+}
 
 /**
  * Formats a duration in milliseconds to HH:MM:SS format.

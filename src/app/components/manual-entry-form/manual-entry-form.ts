@@ -1,9 +1,11 @@
 // src/app/components/manual-entry-form/manual-entry-form.component.ts
-import { Component, inject } from '@angular/core';
+import { Component, inject, computed } from '@angular/core';
 
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { KENDO_DATETIMEPICKER } from '@progress/kendo-angular-dateinputs';
 import { TimeEntryService } from '../../services/time-entry';
+import { SettingsService } from '../../services/settings.service';
+import { kendoDateTimeFormat } from '../../utils/format';
 import { v4 as uuidv4 } from 'uuid';
 import { TimeEntry } from '../../models/time-entry.model';
 
@@ -26,7 +28,7 @@ import { TimeEntry } from '../../models/time-entry.model';
           <label class="block text-sm font-medium text-gray-700 mb-1">Start Time *</label>
           <kendo-datetimepicker
             formControlName="startTime"
-            [format]="'dd/MM/yyyy HH:mm'"
+            [format]="dateTimeFormat()"
             [fillMode]="'outline'"
           ></kendo-datetimepicker>
         </div>
@@ -35,7 +37,7 @@ import { TimeEntry } from '../../models/time-entry.model';
           <label class="block text-sm font-medium text-gray-700 mb-1">End Time *</label>
           <kendo-datetimepicker
             formControlName="endTime"
-            [format]="'dd/MM/yyyy HH:mm'"
+            [format]="dateTimeFormat()"
             [fillMode]="'outline'"
           ></kendo-datetimepicker>
         </div>
@@ -60,6 +62,9 @@ import { TimeEntry } from '../../models/time-entry.model';
 export class ManualEntryFormComponent {
   private fb = inject(FormBuilder);
   private timeEntryService = inject(TimeEntryService);
+  private settings = inject(SettingsService);
+
+  readonly dateTimeFormat = computed(() => kendoDateTimeFormat(this.settings.timeFormat()));
 
   manualForm: FormGroup;
 

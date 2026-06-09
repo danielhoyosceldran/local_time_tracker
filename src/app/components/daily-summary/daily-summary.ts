@@ -4,7 +4,7 @@ import { CommonModule, DecimalPipe } from '@angular/common';
 import { TimeEntryService } from '../../services/time-entry';
 import { ViewStateService } from '../../services/view-state.service';
 import { SettingsService } from '../../services/settings.service';
-import { formatDuration } from '../../utils/format';
+import { formatDuration, formatClockTime } from '../../utils/format';
 import { DailySummary } from '../../models/time-entry.model';
 import { Observable } from 'rxjs';
 import { TranslatePipe } from '../../i18n/translate.pipe';
@@ -139,7 +139,7 @@ export class DailySummaryComponent {
     }
 
     const end = new Date(Date.now() + totalRemainingMs);
-    return end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return formatClockTime(end, this.settings.timeFormat());
   }
 
   navigateToIntervals(): void {

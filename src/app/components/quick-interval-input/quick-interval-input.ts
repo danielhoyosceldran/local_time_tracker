@@ -1,9 +1,11 @@
 // src/app/components/quick-interval-input/quick-interval-input.ts
-import { Component, inject } from '@angular/core';
+import { Component, inject, computed } from '@angular/core';
 
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { KENDO_DATETIMEPICKER } from '@progress/kendo-angular-dateinputs';
 import { TimeEntryService } from '../../services/time-entry';
+import { SettingsService } from '../../services/settings.service';
+import { kendoDateTimeFormat } from '../../utils/format';
 import { v4 as uuidv4 } from 'uuid';
 import { TimeEntry } from '../../models/time-entry.model';
 import { TranslatePipe } from '../../i18n/translate.pipe';
@@ -36,7 +38,7 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
               </label>
               <kendo-datetimepicker
                 formControlName="startTime"
-                [format]="'dd/MM/yyyy HH:mm'"
+                [format]="dateTimeFormat()"
                 [fillMode]="'outline'"
                 [size]="'small'"
               ></kendo-datetimepicker>
@@ -48,7 +50,7 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
               </label>
               <kendo-datetimepicker
                 formControlName="endTime"
-                [format]="'dd/MM/yyyy HH:mm'"
+                [format]="dateTimeFormat()"
                 [fillMode]="'outline'"
                 [size]="'small'"
               ></kendo-datetimepicker>
@@ -76,6 +78,9 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
 export class QuickIntervalInputComponent {
   private fb = inject(FormBuilder);
   private timeEntryService = inject(TimeEntryService);
+  private settings = inject(SettingsService);
+
+  readonly dateTimeFormat = computed(() => kendoDateTimeFormat(this.settings.timeFormat()));
 
   manualForm: FormGroup;
 

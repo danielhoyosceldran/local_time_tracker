@@ -1,7 +1,9 @@
-import { AfterViewInit, Component, ChangeDetectorRef, ViewChild, inject } from '@angular/core';
+import { AfterViewInit, Component, ChangeDetectorRef, ViewChild, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { KENDO_TIMEPICKER, TimePickerComponent } from '@progress/kendo-angular-dateinputs';
 import { ReminderService } from '../../services/reminder.service';
+import { SettingsService } from '../../services/settings.service';
+import { kendoTimeFormat } from '../../utils/format';
 import { SOUNDS, SoundId } from '../../shared/sounds';
 import { SoundPickerService } from '../../shared/sound-picker.service';
 import { TranslatePipe } from '../../i18n/translate.pipe';
@@ -60,7 +62,7 @@ function dateToTimeString(d: Date): string {
             #timePicker
             [value]="timeDate()"
             (valueChange)="setTime($event)"
-            [format]="'HH:mm'"
+            [format]="timeFormat()"
             [steps]="{ hour: 1, minute: 1 }"
             [fillMode]="'outline'"
             [size]="'small'"
@@ -104,6 +106,9 @@ export class ReminderNotificationComponent implements AfterViewInit {
   private cdr = inject(ChangeDetectorRef);
   private soundPicker = inject(SoundPickerService);
   private translation = inject(TranslationService);
+  private settings = inject(SettingsService);
+
+  readonly timeFormat = computed(() => kendoTimeFormat(this.settings.timeFormat()));
 
   timeDate(): Date { return timeStringToDate(this.svc.time()); }
   soundLabel(): string { return SOUNDS.find(s => s.id === this.svc.sound())?.label ?? ''; }
