@@ -230,6 +230,8 @@ export const ca: Record<TranslationKey, string> = {
   'daily.of': 'de',
   'daily.remainingLabel': 'Restant:',
   'daily.estFinish': 'Sortida est.:',
+  'daily.estFinishBalance': 'Sortida (amb balanç):',
+  'daily.balanceCovered': 'Balanç total al dia!',
   'daily.targetReached': 'Objectiu diari assolit!',
   'daily.noEntriesShort': 'Sense registres avui',
 

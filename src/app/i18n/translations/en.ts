@@ -228,6 +228,8 @@ export const en = {
   'daily.of': 'of',
   'daily.remainingLabel': 'Remaining:',
   'daily.estFinish': 'Est. finish:',
+  'daily.estFinishBalance': 'Est. finish (w/ balance):',
+  'daily.balanceCovered': 'Total balance covered!',
   'daily.targetReached': 'Daily target reached!',
   'daily.noEntriesShort': 'No entries today',
 

@@ -66,6 +66,16 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
                 {{ 'daily.targetReached' | t }}
               </div>
             }
+
+            @if (getBalanceAdjustedRemaining() > 0) {
+              <div class="text-xs text-amber-600 font-medium text-center mt-1">
+                {{ 'daily.estFinishBalance' | t }} <span class="font-mono">{{ getExpectedEndTime(getBalanceAdjustedRemaining()) }}</span>
+              </div>
+            } @else {
+              <div class="text-xs text-emerald-600 font-medium text-center mt-1">
+                {{ 'daily.balanceCovered' | t }}
+              </div>
+            }
           </div>
         } @else {
           <div class="flex-1 flex items-center justify-center text-slate-400 text-sm">
@@ -87,12 +97,14 @@ export class DailySummaryComponent {
   private lunchHour = signal('14:00');
   private lunchDurationMin = signal(60);
   private lunchBreakActive = signal(false);
+  private globalBalanceHours = signal(0);
 
   constructor() {
     this.timeEntryService.lunchEnabled$.subscribe(v => this.lunchEnabled.set(v));
     this.timeEntryService.lunchHour$.subscribe(v => this.lunchHour.set(v));
     this.timeEntryService.lunchDurationMin$.subscribe(v => this.lunchDurationMin.set(v));
     this.timeEntryService.lunchBreakActive$.subscribe(v => this.lunchBreakActive.set(v));
+    this.timeEntryService.liveGlobalBalance$.subscribe(b => this.globalBalanceHours.set(b.balanceHours));
   }
 
   formatDuration = formatDuration;
@@ -103,6 +115,14 @@ export class DailySummaryComponent {
 
   getRemaining(ms: number): number {
     return Math.max(this.settings.workdayMs() - ms, 0);
+  }
+
+  // Tiempo restante para que el BALANCE TOTAL llegue a 0, no solo el de hoy.
+  // liveGlobalBalance ya incluye lo trabajado hoy (+ running) y el déficit del
+  // día de hoy. Si el balance es negativo (debo horas), faltan -balance horas;
+  // si es >= 0 (estoy al día o con superávit), no queda nada por compensar.
+  getBalanceAdjustedRemaining(): number {
+    return Math.max(-this.globalBalanceHours() * 60 * 60 * 1000, 0);
   }
 
   getExpectedEndTime(remainingMs: number): string {
