@@ -3,6 +3,7 @@ import { AfterViewInit, ChangeDetectionStrategy, Component, computed, ElementRef
 import { TranslatePipe } from '../../i18n/translate.pipe';
 import { TranslationService } from '../../i18n';
 import { TenureMilestone } from '../../services/tenure-celebration.service';
+import { cssVar } from '../../utils/css-var';
 import { ModalA11yDirective } from '../../shared/modal-a11y.directive';
 
 interface Particle {
@@ -18,7 +19,12 @@ interface Particle {
   life: number;
 }
 
-const COLORS = ['#7c3aed', '#a855f7', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
+const FALLBACK_COLORS = ['#7c3aed', '#a855f7', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
+
+function confettiColors(): string[] {
+  const list = cssVar('--tt-confetti').split(',').map(c => c.trim()).filter(Boolean);
+  return list.length ? list : FALLBACK_COLORS;
+}
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,9 +44,9 @@ const COLORS = ['#7c3aed', '#a855f7', '#ec4899', '#f59e0b', '#10b981', '#3b82f6'
       >
         <!-- Trophy badge -->
         <div
-          class="mx-auto mb-4 w-16 h-16 rounded-full bg-violet-100 flex items-center justify-center"
+          class="mx-auto mb-4 w-16 h-16 rounded-full bg-tenure-soft flex items-center justify-center"
         >
-          <svg aria-hidden="true" class="w-8 h-8 text-violet-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          <svg aria-hidden="true" class="w-8 h-8 text-tenure" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="8" r="6" />
             <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
@@ -51,7 +57,7 @@ const COLORS = ['#7c3aed', '#a855f7', '#ec4899', '#f59e0b', '#10b981', '#3b82f6'
 
         <!-- Milestone figure -->
         <div class="mt-4 flex items-end justify-center gap-2">
-          <span class="text-6xl font-extrabold font-mono text-violet-600 leading-none">{{ milestone().value }}</span>
+          <span class="text-6xl font-extrabold font-mono text-tenure leading-none">{{ milestone().value }}</span>
           <span class="text-sm uppercase tracking-wide text-slate-500 mb-1.5">{{ unitKey() | t }}</span>
         </div>
 
@@ -62,7 +68,7 @@ const COLORS = ['#7c3aed', '#a855f7', '#ec4899', '#f59e0b', '#10b981', '#3b82f6'
           type="button"
           data-autofocus
           (click)="close.emit()"
-          class="mt-6 w-full px-4 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-colors"
+          class="mt-6 w-full px-4 py-2.5 rounded-xl bg-tenure text-sm font-semibold transition-colors"
         >
           {{ 'celebrate.button' | t }}
         </button>
@@ -97,6 +103,7 @@ export class TenureCelebrationModalComponent implements AfterViewInit, OnDestroy
 
   private ctx: CanvasRenderingContext2D | null = null;
   private particles: Particle[] = [];
+  private colors = confettiColors();
   private rafId = 0;
   private timers: ReturnType<typeof setTimeout>[] = [];
   private viewW = 0;
@@ -154,7 +161,7 @@ export class TenureCelebrationModalComponent implements AfterViewInit, OnDestroy
         vx: Math.cos(a) * speed,
         vy: Math.sin(a) * speed,
         size: 6 + Math.random() * 6,
-        color: COLORS[(Math.random() * COLORS.length) | 0],
+        color: this.colors[(Math.random() * this.colors.length) | 0],
         rot: Math.random() * Math.PI * 2,
         vr: (Math.random() - 0.5) * 0.3,
         shape: Math.random() < 0.5 ? 0 : 1,

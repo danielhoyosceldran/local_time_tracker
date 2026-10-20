@@ -40,7 +40,7 @@ function dateToTimeString(d: Date): string {
         <app-toggle
           [label]="'autoround.title' | t"
           [checked]="draft.marginEnabled()"
-          activeClass="bg-amber-500"
+          tone="amber"
           (changed)="draft.marginEnabled.set($event)"
         />
       </div>
@@ -62,7 +62,7 @@ function dateToTimeString(d: Date): string {
       >
         <app-toggle
           [checked]="draft.marginWindowEnabled()"
-          activeClass="bg-amber-500"
+          tone="amber"
           (changed)="draft.marginWindowEnabled.set($event)"
         />
       </app-setting-row>

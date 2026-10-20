@@ -40,7 +40,7 @@ function dateToTimeString(d: Date): string {
         <app-toggle
           [label]="'lunch.sectionTitle' | t"
           [checked]="draft.lunchEnabled()"
-          activeClass="bg-orange-500"
+          tone="orange"
           (changed)="draft.lunchEnabled.set($event)"
         />
       </div>
@@ -68,7 +68,7 @@ function dateToTimeString(d: Date): string {
       <app-setting-row [label]="'lunch.enableButtonLabel' | t" [hint]="'lunch.enableButtonHint' | t">
         <app-toggle
           [checked]="draft.lunchBreakButtonEnabled()"
-          activeClass="bg-orange-500"
+          tone="orange"
           (changed)="draft.lunchBreakButtonEnabled.set($event)"
         />
       </app-setting-row>

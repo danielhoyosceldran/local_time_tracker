@@ -36,6 +36,30 @@
   --tt-chart-marker: rgba(148, 163, 184, 0.6);
   --tt-chart-tooltip-bg: rgba(15, 23, 42, 0.92);
   --tt-chart-tooltip-text: #f8fafc;
+
+  /* Chart series (read by monthly-chart through cssVar) */
+  --tt-chart-line: #4f46e5;
+  --tt-chart-fill-top: rgba(79, 70, 229, 0.25);
+  --tt-chart-fill-bottom: rgba(79, 70, 229, 0);
+  --tt-chart-target: rgba(99, 102, 241, 0.3);
+  --tt-chart-expected: rgba(79, 70, 229, 0.35);
+  --tt-chart-expected-point: rgba(79, 70, 229, 0.5);
+
+  /* Switch (app-toggle) */
+  --tt-toggle-off: #cbd5e1;         /* slate-300 */
+  --tt-toggle-on: #1e293b;          /* slate-800 */
+  --tt-toggle-on-amber: #f59e0b;
+  --tt-toggle-on-orange: #f97316;
+  --tt-toggle-knob: #ffffff;
+
+  /* Company tenure (violet family) */
+  --tt-tenure: #7c3aed;             /* violet-600: text, icons, buttons */
+  --tt-tenure-strong: #6d28d9;      /* violet-700: button hover */
+  --tt-tenure-mid: #8b5cf6;         /* violet-500: months figure */
+  --tt-tenure-light: #a78bfa;       /* violet-400: days figure */
+  --tt-tenure-soft: #ede9fe;        /* violet-100: badge background */
+  --tt-tenure-on: #ffffff;
+  --tt-confetti: #7c3aed, #a855f7, #ec4899, #f59e0b, #10b981, #3b82f6, #ef4444;
 }
 
 html.dark {
@@ -59,7 +83,35 @@ html.dark {
   --tt-chart-marker: rgba(163, 163, 163, 0.45);
   --tt-chart-tooltip-bg: rgba(10, 10, 10, 0.95);
   --tt-chart-tooltip-text: #e5e5e5;
+
+  --tt-chart-line: #818cf8;
+  --tt-chart-fill-top: rgba(129, 140, 248, 0.28);
+  --tt-chart-fill-bottom: rgba(129, 140, 248, 0);
+  --tt-chart-target: rgba(129, 140, 248, 0.32);
+  --tt-chart-expected: rgba(129, 140, 248, 0.4);
+  --tt-chart-expected-point: rgba(129, 140, 248, 0.55);
+
+  --tt-toggle-off: #3f3f3f;
+  --tt-toggle-on: #6366f1;
+  --tt-toggle-on-amber: #f59e0b;
+  --tt-toggle-on-orange: #f97316;
+  --tt-toggle-knob: #ffffff;
+
+  --tt-tenure: #a78bfa;
+  --tt-tenure-strong: #8b5cf6;
+  --tt-tenure-mid: #8b5cf6;
+  --tt-tenure-light: #7c6bd0;
+  --tt-tenure-soft: rgba(167, 139, 250, 0.16);
+  --tt-tenure-on: #1e1b4b;
 }
+
+/* Tenure utilities: one semantic name per role, theme-aware */
+.text-tenure        { color: var(--tt-tenure); }
+.text-tenure-mid    { color: var(--tt-tenure-mid); }
+.text-tenure-light  { color: var(--tt-tenure-light); }
+.bg-tenure-soft     { background-color: var(--tt-tenure-soft); }
+.bg-tenure          { background-color: var(--tt-tenure); color: var(--tt-tenure-on); }
+.bg-tenure:hover:not(:disabled) { background-color: var(--tt-tenure-strong); }
 
 html, body {
   background-color: var(--tt-page-bg);

@@ -9,6 +9,7 @@ import { TimeEntryService } from '../../services/time-entry';
 import { SettingsService } from '../../services/settings.service';
 import { HolidayDatesService } from '../../services/holiday-dates.service';
 import { ThemeService } from '../../services/theme.service';
+import { cssVar } from '../../utils/css-var';
 import { formatHoursToTime } from '../../utils/format';
 import { TranslationService } from '../../i18n';
 import { TranslatePipe } from '../../i18n/translate.pipe';
@@ -119,7 +120,7 @@ export class MonthlyChartComponent implements OnInit, OnDestroy {
       const x = xScale.getPixelForValue(idx);
       const ctx = chart.ctx;
       ctx.save();
-      ctx.strokeStyle = this.theme.isDark() ? 'rgba(148,163,184,0.45)' : 'rgba(148,163,184,0.6)';
+      ctx.strokeStyle = cssVar('--tt-chart-marker');
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(x, top);
@@ -135,14 +136,14 @@ export class MonthlyChartComponent implements OnInit, OnDestroy {
       {
         label: 'Hours Worked',
         data: [],
-        borderColor: '#4f46e5',
+        borderColor: cssVar('--tt-chart-line'),
         backgroundColor: (ctx: any) => {
           const chart = ctx.chart;
           const { ctx: c, chartArea } = chart;
-          if (!chartArea) return 'rgba(79,70,229,0.1)';
+          if (!chartArea) return cssVar('--tt-chart-fill-top');
           const gradient = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-          gradient.addColorStop(0, 'rgba(79,70,229,0.25)');
-          gradient.addColorStop(1, 'rgba(79,70,229,0)');
+          gradient.addColorStop(0, cssVar('--tt-chart-fill-top'));
+          gradient.addColorStop(1, cssVar('--tt-chart-fill-bottom'));
           return gradient;
         },
         borderWidth: 1.5,
@@ -150,13 +151,13 @@ export class MonthlyChartComponent implements OnInit, OnDestroy {
         fill: true,
         pointRadius: 3,
         pointHoverRadius: 4,
-        pointBackgroundColor: '#4f46e5',
+        pointBackgroundColor: cssVar('--tt-chart-line'),
         order: 2
       },
       {
         label: 'Target',
         data: [],
-        borderColor: 'rgba(99,102,241,0.3)',
+        borderColor: cssVar('--tt-chart-target'),
         borderWidth: 1,
         borderDash: [4, 4],
         pointRadius: 0,
@@ -167,13 +168,13 @@ export class MonthlyChartComponent implements OnInit, OnDestroy {
       {
         label: 'Expected',
         data: [],
-        borderColor: 'rgba(79,70,229,0.35)',
-        backgroundColor: 'rgba(79,70,229,0)',
+        borderColor: cssVar('--tt-chart-expected'),
+        backgroundColor: 'transparent',
         borderWidth: 1,
         tension: 0.2,
         pointRadius: 0,
         pointHoverRadius: 3,
-        pointBackgroundColor: 'rgba(79,70,229,0.5)',
+        pointBackgroundColor: cssVar('--tt-chart-expected-point'),
         fill: false,
         order: 0
       }
@@ -183,11 +184,10 @@ export class MonthlyChartComponent implements OnInit, OnDestroy {
   chartOptions: ChartConfiguration['options'] = this.buildChartOptions();
 
   private buildChartOptions(): ChartConfiguration['options'] {
-    const dark = this.theme.isDark();
-    const tickColor = dark ? '#94a3b8' : '#64748b';
-    const gridColor = dark ? 'rgba(148,163,184,0.18)' : 'rgba(148,163,184,0.25)';
-    const tooltipBg = dark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(15, 23, 42, 0.9)';
-    const tooltipText = dark ? '#e2e8f0' : '#f8fafc';
+    const tickColor = cssVar('--tt-chart-tick');
+    const gridColor = cssVar('--tt-chart-grid');
+    const tooltipBg = cssVar('--tt-chart-tooltip-bg');
+    const tooltipText = cssVar('--tt-chart-tooltip-text');
     return {
       responsive: true,
       maintainAspectRatio: false,
@@ -230,8 +230,11 @@ export class MonthlyChartComponent implements OnInit, OnDestroy {
     effect(() => {
       // re-style chart when the theme flips
       this.theme.isDark();
-      this.chartOptions = this.buildChartOptions();
-      this.refresh();
+      // wait for ThemeService to toggle the `dark` class so cssVar reads the new tokens
+      queueMicrotask(() => {
+        this.chartOptions = this.buildChartOptions();
+        this.refresh();
+      });
     });
   }
 
@@ -303,10 +306,21 @@ export class MonthlyChartComponent implements OnInit, OnDestroy {
       ...this.chartData,
       labels: result.labels,
       datasets: [
-        { ...this.chartData.datasets![0], data: result.data },
-        { ...this.chartData.datasets![1], data: result.labels.map(() => target) },
+        {
+          ...this.chartData.datasets![0],
+          borderColor: cssVar('--tt-chart-line'),
+          pointBackgroundColor: cssVar('--tt-chart-line'),
+          data: result.data
+        },
+        {
+          ...this.chartData.datasets![1],
+          borderColor: cssVar('--tt-chart-target'),
+          data: result.labels.map(() => target)
+        },
         {
           ...this.chartData.datasets![2],
+          borderColor: cssVar('--tt-chart-expected'),
+          pointBackgroundColor: cssVar('--tt-chart-expected-point'),
           data: result.expectedPerBucket,
           hidden: !this.settings.showExpectedLine()
         }

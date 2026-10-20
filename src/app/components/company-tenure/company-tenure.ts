@@ -26,7 +26,7 @@ interface Tenure {
     <div class="bg-white/80 backdrop-blur-xl border border-white rounded-2xl shadow-sm shadow-slate-200/50 p-4 h-full flex flex-col overflow-hidden">
       <!-- Header -->
       <div class="flex items-center gap-2 mb-2">
-        <svg aria-hidden="true" class="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg aria-hidden="true" class="w-4 h-4 text-tenure" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M20 7H4a1 1 0 00-1 1v11a1 1 0 001 1h16a1 1 0 001-1V8a1 1 0 00-1-1zM8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/>
         </svg>
@@ -58,19 +58,19 @@ interface Tenure {
               <!-- Breakdown -->
               <div class="grid grid-cols-3 gap-2 text-center">
                 <div>
-                  <div class="text-3xl font-extrabold font-mono text-violet-600 leading-none">{{ t.years }}</div>
+                  <div class="text-3xl font-extrabold font-mono text-tenure leading-none">{{ t.years }}</div>
                   <div class="text-[11px] uppercase tracking-wide text-slate-500 mt-1">
                     {{ (t.years === 1 ? 'tenure.yearOne' : 'tenure.years') | t }}
                   </div>
                 </div>
                 <div>
-                  <div class="text-3xl font-extrabold font-mono text-violet-500 leading-none">{{ t.months }}</div>
+                  <div class="text-3xl font-extrabold font-mono text-tenure-mid leading-none">{{ t.months }}</div>
                   <div class="text-[11px] uppercase tracking-wide text-slate-500 mt-1">
                     {{ (t.months === 1 ? 'tenure.monthOne' : 'tenure.months') | t }}
                   </div>
                 </div>
                 <div>
-                  <div class="text-3xl font-extrabold font-mono text-violet-400 leading-none">{{ t.days }}</div>
+                  <div class="text-3xl font-extrabold font-mono text-tenure-light leading-none">{{ t.days }}</div>
                   <div class="text-[11px] uppercase tracking-wide text-slate-500 mt-1">
                     {{ (t.days === 1 ? 'tenure.dayOne' : 'tenure.days') | t }}
                   </div>
@@ -107,7 +107,7 @@ interface Tenure {
             <button
               (click)="save()"
               [disabled]="!draft()"
-              class="flex-1 px-3 py-2 rounded-lg bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              class="flex-1 px-3 py-2 rounded-lg bg-tenure text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               {{ 'common.save' | t }}
             </button>
