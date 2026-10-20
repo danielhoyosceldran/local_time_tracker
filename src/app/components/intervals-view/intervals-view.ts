@@ -74,7 +74,7 @@ interface WeekGroup {
                     <div class="text-sm font-bold text-slate-900">
                       {{ 'intervals.weekLabel' | t }} {{ week.weekNumber }} · {{ week.year }}
                     </div>
-                    <div class="text-[10px] text-slate-500">
+                    <div class="text-[11px] text-slate-500">
                       {{ week.startDate | date:'mediumDate' }} – {{ week.endDate | date:'mediumDate' }}
                     </div>
                   </div>
@@ -86,7 +86,7 @@ interface WeekGroup {
                       <span class="text-slate-400 font-normal">/</span>
                       {{ formatHoursToTime(week.targetHours) }}
                     </div>
-                    <div class="text-[10px] text-slate-500">
+                    <div class="text-[11px] text-slate-500">
                       {{ week.days.length }} {{ week.days.length === 1 ? ('intervals.daySingular' | t) : ('intervals.dayPlural' | t) }}
                     </div>
                   </div>
@@ -111,7 +111,7 @@ interface WeekGroup {
                             </svg>
                             <div class="min-w-0 text-left">
                               <div class="text-xs font-semibold text-slate-900 truncate">{{ day.date | date:'mediumDate' }}</div>
-                              <div class="text-[10px] text-slate-500">{{ day.entries.length }} {{ day.entries.length === 1 ? ('intervals.intervalSingular' | t) : ('intervals.intervalPlural' | t) }}</div>
+                              <div class="text-[11px] text-slate-500">{{ day.entries.length }} {{ day.entries.length === 1 ? ('intervals.intervalSingular' | t) : ('intervals.intervalPlural' | t) }}</div>
                             </div>
                           </div>
                           <div class="text-sm font-bold font-mono text-indigo-600 shrink-0">
@@ -179,7 +179,7 @@ interface WeekGroup {
                                           {{ entry.description }}
                                         </div>
                                       }
-                                      <div class="flex items-center gap-1 text-[10px] text-slate-500 mt-0.5">
+                                      <div class="flex items-center gap-1 text-[11px] text-slate-500 mt-0.5">
                                         <span>{{ entry.startTime | clockTime }}</span>
                                         <span>→</span>
                                         <span>{{ entry.endTime | clockTime }}</span>

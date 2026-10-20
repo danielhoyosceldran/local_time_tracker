@@ -73,7 +73,7 @@ function buildMonthData(year: number, month: number): MonthData {
           </svg>
           <h3 class="text-slate-800 font-bold text-sm">{{ 'holiday.title' | t }} {{ currentYear }}</h3>
         </div>
-        <div class="flex items-center gap-2 text-[10px]">
+        <div class="flex items-center gap-2 text-[11px]">
           <!-- Type toggle -->
           <div class="flex items-center bg-slate-100 rounded-md p-0.5" [attr.title]="'holiday.typeTooltip' | t">
             <button
@@ -95,7 +95,7 @@ function buildMonthData(year: number, month: number): MonthData {
             <select
               [ngModel]="''"
               (ngModelChange)="onPresetChange($event)"
-              class="text-[10px] border border-slate-200 rounded-md px-1.5 py-0.5 bg-white text-slate-600 hover:border-slate-300"
+              class="text-[11px] border border-slate-200 rounded-md px-1.5 py-0.5 bg-white text-slate-600 hover:border-slate-300"
               [attr.title]="'holiday.presetTooltip' | t"
             >
               <option value="" disabled>{{ 'holiday.loadPreset' | t }}</option>
@@ -162,13 +162,13 @@ function buildMonthData(year: number, month: number): MonthData {
           @for (month of months; track month.name) {
             <div class="month-cell">
               <!-- Month name -->
-              <div class="text-[10px] font-semibold text-slate-600 uppercase tracking-wide mb-1 text-center">
+              <div class="text-[11px] font-semibold text-slate-600 uppercase tracking-wide mb-1 text-center">
                 {{ month.name }}
               </div>
               <!-- Day headers -->
               <div class="grid grid-cols-7 mb-0.5">
                 @for (d of dayHeaders; track d + $index) {
-                  <div class="text-[8px] text-slate-400 text-center font-medium">{{ d }}</div>
+                  <div class="text-[11px] text-slate-500 text-center font-medium">{{ d }}</div>
                 }
               </div>
               <!-- Weeks -->
@@ -237,7 +237,7 @@ export class CompactHolidayCalendarComponent implements OnInit {
   }
 
   cellClass(cell: DayCell, weeks: DayCell[][], wi: number, di: number): string {
-    const baseCore = 'aspect-square flex items-center justify-center text-[9px] select-none transition-colors';
+    const baseCore = 'aspect-square flex items-center justify-center text-[11px] select-none transition-colors';
     if (!cell.date) {
       return `${baseCore} rounded-sm cursor-default pointer-events-none text-transparent`;
     }

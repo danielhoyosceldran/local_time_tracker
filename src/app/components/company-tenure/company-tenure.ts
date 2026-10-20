@@ -58,19 +58,19 @@ interface Tenure {
               <div class="grid grid-cols-3 gap-2 text-center">
                 <div>
                   <div class="text-3xl font-extrabold font-mono text-violet-600 leading-none">{{ t.years }}</div>
-                  <div class="text-[10px] uppercase tracking-wide text-slate-500 mt-1">
+                  <div class="text-[11px] uppercase tracking-wide text-slate-500 mt-1">
                     {{ (t.years === 1 ? 'tenure.yearOne' : 'tenure.years') | t }}
                   </div>
                 </div>
                 <div>
                   <div class="text-3xl font-extrabold font-mono text-violet-500 leading-none">{{ t.months }}</div>
-                  <div class="text-[10px] uppercase tracking-wide text-slate-500 mt-1">
+                  <div class="text-[11px] uppercase tracking-wide text-slate-500 mt-1">
                     {{ (t.months === 1 ? 'tenure.monthOne' : 'tenure.months') | t }}
                   </div>
                 </div>
                 <div>
                   <div class="text-3xl font-extrabold font-mono text-violet-400 leading-none">{{ t.days }}</div>
-                  <div class="text-[10px] uppercase tracking-wide text-slate-500 mt-1">
+                  <div class="text-[11px] uppercase tracking-wide text-slate-500 mt-1">
                     {{ (t.days === 1 ? 'tenure.dayOne' : 'tenure.days') | t }}
                   </div>
                 </div>
@@ -81,7 +81,7 @@ interface Tenure {
                 <span class="font-mono font-medium text-slate-700">{{ t.totalDays | number }}</span>
                 {{ 'tenure.totalDays' | t }}
               </div>
-              <div class="text-[11px] text-slate-400 text-center mt-1">
+              <div class="text-[11px] text-slate-500 text-center mt-1">
                 {{ 'tenure.since' | t }} <span class="font-mono">{{ formattedStart() }}</span>
               </div>
             </div>

@@ -92,7 +92,7 @@ interface Tab {
                     ></span>
                     <span class="flex flex-col">
                       <span class="text-sm font-medium">{{ tab.labelKey | t }}</span>
-                      <span class="tab-desc text-[11px] text-slate-400 leading-tight">{{ tab.descriptionKey | t }}</span>
+                      <span class="tab-desc text-[11px] text-slate-500 leading-tight">{{ tab.descriptionKey | t }}</span>
                     </span>
                   </button>
                 </li>

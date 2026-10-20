@@ -48,7 +48,7 @@ import { TranslationService } from '../../i18n';
           </div>
           <div class="grid grid-cols-7 gap-1 mt-0.5">
             @for (d of dayLabels; track $index) {
-              <div class="text-[9px] text-slate-400 text-center font-mono">{{ d }}</div>
+              <div class="text-[11px] text-slate-500 text-center font-mono">{{ d }}</div>
             }
           </div>
         </div>
@@ -57,7 +57,7 @@ import { TranslationService } from '../../i18n';
           {{ 'weekly.remainingLabel' | t }} <span class="font-mono font-medium text-slate-700">{{ formatHoursToTime(summary.remainingHours) }}</span>
         </div>
       } @else {
-        <div class="flex-1 flex items-center justify-center text-slate-400 text-sm">
+        <div class="flex-1 flex items-center justify-center text-slate-500 text-sm">
           {{ 'weekly.noEntries' | t }}
         </div>
       }

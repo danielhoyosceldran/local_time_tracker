@@ -78,7 +78,7 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
             }
           </div>
         } @else {
-          <div class="flex-1 flex items-center justify-center text-slate-400 text-sm">
+          <div class="flex-1 flex items-center justify-center text-slate-500 text-sm">
             {{ 'daily.noEntriesShort' | t }}
           </div>
         }

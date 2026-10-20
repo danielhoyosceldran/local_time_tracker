@@ -46,7 +46,7 @@ import type { TranslationKey } from '../../../i18n/translations/en';
       <!-- Cloud sync (optional, via private GitHub Gist) -->
       <div class="mt-4 pt-4 border-t border-slate-100">
         <h4 class="text-xs font-semibold text-slate-700">{{ 'gistSync.sectionTitle' | t }}</h4>
-        <p class="text-[11px] text-slate-400 mt-0.5 mb-3">{{ 'gistSync.sectionHint' | t }}</p>
+        <p class="text-[11px] text-slate-500 mt-0.5 mb-3">{{ 'gistSync.sectionHint' | t }}</p>
 
         <div class="space-y-2.5">
           <div>
@@ -59,7 +59,7 @@ import type { TranslationKey } from '../../../i18n/translations/en';
               placeholder="ghp_…"
               class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs"
             />
-            <p class="text-[10px] text-slate-400 mt-1">{{ 'gistSync.tokenHint' | t }}</p>
+            <p class="text-[11px] text-slate-500 mt-1">{{ 'gistSync.tokenHint' | t }}</p>
           </div>
 
           <div>

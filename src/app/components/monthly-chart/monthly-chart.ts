@@ -55,7 +55,7 @@ interface PeriodResult {
             </div>
           </div>
         </div>
-        <div class="flex gap-2 text-[10px] font-medium">
+        <div class="flex gap-2 text-[11px] font-medium">
           @for (p of periods; track p) {
             <button
               type="button"
@@ -63,7 +63,7 @@ interface PeriodResult {
               class="transition-colors"
               [class.text-indigo-600]="period() === p"
               [class.font-semibold]="period() === p"
-              [class.text-slate-400]="period() !== p"
+              [class.text-slate-500]="period() !== p"
               [class.hover:text-slate-600]="period() !== p"
             >{{ labelFor(p) }}</button>
           }

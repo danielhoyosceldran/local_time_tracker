@@ -37,12 +37,12 @@ interface PomodoroState {
 
       <div class="flex justify-center mb-1">
         @if (running()) {
-          <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-white">
+          <span class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-white">
             {{ phase() === 'work' ? ('pomodoro.working' | t) : ('pomodoro.break' | t) }}
           </span>
         } @else {
           <div
-            class="flex rounded-full overflow-hidden text-[10px] font-bold uppercase tracking-wider"
+            class="flex rounded-full overflow-hidden text-[11px] font-bold uppercase tracking-wider"
             [ngClass]="phase() === 'work' ? 'border border-slate-600' : 'border border-white/30'"
           >
             <button

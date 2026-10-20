@@ -44,7 +44,7 @@ import { ModalA11yDirective } from '../../shared/modal-a11y.directive';
             <div class="px-5 py-4">
               <div class="flex items-center gap-2 mb-2">
                 <span class="text-xs font-bold text-indigo-600 bg-indigo-50 rounded-md px-1.5 py-0.5">v{{ release.version }}</span>
-                <span class="text-xs text-slate-400">{{ release.date }}</span>
+                <span class="text-xs text-slate-500">{{ release.date }}</span>
               </div>
               <ul class="space-y-1.5">
                 @for (note of release.notes; track $index) {

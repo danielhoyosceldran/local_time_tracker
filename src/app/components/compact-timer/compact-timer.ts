@@ -84,7 +84,7 @@ import { TranslationService } from '../../i18n';
               class="text-slate-700 font-medium text-center bg-transparent border-none w-full cursor-default"
             />
             @if (view.entry.startedBy; as origin) {
-              <div class="mt-1 text-xs text-slate-400 flex items-center justify-center gap-1">
+              <div class="mt-1 text-xs text-slate-500 flex items-center justify-center gap-1">
                 <!-- Device icon -->
                 <svg aria-hidden="true" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <rect x="3" y="4" width="18" height="12" rx="2"/>

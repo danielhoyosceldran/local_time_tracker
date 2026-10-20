@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-20T00:00:00Z",
+  "title": "Design System: Time Tracker",
+  "extensions": {
+    "colorMeta": {
+      "indigo-action": { "role": "primary", "displayName": "Working Indigo", "canonical": "#4f46e5", "tonalRamp": ["#1e1b4b","#312e81","#3730a3","#4338ca","#4f46e5","#6366f1","#a5b4fc","#eef2ff"] },
+      "page-bg": { "role": "neutral", "displayName": "Page Slate", "canonical": "#f1f5f9", "tonalRamp": ["#0f172a","#1e293b","#334155","#475569","#64748b","#94a3b8","#e2e8f0","#f1f5f9"] }
+    },
+    "typographyMeta": {
+      "body": { "displayName": "Body", "purpose": "Descriptions, lists, settings." },
+      "numeric": { "displayName": "Numeric", "purpose": "Timers, totals, clock times." }
+    },
+    "shadows": [
+      { "name": "card-ambient", "value": "0 1px 2px rgba(0,0,0,0.05)", "purpose": "Resting cards (shadow-sm)." },
+      { "name": "primary-glow", "value": "0 10px 15px -3px rgba(224,231,255,1)", "purpose": "Primary action indigo glow." },
+      { "name": "modal", "value": "0 20px 25px -5px rgba(0,0,0,0.1)", "purpose": "Modals (shadow-xl)." }
+    ],
+    "motion": [
+      { "name": "press", "value": "transition-all; active:scale-95", "purpose": "Primary button press feedback." }
+    ],
+    "breakpoints": [
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Dominant action on a card.",
+      "html": "<button class=\"ds-btn-primary\">Start</button>",
+      "css": ".ds-btn-primary{background:#4f46e5;color:#fff;font-weight:700;padding:16px;border:0;border-radius:16px;box-shadow:0 10px 15px -3px #e0e7ff;transition:all .15s}.ds-btn-primary:hover{background:#4338ca}.ds-btn-primary:active{transform:scale(.95)}.ds-btn-primary:focus-visible{outline:2px solid #6366f1;outline-offset:2px}"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Standard content container.",
+      "html": "<div class=\"ds-card\">Today<br><span class=\"ds-num\">07:42</span></div>",
+      "css": ".ds-card{background:#fff;color:#1e293b;border:1px solid #e2e8f0;border-radius:16px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.05)}.ds-num{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:28px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Quiet Timekeeper",
+    "overview": "A tool that sits beside the workday rather than demanding attention. Surfaces are pale slate or near-black neutral, content lives on soft white cards, and a single indigo accent marks the one thing to do next.",
+    "keyCharacteristics": ["Slate neutrals plus one indigo accent", "Rounded cards with gentle ambient shadow", "Inter for text, JetBrains Mono for time values", "Dark mode is a neutral-grey rewrite"],
+    "rules": [
+      { "name": "The One Accent Rule", "body": "Indigo is the only brand hue; emerald, amber and red communicate state, never decoration.", "section": "colors" },
+      { "name": "The Ambient Not Structural Rule", "body": "Shadows are soft and tinted; depth never relies on hard drop shadows or heavy borders.", "section": "elevation" }
+    ],
+    "dos": ["Do use standard Tailwind slate/indigo utilities so dark mode applies automatically.", "Do keep one dominant indigo action per card."],
+    "donts": ["Don't add outline-none to controls.", "Don't hard-code hex colours in templates."]
+  }
+}

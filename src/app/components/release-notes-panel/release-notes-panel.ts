@@ -21,7 +21,7 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
           <div class="px-4 py-3">
             <div class="flex items-center gap-2 mb-1.5">
               <span class="text-xs font-bold text-indigo-600 bg-indigo-50 rounded-md px-1.5 py-0.5">v{{ release.version }}</span>
-              <span class="text-xs text-slate-400">{{ release.date }}</span>
+              <span class="text-xs text-slate-500">{{ release.date }}</span>
             </div>
             <ul class="space-y-1">
               @for (note of release.notes; track $index) {

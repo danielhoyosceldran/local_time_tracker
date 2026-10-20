@@ -93,7 +93,7 @@ function dateToTimeString(d: Date): string {
             </svg>
             <span class="text-xs font-medium text-slate-600">{{ 'reminder.sound' | t }}</span>
           </div>
-          <span class="text-xs text-slate-400">{{ soundLabel() }}</span>
+          <span class="text-xs text-slate-500">{{ soundLabel() }}</span>
         </button>
 
       </div>
