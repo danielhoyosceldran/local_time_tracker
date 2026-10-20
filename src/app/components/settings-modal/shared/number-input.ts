@@ -18,7 +18,7 @@ import { SettingRowComponent } from './setting-row';
       [attr.aria-label]="label() || null"
       [attr.aria-labelledby]="labelledBy()"
       [attr.aria-describedby]="describedBy()"
-      class="w-20 px-2 py-1.5 border border-slate-300 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+      class="w-20 px-2 py-1.5 border border-slate-300 rounded-lg text-sm text-center"
     />
   `,
 })

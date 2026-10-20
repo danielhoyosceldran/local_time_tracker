@@ -36,7 +36,7 @@ import { Observable, map } from 'rxjs';
               type="text"
               formControlName="title"
               placeholder="e.g. Develop Angular component"
-              class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-primary focus:border-primary"
+              class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:border-primary"
               />
             </div>
             <button

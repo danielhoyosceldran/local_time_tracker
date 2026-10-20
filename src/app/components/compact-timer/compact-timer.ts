@@ -81,7 +81,7 @@ import { TranslationService } from '../../i18n';
               type="text"
               [value]="view.entry.title || translation.t('timer.noTitle')"
               readonly
-              class="text-slate-700 font-medium text-center bg-transparent border-none outline-none w-full cursor-default"
+              class="text-slate-700 font-medium text-center bg-transparent border-none w-full cursor-default"
             />
             @if (view.entry.startedBy; as origin) {
               <div class="mt-1 text-xs text-slate-400 flex items-center justify-center gap-1">
@@ -142,7 +142,7 @@ import { TranslationService } from '../../i18n';
               type="text"
               formControlName="title"
               [placeholder]="'timer.taskName' | t"
-              class="w-full px-0 py-2 border-0 border-b border-slate-200 text-sm text-slate-800 placeholder-slate-400 bg-transparent focus:outline-none focus:border-indigo-500 transition-colors"
+              class="w-full px-0 py-2 border-0 border-b border-slate-200 text-sm text-slate-800 placeholder-slate-400 bg-transparent focus:border-indigo-500 transition-colors"
             />
           </div>
 

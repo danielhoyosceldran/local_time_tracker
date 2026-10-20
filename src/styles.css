@@ -16,6 +16,7 @@
   --tt-border: #e2e8f0;             /* slate-200 */
   --tt-border-soft: #f1f5f9;        /* slate-100 */
   --tt-scrollbar: rgba(0, 0, 0, 0.15);
+  --tt-focus: #6366f1;              /* indigo-500 */
 
   /* Chart tokens (re-used by monthly-chart) */
   --tt-chart-grid: rgba(148, 163, 184, 0.25);
@@ -39,6 +40,7 @@ html.dark {
   --tt-border: #2a2a2a;
   --tt-border-soft: #1f1f1f;
   --tt-scrollbar: rgba(255, 255, 255, 0.22);
+  --tt-focus: #818cf8;              /* indigo-400 */
 
   --tt-chart-grid: rgba(163, 163, 163, 0.18);
   --tt-chart-tick: #a3a3a3;
@@ -50,6 +52,13 @@ html.dark {
 html, body {
   background-color: var(--tt-page-bg);
   color: var(--tt-text);
+}
+
+/* Keyboard focus ring: one accent-coloured outline for every focusable
+   element. Don't add `outline-none` / `focus:outline-none` to controls. */
+:focus-visible {
+  outline: 2px solid var(--tt-focus);
+  outline-offset: 2px;
 }
 
 /* Discrete scrollbars */

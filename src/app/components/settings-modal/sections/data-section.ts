@@ -57,7 +57,7 @@ import type { TranslationKey } from '../../../i18n/translations/en';
               [ngModel]="token()"
               (ngModelChange)="token.set($event)"
               placeholder="ghp_…"
-              class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+              class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs"
             />
             <p class="text-[10px] text-slate-400 mt-1">{{ 'gistSync.tokenHint' | t }}</p>
           </div>
@@ -70,7 +70,7 @@ import type { TranslationKey } from '../../../i18n/translations/en';
               [ngModel]="gistInput()"
               (ngModelChange)="gistInput.set($event)"
               placeholder="https://gist.github.com/…"
-              class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+              class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs"
             />
           </div>
 
@@ -82,7 +82,7 @@ import type { TranslationKey } from '../../../i18n/translations/en';
               [ngModel]="fileName()"
               (ngModelChange)="fileName.set($event)"
               placeholder="data.json"
-              class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+              class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs"
             />
           </div>
         </div>
@@ -138,7 +138,7 @@ import type { TranslationKey } from '../../../i18n/translations/en';
               (ngModelChange)="confirmText.set($event)"
               (keyup.enter)="runConfirm()"
               [placeholder]="'gistSync.confirmPlaceholder' | t: { word: confirmWord() }"
-              class="mt-4 w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+              class="mt-4 w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono"
             />
 
             <div class="mt-5 flex justify-end gap-2">

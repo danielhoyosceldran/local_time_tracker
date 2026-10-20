@@ -53,7 +53,7 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
               type="text"
               [(ngModel)]="editingUrl"
               [placeholder]="'agenda.urlPlaceholder' | t"
-              class="w-full border border-slate-300 rounded-lg px-3 py-2 mb-4 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full border border-slate-300 rounded-lg px-3 py-2 mb-4 text-sm"
             />
             <div class="flex gap-2 justify-end">
               <button

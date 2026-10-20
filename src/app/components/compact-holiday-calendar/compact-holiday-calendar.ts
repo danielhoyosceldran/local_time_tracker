@@ -95,7 +95,7 @@ function buildMonthData(year: number, month: number): MonthData {
             <select
               [ngModel]="''"
               (ngModelChange)="onPresetChange($event)"
-              class="text-[10px] border border-slate-200 rounded-md px-1.5 py-0.5 bg-white text-slate-600 hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-amber-400"
+              class="text-[10px] border border-slate-200 rounded-md px-1.5 py-0.5 bg-white text-slate-600 hover:border-slate-300"
               [attr.title]="'holiday.presetTooltip' | t"
             >
               <option value="" disabled>{{ 'holiday.loadPreset' | t }}</option>
@@ -124,7 +124,7 @@ function buildMonthData(year: number, month: number): MonthData {
               [(ngModel)]="editTotal"
               (keyup.enter)="saveEdit()"
               (keyup.escape)="cancelEdit()"
-              class="w-10 px-1 py-0.5 border border-indigo-300 rounded text-slate-900 font-semibold text-center focus:ring-1 focus:ring-indigo-500"
+              class="w-10 px-1 py-0.5 border border-indigo-300 rounded text-slate-900 font-semibold text-center
               autofocus
             />
             <button [attr.aria-label]="'holiday.saveTitle' | t" (click)="saveEdit()" class="text-green-600 hover:text-green-700" [attr.title]="'holiday.saveTitle' | t">

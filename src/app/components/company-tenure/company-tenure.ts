@@ -100,7 +100,7 @@ interface Tenure {
             [value]="draft()"
             [max]="todayStr"
             (input)="draft.set(dateInput.value)"
-            class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-400/40 focus:border-violet-400"
+            class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-800 focus:border-violet-400"
           />
           <div class="flex gap-2 mt-1">
             <button

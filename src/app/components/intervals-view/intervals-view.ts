@@ -130,14 +130,14 @@ interface WeekGroup {
                                       [ngModel]="editTitle()"
                                       (ngModelChange)="editTitle.set($event)"
                                       [placeholder]="'intervals.titlePlaceholder' | t"
-                                      class="w-full px-2 py-1 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                                      class="w-full px-2 py-1 border border-slate-300 rounded text-xs"
                                     />
                                     <textarea
                                       [ngModel]="editDescription()"
                                       (ngModelChange)="editDescription.set($event)"
                                       rows="2"
                                       [placeholder]="'intervals.descriptionPlaceholder' | t"
-                                      class="w-full px-2 py-1 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                                      class="w-full px-2 py-1 border border-slate-300 rounded text-xs"
                                     ></textarea>
                                     <div class="space-y-1">
                                       <kendo-datetimepicker

@@ -77,7 +77,7 @@ function dateToTimeString(d: Date): string {
             (ngModelChange)="svc.setMessage($event)"
             [placeholder]="'reminder.placeholder' | t"
             maxlength="80"
-            class="w-full px-2 py-1 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-violet-400 focus:border-transparent"
+            class="w-full px-2 py-1 border border-slate-300 rounded-lg text-xs"
           />
         </div>
 
