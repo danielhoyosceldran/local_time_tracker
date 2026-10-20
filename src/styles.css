@@ -61,6 +61,29 @@ html, body {
   outline-offset: 2px;
 }
 
+/* Reduced motion: no looping or spatial animation, no smooth scrolling.
+   Colour/opacity transitions stay (short) so hover, active and toggle
+   feedback remains legible. Components that slide in provide their own
+   opacity-only alternative inside their own media query. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+  /* Drop spatial transitions (hover lifts, scales, slides); keep the rest. */
+  .transition, .transition-all, .transition-transform,
+  [class*="hover:scale"], [class*="hover:-translate"], [class*="active:scale"] {
+    transition-property: color, background-color, border-color, opacity, box-shadow !important;
+    transition-duration: 0.15s !important;
+  }
+  [class*="hover:scale"]:hover, [class*="hover:-translate"]:hover, [class*="active:scale"]:active {
+    transform: none !important;
+  }
+}
+
 /* Discrete scrollbars */
 * {
   scrollbar-width: thin;

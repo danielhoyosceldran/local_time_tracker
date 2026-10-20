@@ -102,6 +102,9 @@ import { MOBILE_VIEWS, MobileView, ViewStateService } from '../../services/view-
     }
     @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(0); } }
     @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) {
+      .drawer { animation: fade 0.15s ease-out !important; }
+    }
   `],
 })
 export class MobileNavMenuComponent {
