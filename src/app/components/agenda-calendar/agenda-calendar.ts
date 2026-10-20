@@ -1,5 +1,5 @@
 // src/app/components/agenda-calendar/agenda-calendar.ts
-import { Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -8,6 +8,7 @@ import { map, Observable } from 'rxjs';
 import { TranslatePipe } from '../../i18n/translate.pipe';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-agenda-calendar',
   standalone: true,
   imports: [CommonModule, FormsModule, TranslatePipe],

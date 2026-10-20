@@ -1,5 +1,5 @@
 // src/app/components/quick-interval-input/quick-interval-input.ts
-import { Component, inject, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { KENDO_DATETIMEPICKER } from '@progress/kendo-angular-dateinputs';
@@ -11,6 +11,7 @@ import { TimeEntry } from '../../models/time-entry.model';
 import { TranslatePipe } from '../../i18n/translate.pipe';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-quick-interval-input',
   standalone: true,
   imports: [ReactiveFormsModule, KENDO_DATETIMEPICKER, TranslatePipe],

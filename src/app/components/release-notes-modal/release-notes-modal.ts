@@ -1,9 +1,10 @@
-import { Component, HostListener, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, input, output } from '@angular/core';
 import { ReleaseNote } from '../../services/release-notes';
 import { TranslatePipe } from '../../i18n/translate.pipe';
 import { ModalA11yDirective } from '../../shared/modal-a11y.directive';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-release-notes-modal',
   standalone: true,
   imports: [TranslatePipe, ModalA11yDirective],

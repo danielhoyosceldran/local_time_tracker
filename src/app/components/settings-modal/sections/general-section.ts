@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SettingsDraftService } from '../../../services/settings-draft.service';
 import { SettingsSectionComponent } from '../shared/section';
@@ -9,6 +9,7 @@ import { TranslatePipe } from '../../../i18n/translate.pipe';
 import { ThemeMode } from '../../../services/theme.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-general-section',
   standalone: true,
   imports: [

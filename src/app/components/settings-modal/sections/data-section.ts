@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { TimeEntryService } from '../../../services/time-entry';
@@ -10,6 +10,7 @@ import { TranslationService } from '../../../i18n';
 import type { TranslationKey } from '../../../i18n/translations/en';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-data-section',
   standalone: true,
   imports: [SettingsSectionComponent, TranslatePipe, FormsModule],

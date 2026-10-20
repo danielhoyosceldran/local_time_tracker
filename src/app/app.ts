@@ -1,5 +1,5 @@
 // src/app/app.component.ts
-import { Component, inject, OnInit, DestroyRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -12,6 +12,7 @@ import { GistSyncService } from './services/gist-sync.service';
 import { GistSyncNotificationComponent } from './components/gist-sync-notification/gist-sync-notification';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet, SoundPickerHostComponent, GistSyncNotificationComponent],

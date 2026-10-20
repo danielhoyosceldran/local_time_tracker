@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit, inject, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, inject, OnInit, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SettingsDraftService } from '../../services/settings-draft.service';
 import { WorkdaySectionComponent } from './sections/workday-section';
@@ -21,6 +21,7 @@ interface Tab {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-settings-modal',
   standalone: true,
   imports: [

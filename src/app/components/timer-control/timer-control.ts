@@ -1,5 +1,5 @@
 // src/app/components/timer-control/timer-control.component.ts
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TimeEntryService } from '../../services/time-entry';
 import { RunningTimeEntry } from '../../models/time-entry.model';
@@ -8,6 +8,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Observable, map } from 'rxjs';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-timer-control',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],

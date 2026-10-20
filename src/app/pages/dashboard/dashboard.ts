@@ -1,5 +1,5 @@
 // src/app/pages/dashboard/dashboard.ts
-import { Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 
 import { CompactTimerComponent } from '../../components/compact-timer/compact-timer';
 import { QuickIntervalInputComponent } from '../../components/quick-interval-input/quick-interval-input';
@@ -15,6 +15,7 @@ import { CompanyTenureComponent } from '../../components/company-tenure/company-
 import { ViewStateService } from '../../services/view-state.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-dashboard',
   standalone: true,
   imports: [

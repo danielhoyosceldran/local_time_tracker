@@ -1,9 +1,10 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { SoundPickerModalComponent } from './sound-picker-modal';
 import { SoundPickerService } from './sound-picker.service';
 import { SoundId } from './sounds';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-sound-picker-host',
   standalone: true,
   imports: [SoundPickerModalComponent],

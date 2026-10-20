@@ -1,8 +1,9 @@
-import { Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { ReleaseNote } from '../../services/release-notes';
 import { TranslatePipe } from '../../i18n/translate.pipe';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-release-notes-panel',
   standalone: true,
   imports: [TranslatePipe],

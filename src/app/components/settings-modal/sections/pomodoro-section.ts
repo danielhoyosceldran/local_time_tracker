@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { SettingsDraftService } from '../../../services/settings-draft.service';
 import { SOUNDS, SoundId } from '../../../shared/sounds';
 import { SoundPickerService } from '../../../shared/sound-picker.service';
@@ -9,6 +9,7 @@ import { TranslatePipe } from '../../../i18n/translate.pipe';
 import { TranslationService } from '../../../i18n';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-pomodoro-section',
   standalone: true,
   imports: [

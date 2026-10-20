@@ -1,5 +1,5 @@
 // src/app/components/daily-summary/daily-summary.component.ts
-import { Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { TimeEntryService } from '../../services/time-entry';
 import { ViewStateService } from '../../services/view-state.service';
@@ -10,6 +10,7 @@ import { Observable } from 'rxjs';
 import { TranslatePipe } from '../../i18n/translate.pipe';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-daily-summary',
   standalone: true,
   imports: [CommonModule, DecimalPipe, TranslatePipe],

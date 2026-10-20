@@ -1,5 +1,5 @@
 // src/app/components/weekly-summary/weekly-summary.ts
-import { Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TimeEntryService } from '../../services/time-entry';
 import { ViewStateService } from '../../services/view-state.service';
@@ -10,6 +10,7 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
 import { TranslationService } from '../../i18n';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-weekly-summary',
   standalone: true,
   imports: [CommonModule, TranslatePipe],

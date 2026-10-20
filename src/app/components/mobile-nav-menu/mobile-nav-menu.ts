@@ -1,8 +1,9 @@
-import { Component, inject, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, output } from '@angular/core';
 import { TranslatePipe } from '../../i18n/translate.pipe';
 import { MOBILE_VIEWS, MobileView, ViewStateService } from '../../services/view-state.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-mobile-nav-menu',
   standalone: true,
   imports: [TranslatePipe],

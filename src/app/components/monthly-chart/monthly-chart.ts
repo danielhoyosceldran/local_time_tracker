@@ -1,5 +1,5 @@
 // src/app/components/monthly-chart/monthly-chart.ts
-import { Component, effect, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, effect, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription, interval } from 'rxjs';
 
@@ -25,6 +25,7 @@ interface PeriodResult {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-monthly-chart',
   standalone: true,
   imports: [BaseChartDirective, CommonModule, TranslatePipe],
@@ -87,6 +88,7 @@ export class MonthlyChartComponent implements OnInit, OnDestroy {
   private holidays = inject(HolidayDatesService);
   private translation = inject(TranslationService);
   private theme = inject(ThemeService);
+  private cdr = inject(ChangeDetectorRef);
 
   formatHoursToTime = formatHoursToTime;
 
@@ -310,6 +312,8 @@ export class MonthlyChartComponent implements OnInit, OnDestroy {
         }
       ]
     };
+    // chartData/chartOptions are plain fields; flag the OnPush view so the canvas input updates.
+    this.cdr.markForCheck();
   }
 
   private targetPerUnit(p: Period): number {

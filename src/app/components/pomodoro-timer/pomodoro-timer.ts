@@ -1,4 +1,4 @@
-import { Component, signal, OnDestroy, OnInit, computed, inject, effect } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NotificationService } from '../../services/notification.service';
 import { FaviconService } from '../../services/favicon.service';
@@ -20,6 +20,7 @@ interface PomodoroState {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-pomodoro-timer',
   standalone: true,
   imports: [CommonModule, TranslatePipe],

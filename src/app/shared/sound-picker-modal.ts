@@ -1,4 +1,4 @@
-import { Component, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SOUNDS, SoundId, playSound } from './sounds';
 import { TranslatePipe } from '../i18n/translate.pipe';
@@ -6,6 +6,7 @@ import { TranslationService } from '../i18n';
 import { ModalA11yDirective } from './modal-a11y.directive';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-sound-picker-modal',
   standalone: true,
   imports: [CommonModule, TranslatePipe, ModalA11yDirective],

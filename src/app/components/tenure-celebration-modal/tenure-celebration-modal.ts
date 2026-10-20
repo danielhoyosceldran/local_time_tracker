@@ -1,16 +1,5 @@
 // src/app/components/tenure-celebration-modal/tenure-celebration-modal.ts
-import {
-  AfterViewInit,
-  Component,
-  ElementRef,
-  HostListener,
-  OnDestroy,
-  ViewChild,
-  computed,
-  inject,
-  input,
-  output,
-} from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, computed, ElementRef, HostListener, inject, input, OnDestroy, output, ViewChild } from '@angular/core';
 import { TranslatePipe } from '../../i18n/translate.pipe';
 import { TranslationService } from '../../i18n';
 import { TenureMilestone } from '../../services/tenure-celebration.service';
@@ -32,6 +21,7 @@ interface Particle {
 const COLORS = ['#7c3aed', '#a855f7', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-tenure-celebration-modal',
   standalone: true,
   imports: [TranslatePipe, ModalA11yDirective],

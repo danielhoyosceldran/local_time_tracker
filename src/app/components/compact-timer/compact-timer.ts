@@ -1,5 +1,5 @@
 // src/app/components/compact-timer/compact-timer.ts
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TimeEntryService } from '../../services/time-entry';
 import { RunningTimeEntry } from '../../models/time-entry.model';
@@ -10,6 +10,7 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
 import { TranslationService } from '../../i18n';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-compact-timer',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, TranslatePipe],

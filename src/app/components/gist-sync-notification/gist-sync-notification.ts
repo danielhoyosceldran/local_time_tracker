@@ -1,5 +1,5 @@
 // src/app/components/gist-sync-notification/gist-sync-notification.ts
-import { Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { GistSyncService } from '../../services/gist-sync.service';
 import { TimeEntryService } from '../../services/time-entry';
 import { DataRefreshService } from '../../services/data-refresh.service';
@@ -11,6 +11,7 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
  * localStorage is left untouched. Mounted once at the app root.
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-gist-sync-notification',
   standalone: true,
   imports: [TranslatePipe],

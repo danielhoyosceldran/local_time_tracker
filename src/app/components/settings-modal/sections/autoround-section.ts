@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ChangeDetectorRef, QueryList, ViewChildren, computed, inject } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, inject, QueryList, ViewChildren } from '@angular/core';
 import { KENDO_TIMEPICKER, TimePickerComponent } from '@progress/kendo-angular-dateinputs';
 import { SettingsDraftService } from '../../../services/settings-draft.service';
 import { kendoTimeFormat } from '../../../utils/format';
@@ -20,6 +20,7 @@ function dateToTimeString(d: Date): string {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-autoround-section',
   standalone: true,
   imports: [

@@ -1,5 +1,5 @@
 // src/app/components/company-tenure/company-tenure.ts
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SettingsService } from '../../services/settings.service';
 import { TranslatePipe } from '../../i18n/translate.pipe';
@@ -18,6 +18,7 @@ interface Tenure {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-company-tenure',
   standalone: true,
   imports: [CommonModule, TranslatePipe, TenureCelebrationModalComponent],

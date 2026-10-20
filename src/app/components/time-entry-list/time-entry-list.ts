@@ -1,5 +1,5 @@
 // src/app/components/time-entry-list/time-entry-list.component.ts
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TimeEntryService } from '../../services/time-entry';
 import { TimeEntry } from '../../models/time-entry.model';
@@ -9,6 +9,7 @@ import { FormsModule } from '@angular/forms';
 import { ClockTimePipe } from '../../pipes/clock-time.pipe';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-time-entry-list',
   standalone: true,
   imports: [CommonModule, FormsModule, ClockTimePipe],

@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ChangeDetectorRef, ViewChild, computed, inject } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, inject, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { KENDO_TIMEPICKER, TimePickerComponent } from '@progress/kendo-angular-dateinputs';
 import { ReminderService } from '../../services/reminder.service';
@@ -21,6 +21,7 @@ function dateToTimeString(d: Date): string {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-reminder-notification',
   standalone: true,
   imports: [FormsModule, KENDO_TIMEPICKER, TranslatePipe],

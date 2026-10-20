@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SettingRowComponent } from './setting-row';
 
@@ -8,6 +8,7 @@ export interface SegmentedOption<T = string | number> {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-segmented',
   standalone: true,
   imports: [CommonModule],

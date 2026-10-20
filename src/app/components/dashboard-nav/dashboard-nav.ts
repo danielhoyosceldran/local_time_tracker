@@ -1,4 +1,4 @@
-import { Component, effect, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, OnInit, signal } from '@angular/core';
 import { ReleaseNote, ReleaseNotesService } from '../../services/release-notes';
 import { ReleaseNotesPanelComponent } from '../release-notes-panel/release-notes-panel';
 import { ReleaseNotesModalComponent } from '../release-notes-modal/release-notes-modal';
@@ -8,6 +8,7 @@ import { MobileNavMenuComponent } from '../mobile-nav-menu/mobile-nav-menu';
 import { TranslatePipe } from '../../i18n/translate.pipe';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-dashboard-nav',
   standalone: true,
   imports: [ReleaseNotesPanelComponent, ReleaseNotesModalComponent, SettingsModalComponent, MobileNavMenuComponent, TranslatePipe],

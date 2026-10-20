@@ -1,5 +1,5 @@
 // src/app/components/manual-entry-form/manual-entry-form.component.ts
-import { Component, inject, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { KENDO_DATETIMEPICKER } from '@progress/kendo-angular-dateinputs';
@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { TimeEntry } from '../../models/time-entry.model';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-manual-entry-form',
   standalone: true,
   imports: [ReactiveFormsModule, KENDO_DATETIMEPICKER],

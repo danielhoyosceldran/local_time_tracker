@@ -1,5 +1,5 @@
 // src/app/components/compact-holiday-calendar/compact-holiday-calendar.ts
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HolidayDatesService, HolidayType, PresetOption } from '../../services/holiday-dates.service';
@@ -52,6 +52,7 @@ function buildMonthData(year: number, month: number): MonthData {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-compact-holiday-calendar',
   standalone: true,
   imports: [CommonModule, FormsModule, TranslatePipe],
@@ -124,7 +125,7 @@ function buildMonthData(year: number, month: number): MonthData {
               [(ngModel)]="editTotal"
               (keyup.enter)="saveEdit()"
               (keyup.escape)="cancelEdit()"
-              class="w-10 px-1 py-0.5 border border-indigo-300 rounded text-slate-900 font-semibold text-center
+              class="w-10 px-1 py-0.5 border border-indigo-300 rounded text-slate-900 font-semibold text-center focus:ring-1 focus:ring-indigo-500"
               autofocus
             />
             <button [attr.aria-label]="'holiday.saveTitle' | t" (click)="saveEdit()" class="text-green-600 hover:text-green-700" [attr.title]="'holiday.saveTitle' | t">
