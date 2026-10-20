@@ -34,7 +34,7 @@ interface PeriodResult {
         <div class="flex items-center gap-1.5">
           <h3 class="text-slate-800 font-bold">{{ titleFor(period()) }}</h3>
           <div class="relative group">
-            <svg class="w-3.5 h-3.5 text-slate-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg aria-hidden="true" class="w-3.5 h-3.5 text-slate-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
             <div class="absolute left-0 top-full mt-1 z-10 hidden group-hover:block w-56 bg-slate-800 text-white text-[11px] leading-snug rounded-lg shadow-lg p-2.5 pointer-events-none">

@@ -32,11 +32,12 @@ function dateToTimeString(d: Date): string {
   ],
   template: `
     <app-settings-section [title]="'autoround.title' | t" iconBg="bg-amber-100 text-amber-700">
-      <svg icon class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+      <svg aria-hidden="true" icon class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M20 20v-5h-5M5 19a9 9 0 0014-7M19 5a9 9 0 00-14 7"/>
       </svg>
       <div header-extra>
         <app-toggle
+          [label]="'autoround.title' | t"
           [checked]="draft.marginEnabled()"
           activeClass="bg-amber-500"
           (changed)="draft.marginEnabled.set($event)"

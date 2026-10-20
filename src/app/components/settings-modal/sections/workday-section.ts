@@ -24,7 +24,7 @@ import { TranslationService } from '../../../i18n';
   ],
   template: `
     <app-settings-section [title]="'workday.title' | t" iconBg="bg-slate-900 text-white">
-      <svg icon class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+      <svg aria-hidden="true" icon class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M3 11h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
       </svg>
 
@@ -45,10 +45,11 @@ import { TranslationService } from '../../../i18n';
       </app-setting-row>
 
       <app-setting-row [label]="'workday.workdays' | t" [hint]="'workday.workdaysHint' | t">
-        <div class="flex gap-1">
+        <div class="flex gap-1" role="group" [attr.aria-label]="'workday.workdays' | t">
           @for (d of dayIndexes; track d) {
             <button
               type="button"
+              [attr.aria-pressed]="isSelected(d)"
               (click)="draft.toggleWorkday(d)"
               class="w-7 h-7 rounded-full text-[11px] font-semibold transition-colors"
               [ngClass]="isSelected(d)

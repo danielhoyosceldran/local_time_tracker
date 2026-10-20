@@ -1,14 +1,16 @@
 import { Component, input } from '@angular/core';
 
+let nextRowId = 0;
+
 @Component({
   selector: 'app-setting-row',
   standalone: true,
   template: `
     <div class="flex items-center justify-between gap-4 py-2">
       <div class="min-w-0">
-        <div class="text-sm text-slate-700">{{ label() }}</div>
+        <div [id]="labelId" class="text-sm text-slate-700">{{ label() }}</div>
         @if (hint()) {
-          <div class="text-[11px] text-slate-400 leading-tight mt-0.5">{{ hint() }}</div>
+          <div [id]="hintId" class="text-[11px] text-slate-400 leading-tight mt-0.5">{{ hint() }}</div>
         }
       </div>
       <div class="shrink-0">
@@ -20,4 +22,8 @@ import { Component, input } from '@angular/core';
 export class SettingRowComponent {
   label = input.required<string>();
   hint = input<string>('');
+
+  /** Ids the projected control (toggle, number input, segmented) points at. */
+  readonly labelId = `setting-row-label-${nextRowId}`;
+  readonly hintId = `setting-row-hint-${nextRowId++}`;
 }

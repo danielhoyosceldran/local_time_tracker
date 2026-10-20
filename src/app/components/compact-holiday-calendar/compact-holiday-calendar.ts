@@ -67,7 +67,7 @@ function buildMonthData(year: number, month: number): MonthData {
       <!-- Header row -->
       <div class="flex items-center justify-between mb-2 shrink-0 gap-2 flex-wrap">
         <div class="flex items-center gap-2">
-          <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg aria-hidden="true" class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
           </svg>
@@ -127,20 +127,20 @@ function buildMonthData(year: number, month: number): MonthData {
               class="w-10 px-1 py-0.5 border border-indigo-300 rounded text-slate-900 font-semibold text-center focus:ring-1 focus:ring-indigo-500"
               autofocus
             />
-            <button (click)="saveEdit()" class="text-green-600 hover:text-green-700" [attr.title]="'holiday.saveTitle' | t">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button [attr.aria-label]="'holiday.saveTitle' | t" (click)="saveEdit()" class="text-green-600 hover:text-green-700" [attr.title]="'holiday.saveTitle' | t">
+              <svg aria-hidden="true" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
               </svg>
             </button>
-            <button (click)="cancelEdit()" class="text-red-500 hover:text-red-600" [attr.title]="'holiday.cancelTitle' | t">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button [attr.aria-label]="'holiday.cancelTitle' | t" (click)="cancelEdit()" class="text-red-500 hover:text-red-600" [attr.title]="'holiday.cancelTitle' | t">
+              <svg aria-hidden="true" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
               </svg>
             </button>
           } @else {
             <span class="font-semibold text-slate-700">{{ h.total }}</span>
-            <button (click)="startEdit(h.total)" class="text-slate-400 hover:text-indigo-500" [attr.title]="'holiday.editTotal' | t">
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button [attr.aria-label]="'holiday.editTotal' | t" (click)="startEdit(h.total)" class="text-slate-400 hover:text-indigo-500" [attr.title]="'holiday.editTotal' | t">
+              <svg aria-hidden="true" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
               </svg>
             </button>

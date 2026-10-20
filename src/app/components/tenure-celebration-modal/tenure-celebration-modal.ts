@@ -14,6 +14,7 @@ import {
 import { TranslatePipe } from '../../i18n/translate.pipe';
 import { TranslationService } from '../../i18n';
 import { TenureMilestone } from '../../services/tenure-celebration.service';
+import { ModalA11yDirective } from '../../shared/modal-a11y.directive';
 
 interface Particle {
   x: number;
@@ -33,7 +34,7 @@ const COLORS = ['#7c3aed', '#a855f7', '#ec4899', '#f59e0b', '#10b981', '#3b82f6'
 @Component({
   selector: 'app-tenure-celebration-modal',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ModalA11yDirective],
   template: `
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
       <!-- Backdrop -->
@@ -41,20 +42,22 @@ const COLORS = ['#7c3aed', '#a855f7', '#ec4899', '#f59e0b', '#10b981', '#3b82f6'
 
       <!-- Card -->
       <div
-        class="relative z-10 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(90vw,420px)] px-7 py-8 text-center"
+        appModal
+        labelledBy="tenure-celebration-title"
+        class="relative z-10 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(90vw,420px)] px-7 py-8 text-center outline-none"
       >
         <!-- Trophy badge -->
         <div
           class="mx-auto mb-4 w-16 h-16 rounded-full bg-violet-100 flex items-center justify-center"
         >
-          <svg class="w-8 h-8 text-violet-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          <svg aria-hidden="true" class="w-8 h-8 text-violet-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="8" r="6" />
             <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
           </svg>
         </div>
 
-        <h2 class="text-2xl font-extrabold text-slate-800">{{ 'celebrate.title' | t }}</h2>
+        <h2 id="tenure-celebration-title" class="text-2xl font-extrabold text-slate-800">{{ 'celebrate.title' | t }}</h2>
 
         <!-- Milestone figure -->
         <div class="mt-4 flex items-end justify-center gap-2">
@@ -66,6 +69,8 @@ const COLORS = ['#7c3aed', '#a855f7', '#ec4899', '#f59e0b', '#10b981', '#3b82f6'
         <p class="mt-2 text-xs text-slate-500">{{ 'celebrate.message' | t }}</p>
 
         <button
+          type="button"
+          data-autofocus
           (click)="close.emit()"
           class="mt-6 w-full px-4 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-colors"
         >
@@ -74,7 +79,7 @@ const COLORS = ['#7c3aed', '#a855f7', '#ec4899', '#f59e0b', '#10b981', '#3b82f6'
       </div>
 
       <!-- Confetti overlay (drawn above the card, never intercepts clicks) -->
-      <canvas #confetti class="pointer-events-none fixed inset-0 z-20"></canvas>
+      <canvas #confetti aria-hidden="true" class="pointer-events-none fixed inset-0 z-20"></canvas>
     </div>
   `,
 })

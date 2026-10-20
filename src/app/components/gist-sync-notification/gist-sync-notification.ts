@@ -20,7 +20,7 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
         <div class="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 p-4">
           <div class="flex items-start gap-2.5">
             <span class="mt-0.5 w-7 h-7 rounded-lg bg-indigo-100 text-indigo-600 inline-flex items-center justify-center shrink-0">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round"
                   d="M7 16a4 4 0 01-.88-7.9A5 5 0 1115.9 6 4.5 4.5 0 0117 15h-1m-4-3v6m0-6l-2.5 2.5M12 9l2.5 2.5"/>
               </svg>

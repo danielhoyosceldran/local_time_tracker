@@ -9,6 +9,7 @@ import { DataSectionComponent } from './sections/data-section';
 import { GeneralSectionComponent } from './sections/general-section';
 import { TranslationService } from '../../i18n';
 import { TranslatePipe } from '../../i18n/translate.pipe';
+import { ModalA11yDirective } from '../../shared/modal-a11y.directive';
 
 type TabId = 'general' | 'schedule' | 'tracking' | 'focus' | 'data';
 
@@ -31,6 +32,7 @@ interface Tab {
     DataSectionComponent,
     GeneralSectionComponent,
     TranslatePipe,
+    ModalA11yDirective,
   ],
   template: `
     <div
@@ -38,24 +40,27 @@ interface Tab {
       (click)="onCancel()"
     >
       <div
-        class="settings-box bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(60vw,900px)] min-w-[50vw] h-[min(80vh,700px)] flex flex-col overflow-hidden"
+        appModal
+        labelledBy="settings-modal-title"
+        class="settings-box bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(60vw,900px)] min-w-[50vw] h-[min(80vh,700px)] flex flex-col overflow-hidden outline-none"
         (click)="$event.stopPropagation()"
       >
         <!-- Header -->
         <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white/60 backdrop-blur-xl">
           <div class="flex items-center gap-2">
-            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <svg aria-hidden="true" class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="3"/>
               <path stroke-linecap="round" stroke-linejoin="round" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/>
             </svg>
-            <span class="text-sm font-semibold text-slate-700">{{ 'settings.title' | t }}</span>
+            <span id="settings-modal-title" class="text-sm font-semibold text-slate-700">{{ 'settings.title' | t }}</span>
           </div>
           <button
+            type="button"
             (click)="onCancel()"
             class="text-slate-400 hover:text-slate-600 transition-colors"
             [attr.aria-label]="'common.close' | t"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
@@ -72,6 +77,8 @@ interface Tab {
                   <button
                     type="button"
                     (click)="active.set(tab.id)"
+                    [attr.aria-current]="active() === tab.id ? 'page' : null"
+                    [attr.data-autofocus]="active() === tab.id ? '' : null"
                     class="w-full text-left px-3 py-2 rounded-lg transition-colors flex items-start gap-2.5"
                     [ngClass]="active() === tab.id
                       ? 'bg-white text-slate-800 shadow-sm border border-slate-200/60'
@@ -80,6 +87,7 @@ interface Tab {
                     <span
                       class="mt-0.5 w-6 h-6 rounded-md inline-flex items-center justify-center shrink-0"
                       [ngClass]="active() === tab.id ? 'bg-slate-900 text-white' : 'bg-slate-200/70 text-slate-500'"
+                      aria-hidden="true"
                       [innerHTML]="tab.icon"
                     ></span>
                     <span class="flex flex-col">
@@ -202,31 +210,31 @@ export class SettingsModalComponent implements OnInit {
       id: 'general',
       labelKey: 'settings.tab.general',
       descriptionKey: 'settings.tab.generalDesc',
-      icon: `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5h18M3 12h12M3 19h18"/></svg>`,
+      icon: `<svg aria-hidden="true" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5h18M3 12h12M3 19h18"/></svg>`,
     },
     {
       id: 'schedule',
       labelKey: 'settings.tab.schedule',
       descriptionKey: 'settings.tab.scheduleDesc',
-      icon: `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M3 11h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`,
+      icon: `<svg aria-hidden="true" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M3 11h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`,
     },
     {
       id: 'tracking',
       labelKey: 'settings.tab.tracking',
       descriptionKey: 'settings.tab.trackingDesc',
-      icon: `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+      icon: `<svg aria-hidden="true" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
     },
     {
       id: 'focus',
       labelKey: 'settings.tab.focus',
       descriptionKey: 'settings.tab.focusDesc',
-      icon: `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>`,
+      icon: `<svg aria-hidden="true" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>`,
     },
     {
       id: 'data',
       labelKey: 'settings.tab.data',
       descriptionKey: 'settings.tab.dataDesc',
-      icon: `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7M4 7l3-3h10l3 3M4 7h16M9 12h6"/></svg>`,
+      icon: `<svg aria-hidden="true" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7M4 7l3-3h10l3 3M4 7h16M9 12h6"/></svg>`,
     },
   ];
 

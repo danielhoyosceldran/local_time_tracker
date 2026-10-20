@@ -15,7 +15,7 @@ import type { TranslationKey } from '../../../i18n/translations/en';
   imports: [SettingsSectionComponent, TranslatePipe, FormsModule],
   template: `
     <app-settings-section [title]="'data.title' | t" iconBg="bg-slate-100 text-slate-700">
-      <svg icon class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+      <svg aria-hidden="true" icon class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round"
           d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7M4 7l3-3h10l3 3M4 7h16M9 12h6"/>
       </svg>

@@ -20,7 +20,7 @@ import { ThemeMode } from '../../../services/theme.service';
   ],
   template: `
     <app-settings-section [title]="'general.title' | t" iconBg="bg-slate-900 text-white">
-      <svg icon class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+      <svg aria-hidden="true" icon class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M3 5h18M3 12h12M3 19h18"/>
       </svg>
 

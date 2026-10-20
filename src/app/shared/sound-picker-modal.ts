@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { SOUNDS, SoundId, playSound } from './sounds';
 import { TranslatePipe } from '../i18n/translate.pipe';
 import { TranslationService } from '../i18n';
+import { ModalA11yDirective } from './modal-a11y.directive';
 
 @Component({
   selector: 'app-sound-picker-modal',
   standalone: true,
-  imports: [CommonModule, TranslatePipe],
+  imports: [CommonModule, TranslatePipe, ModalA11yDirective],
   template: `
     <!-- Backdrop -->
     <div
@@ -18,40 +19,53 @@ import { TranslationService } from '../i18n';
 
       <!-- Card -->
       <div
-        class="relative bg-white rounded-xl shadow-2xl border border-slate-200 w-64 overflow-hidden"
+        appModal
+        labelledBy="sound-picker-title"
+        class="relative bg-white rounded-xl shadow-2xl border border-slate-200 w-64 overflow-hidden outline-none"
         (click)="$event.stopPropagation()"
+        (keydown.escape)="$event.stopPropagation(); closed.emit()"
       >
         <!-- Header -->
         <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100">
           <div class="flex items-center gap-2">
-            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg aria-hidden="true" class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
             </svg>
-            <span class="text-sm font-semibold text-slate-800">{{ title() }}</span>
+            <span id="sound-picker-title" class="text-sm font-semibold text-slate-800">{{ title() }}</span>
           </div>
           <button
             type="button"
             (click)="closed.emit()"
             class="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            [attr.aria-label]="'common.close' | t"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
             </svg>
           </button>
         </div>
 
         <!-- Sound list -->
-        <div class="divide-y divide-slate-100">
+        <div class="divide-y divide-slate-100" role="radiogroup" [attr.aria-labelledby]="'sound-picker-title'">
           @for (s of sounds; track s.id) {
             <div
               class="flex items-center justify-between px-4 py-2.5 cursor-pointer transition-colors"
               [class.bg-slate-50]="current() === s.id"
               (click)="select(s.id)"
             >
-              <div class="flex items-center gap-3">
+              <div
+                class="flex items-center gap-3 flex-1 min-w-0 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-slate-400"
+                role="radio"
+                tabindex="0"
+                [attr.aria-checked]="current() === s.id"
+                [attr.data-autofocus]="current() === s.id ? '' : null"
+                (keydown.enter)="select(s.id)"
+                (keydown.space)="$event.preventDefault(); select(s.id)"
+              >
                 <!-- Radio indicator -->
                 <div
+                  aria-hidden="true"
                   class="w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors"
                   [class.border-slate-300]="current() !== s.id"
                   [class.border-slate-800]="current() === s.id"
@@ -74,8 +88,9 @@ import { TranslationService } from '../i18n';
                   (click)="preview($event, s.id)"
                   class="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors shrink-0"
                   [attr.title]="'sound.preview' | t"
+                  [attr.aria-label]="('sound.preview' | t) + ': ' + s.label"
                 >
-                  <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                  <svg aria-hidden="true" class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z"/>
                   </svg>
                 </button>

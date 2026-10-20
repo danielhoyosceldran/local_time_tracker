@@ -1,5 +1,6 @@
-import { Component, input, output } from '@angular/core';
+import { Component, computed, inject, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SettingRowComponent } from './setting-row';
 
 export interface SegmentedOption<T = string | number> {
   value: T;
@@ -11,10 +12,16 @@ export interface SegmentedOption<T = string | number> {
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="inline-flex rounded-lg bg-slate-100 p-0.5">
+    <div
+      class="inline-flex rounded-lg bg-slate-100 p-0.5"
+      role="group"
+      [attr.aria-label]="label() || null"
+      [attr.aria-labelledby]="labelledBy()"
+    >
       @for (opt of options(); track opt.value) {
         <button
           type="button"
+          [attr.aria-pressed]="opt.value === value()"
           (click)="changed.emit(opt.value)"
           class="px-3 py-1 text-xs font-medium rounded-md transition-all"
           [ngClass]="opt.value === value()
@@ -28,5 +35,10 @@ export interface SegmentedOption<T = string | number> {
 export class SegmentedComponent<T = string | number> {
   options = input.required<SegmentedOption<T>[]>();
   value = input.required<T>();
+  /** Explicit accessible name; falls back to the enclosing setting row's label. */
+  label = input<string>('');
   changed = output<T>();
+
+  private row = inject(SettingRowComponent, { optional: true });
+  protected labelledBy = computed(() => (this.label() ? null : (this.row?.labelId ?? null)));
 }

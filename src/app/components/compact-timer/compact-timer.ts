@@ -32,7 +32,7 @@ import { TranslationService } from '../../i18n';
         <div class="flex-1 flex flex-col items-center justify-center rounded-xl p-6 mb-4">
           <!-- Fork & knife icon -->
           <div class="text-orange-400 mb-3">
-            <svg class="w-8 h-8 mx-auto" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <svg aria-hidden="true" class="w-8 h-8 mx-auto" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
               <rect x="6" y="4" width="4" height="16" rx="1"/>
               <rect x="14" y="4" width="4" height="16" rx="1"/>
             </svg>
@@ -86,7 +86,7 @@ import { TranslationService } from '../../i18n';
             @if (view.entry.startedBy; as origin) {
               <div class="mt-1 text-xs text-slate-400 flex items-center justify-center gap-1">
                 <!-- Device icon -->
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <svg aria-hidden="true" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <rect x="3" y="4" width="18" height="12" rx="2"/>
                   <path d="M8 20h8M12 16v4"/>
                 </svg>
@@ -111,7 +111,7 @@ import { TranslationService } from '../../i18n';
             {{ 'timer.stopBtn' | t }}
           </button>
           @if (lunchButtonEnabled$ | async) {
-            <button
+            <button [attr.aria-label]="'timer.lunchBtn' | t"
               (click)="startLunch()"
               [disabled]="!view.canControl"
               [class.opacity-40]="!view.canControl"
@@ -122,7 +122,7 @@ import { TranslationService } from '../../i18n';
                 : ('timer.lockedHint' | t: { device: view.entry.startedBy?.deviceName ?? '', browser: view.entry.startedBy?.browser ?? '' })"
             >
               <!-- Pause icon -->
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <rect x="6" y="4" width="4" height="16" rx="1"/>
                 <rect x="14" y="4" width="4" height="16" rx="1"/>
               </svg>
