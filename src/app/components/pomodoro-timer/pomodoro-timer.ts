@@ -70,6 +70,7 @@ interface PomodoroState {
 
       <div class="flex justify-center gap-3 mb-1">
         <button
+          [attr.aria-label]="(running() ? 'pomodoro.pause' : 'pomodoro.start') | t"
           (click)="toggleRunning()"
           class="p-2 rounded-xl bg-white/20 backdrop-blur-sm hover:bg-white/30 active:scale-95 transition-all text-white"
         >

@@ -48,7 +48,7 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
         <!-- Settings button -->
         <button [attr.aria-label]="'nav.settings' | t"
           (click)="toggleSettings()"
-          class="flex items-center text-slate-500 hover:text-slate-800 transition-colors"
+          class="flex items-center p-2 -m-2 text-slate-500 hover:text-slate-800 transition-colors"
           [attr.title]="'nav.settings' | t"
         >
           <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

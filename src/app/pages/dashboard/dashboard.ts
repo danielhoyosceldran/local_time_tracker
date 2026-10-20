@@ -46,7 +46,7 @@ import { ViewStateService } from '../../services/view-state.service';
                [class.tile--active]="viewState.mobileView() === 'timer'">
             <button
               (click)="showTimer.set(!showTimer())"
-              class="absolute top-2 right-2 z-10 p-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors"
+              class="absolute top-2 right-2 z-10 p-2.5 sm:p-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors"
               [title]="showTimer() ? 'Switch to Add Interval' : 'Switch to Timer'"
             >
               @if (showTimer()) {

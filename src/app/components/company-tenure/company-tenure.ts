@@ -94,9 +94,10 @@ interface Tenure {
           @if (!startDate()) {
             <p class="text-xs text-slate-500 text-center">{{ 'tenure.prompt' | t }}</p>
           }
-          <label class="text-[11px] font-medium text-slate-500">{{ 'tenure.startDate' | t }}</label>
+          <label for="tenure-start-date" class="text-[11px] font-medium text-slate-500">{{ 'tenure.startDate' | t }}</label>
           <input
             #dateInput
+            id="tenure-start-date"
             type="date"
             [value]="draft()"
             [max]="todayStr"
