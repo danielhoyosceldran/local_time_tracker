@@ -86,7 +86,7 @@ function buildMonthData(year: number, month: number): MonthData {
               type="button"
               (click)="addType.set('public')"
               class="px-2 py-0.5 rounded transition-colors"
-              [ngClass]="addType() === 'public' ? 'bg-amber-500 text-white shadow' : 'text-slate-500 hover:text-slate-700'"
+              [ngClass]="addType() === 'public' ? 'bg-amber-500 text-amber-950 shadow' : 'text-slate-500 hover:text-slate-700'"
             >{{ 'holiday.public' | t }}</button>
           </div>
 
@@ -148,11 +148,11 @@ function buildMonthData(year: number, month: number): MonthData {
           <div class="w-px h-5 bg-indigo-200"></div>
           <!-- Personal used (counts toward quota) -->
           <span class="text-slate-500">{{ 'holiday.used' | t }}</span>
-          <span class="font-semibold text-orange-600 min-w-[1.25rem] text-center">{{ personalCount() }}</span>
+          <span class="font-semibold text-orange-700 min-w-[1.25rem] text-center">{{ personalCount() }}</span>
           <div class="w-px h-5 bg-indigo-200"></div>
           <!-- Public count (informational) -->
           <span class="text-slate-500">{{ 'holiday.publicLabel' | t }}</span>
-          <span class="font-semibold text-amber-600 min-w-[1.25rem] text-center">{{ publicCount() }}</span>
+          <span class="font-semibold text-amber-700 min-w-[1.25rem] text-center">{{ publicCount() }}</span>
         </div>
       }
 
@@ -254,7 +254,7 @@ export class CompactHolidayCalendarComponent implements OnInit {
       const br = right || down ? '' : 'rounded-br-sm';
       const colors = type === 'personal'
         ? 'bg-indigo-600 text-white font-semibold cursor-pointer hover:bg-indigo-700'
-        : 'bg-amber-500 text-white font-semibold cursor-pointer hover:bg-amber-600';
+        : 'bg-amber-500 text-amber-950 font-semibold cursor-pointer hover:bg-amber-600';
       return `${baseCore} ${tl} ${tr} ${bl} ${br} ${colors}`.replace(/\s+/g, ' ').trim();
     }
     if (cell.date === this.today) {
