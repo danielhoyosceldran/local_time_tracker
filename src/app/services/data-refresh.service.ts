@@ -13,7 +13,7 @@ import { ThemeService } from './theme.service';
 
 /**
  * Reloads every service's in-memory state from localStorage. Used after an
- * import/reset (data-section) and after pulling data from the cloud gist, so
+ * import/reset (data-section) and after pulling settings from the cloud, so
  * the UI updates live without a page reload. Single source of truth for the
  * "re-read everything" step.
  */

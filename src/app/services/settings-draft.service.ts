@@ -6,6 +6,7 @@ import { PomodoroSettingsService } from './pomodoro-settings.service';
 import { SoundId } from '../shared/sounds';
 import { TranslationService, Language } from '../i18n';
 import { ThemeService, ThemeMode } from './theme.service';
+import { CloudOutboxService } from './cloud/cloud-outbox.service';
 
 /**
  * Staging layer for the settings modal. Sections write to this draft; nothing
@@ -18,6 +19,7 @@ export class SettingsDraftService {
   private pomodoro = inject(PomodoroSettingsService);
   private translation = inject(TranslationService);
   private themeService = inject(ThemeService);
+  private cloudOutbox = inject(CloudOutboxService);
 
   // General
   readonly language = signal<Language>('en');
@@ -108,6 +110,8 @@ export class SettingsDraftService {
 
     // Trigger recompute of derived summaries that depend on settings.
     this.timeEntry.recomputeAll();
+    // Queue whatever changed for the cloud right away (no-op when signed out).
+    this.cloudOutbox.requestSettingsScan();
   }
 
   toggleWorkday(day: DayOfWeek): void {

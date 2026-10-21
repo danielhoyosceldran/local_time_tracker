@@ -8,12 +8,13 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Observable, combineLatest, map } from 'rxjs';
 import { TranslatePipe } from '../../i18n/translate.pipe';
 import { TranslationService } from '../../i18n';
+import { CloudSyncIndicatorComponent } from '../cloud-sync-indicator/cloud-sync-indicator';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-compact-timer',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TranslatePipe],
+  imports: [CommonModule, ReactiveFormsModule, TranslatePipe, CloudSyncIndicatorComponent],
   template: `
     <div
       class="backdrop-blur-xl rounded-2xl shadow-sm border p-4 h-full flex flex-col overflow-y-auto transition-colors duration-300"
@@ -66,7 +67,7 @@ import { TranslationService } from '../../i18n';
       } @else if (runningView$ | async; as view) {
         <!-- Running State -->
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-slate-800 font-bold">{{ 'timer.compactTitle' | t }}</h3>
+          <h3 class="text-slate-800 font-bold flex items-center gap-1.5">{{ 'timer.compactTitle' | t }} <app-cloud-sync-indicator /></h3>
           <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full tracking-wider">
             {{ 'timer.active' | t }}
           </span>
@@ -101,12 +102,6 @@ import { TranslationService } from '../../i18n';
         <div class="flex gap-2">
           <button
             (click)="stopTracking()"
-            [disabled]="!view.canControl"
-            [title]="view.canControl
-              ? ('timer.stopBtn' | t)
-              : ('timer.lockedHint' | t: { device: view.entry.startedBy?.deviceName ?? '', browser: view.entry.startedBy?.browser ?? '' })"
-            [class.opacity-40]="!view.canControl"
-            [class.cursor-not-allowed]="!view.canControl"
             class="flex-1 py-4 px-4 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white font-bold rounded-2xl shadow-lg shadow-rose-200 transition-all"
           >
             {{ 'timer.stopBtn' | t }}
@@ -114,13 +109,8 @@ import { TranslationService } from '../../i18n';
           @if (lunchButtonEnabled$ | async) {
             <button [attr.aria-label]="'timer.lunchBtn' | t"
               (click)="startLunch()"
-              [disabled]="!view.canControl"
-              [class.opacity-40]="!view.canControl"
-              [class.cursor-not-allowed]="!view.canControl"
               class="py-4 px-4 bg-orange-100 hover:bg-orange-200 active:scale-95 text-orange-600 font-bold rounded-2xl transition-all"
-              [title]="view.canControl
-                ? ('timer.lunchBtn' | t)
-                : ('timer.lockedHint' | t: { device: view.entry.startedBy?.deviceName ?? '', browser: view.entry.startedBy?.browser ?? '' })"
+              [title]="'timer.lunchBtn' | t"
             >
               <!-- Pause icon -->
               <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -133,7 +123,7 @@ import { TranslationService } from '../../i18n';
       } @else {
         <!-- Start Form -->
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-slate-800 font-bold">{{ 'timer.compactTitle' | t }}</h3>
+          <h3 class="text-slate-800 font-bold flex items-center gap-1.5">{{ 'timer.compactTitle' | t }} <app-cloud-sync-indicator /></h3>
         </div>
 
         <form [formGroup]="timerForm" (ngSubmit)="startTracking()" class="flex-1 justify-between flex flex-col space-y-3">
@@ -166,12 +156,11 @@ export class CompactTimerComponent {
   timerForm: FormGroup = this.fb.group({ title: [''] });
 
   runningEntry$: Observable<RunningTimeEntry | null> = this.timeEntryService.runningEntry$;
-  // Running entry paired with whether THIS device may pause/stop it. A timer
-  // started on another device (shared via gist) is shown read-only here.
-  runningView$: Observable<{ entry: RunningTimeEntry; canControl: boolean } | null> = combineLatest([
-    this.timeEntryService.runningEntry$,
-    this.timeEntryService.canControlRunning$,
-  ]).pipe(map(([entry, canControl]) => (entry ? { entry, canControl } : null)));
+  // Any device signed in to the account may stop a shared timer; the origin is
+  // still shown so it's clear where it was started.
+  runningView$: Observable<{ entry: RunningTimeEntry } | null> = this.timeEntryService.runningEntry$.pipe(
+    map(entry => (entry ? { entry } : null)),
+  );
   runningTime$: Observable<string> = this.timeEntryService.runningDuration$.pipe(map(formatDuration));
   lunchBreakActive$: Observable<boolean> = this.timeEntryService.lunchBreakActive$;
   lunchButtonEnabled$: Observable<boolean> = this.timeEntryService.lunchBreakButtonEnabled$;

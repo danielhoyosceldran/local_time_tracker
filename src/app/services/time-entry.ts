@@ -6,11 +6,12 @@ import { TimeEntry, RunningTimeEntry, DailySummary, WeeklySummary, DayGroup, Glo
 import { take, tap } from 'rxjs';
 import { HolidayDatesService } from './holiday-dates.service';
 import { SettingsService } from './settings.service';
-import { GistSyncService } from './gist-sync.service';
 import { DeviceIdentityService } from './device-identity.service';
+import { CloudOutboxService } from './cloud/cloud-outbox.service';
+import { diffEntries, toRow, tombstone } from './cloud/cloud-sync.logic';
 
-const STORAGE_KEY = 'timeTrackerEntries';
-const RUNNING_KEY = 'timeTrackerRunningEntry';
+export const STORAGE_KEY = 'timeTrackerEntries';
+export const RUNNING_KEY = 'timeTrackerRunningEntry';
 const MARGIN_ENABLED_KEY = 'timeTrackerMarginEnabled';
 const MARGIN_MINUTES_KEY = 'timeTrackerMarginMinutes';
 const MARGIN_WINDOW_ENABLED_KEY = 'tt.marginWindowEnabled';
@@ -26,7 +27,7 @@ const LUNCH_BREAK_ACTIVE_KEY = 'tt.lunchBreakActive';
 const LUNCH_BREAK_START_KEY = 'tt.lunchBreakStartTime';
 const LUNCH_BREAK_PREV_TITLE_KEY = 'tt.lunchBreakPrevTitle';
 
-const KNOWN_STORAGE_KEYS = [
+export const KNOWN_STORAGE_KEYS = [
   STORAGE_KEY, RUNNING_KEY,
   MARGIN_ENABLED_KEY, MARGIN_MINUTES_KEY,
   MARGIN_WINDOW_ENABLED_KEY, MARGIN_WINDOW_START_KEY, MARGIN_WINDOW_END_KEY,
@@ -44,9 +45,18 @@ const KNOWN_STORAGE_KEYS = [
   'tt.companyStartDate', 'tt.tenureCelebrations',
   'tt.language', 'tt.themeMode',
 ];
-// NOTE: `gistConfig` (cloud-sync token/gist id) is intentionally NOT listed.
-// It holds the secret PAT and must never travel inside the gist payload or the
-// downloadable backup; it is device-local config, not user-preference data.
+// NOTE: device-local keys are intentionally NOT listed: `tt.deviceId` and the
+// cloud connection state (`tt.cloud.*`: project config, auth session, outbox,
+// cursors). They describe this device, not the user's preferences.
+
+/**
+ * Preferences synced to Supabase's `user_settings`, one row per key. Entries
+ * and the running timer travel as `time_entries` rows instead, and the live
+ * pomodoro countdown is runtime state of the device, not configuration.
+ */
+export const CLOUD_SETTING_KEYS = KNOWN_STORAGE_KEYS.filter(
+  k => k !== STORAGE_KEY && k !== RUNNING_KEY && k !== 'timeTrackerPomodoroState',
+);
 
 @Injectable({
   providedIn: 'root'
@@ -54,7 +64,7 @@ const KNOWN_STORAGE_KEYS = [
 export class TimeEntryService implements OnDestroy {
   private holidayDatesService = inject(HolidayDatesService);
   private settings = inject(SettingsService);
-  private gistSync = inject(GistSyncService);
+  private outbox = inject(CloudOutboxService);
   private device = inject(DeviceIdentityService);
   // Single Source of Truth for the history
   private _entries$$ = new BehaviorSubject<TimeEntry[]>(this.loadEntries());
@@ -63,13 +73,6 @@ export class TimeEntryService implements OnDestroy {
   // Single Source of Truth for the currently running task
   private _runningEntry$$ = new BehaviorSubject<RunningTimeEntry | null>(this.loadRunningEntry());
   public readonly runningEntry$: Observable<RunningTimeEntry | null> = this._runningEntry$$.asObservable();
-
-  // True when THIS device may pause/stop the running entry. A timer started on
-  // another device (shared via gist) is read-only here. Legacy entries without
-  // an origin are always controllable.
-  public readonly canControlRunning$: Observable<boolean> = this.runningEntry$.pipe(
-    map(entry => this.canControlEntry(entry))
-  );
 
   // Observable for the real-time duration of the running task
   public readonly runningDuration$: Observable<number> = this.runningEntry$.pipe(
@@ -168,7 +171,16 @@ export class TimeEntryService implements OnDestroy {
         })
       ).subscribe()
     );
+
+    // Another tab of this browser changed the data: adopt it instead of
+    // overwriting it with this tab's stale copy on the next save.
+    window.addEventListener('storage', this.onStorage);
   }
+
+  private onStorage = (event: StorageEvent): void => {
+    if (event.key === STORAGE_KEY) this._entries$$.next(this.loadEntries());
+    if (event.key === RUNNING_KEY) this._runningEntry$$.next(this.loadRunningEntry());
+  };
 
   private calculateDailySummary(entries: TimeEntry[]): void {
     const summaryMap = new Map<string, number>();
@@ -198,39 +210,97 @@ export class TimeEntryService implements OnDestroy {
 
   ngOnDestroy(): void {
     this.subscription.unsubscribe();
+    window.removeEventListener('storage', this.onStorage);
   }
 
   // --- LocalStorage Persistence ---
 
+  // Corrupt/truncated JSON must not stop the app from booting: degrade to empty.
   private loadEntries(): TimeEntry[] {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
+    try {
+      const data = localStorage.getItem(STORAGE_KEY);
+      const parsed = data ? JSON.parse(data) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (err) {
+      console.error('Could not read stored entries; starting empty.', err);
+      return [];
+    }
   }
 
   private saveEntries(entries: TimeEntry[]): void {
+    const prev = this._entries$$.getValue();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
     this._entries$$.next(entries);
-    // Any mutation that lands here (add/update/delete/stop) syncs to the cloud.
-    // Centralizing the push at the persistence layer guarantees no future
-    // mutation can forget to sync. (Import/reload write _entries$$ directly and
-    // intentionally do NOT pass through here, so pulling never echoes back.)
-    this.syncToCloud();
+    // Every mutation (add/update/delete/stop) lands here, so this is the one
+    // place that queues cloud changes. Remote/import/reload paths write the
+    // subjects directly and never echo back.
+    if (this.outbox.isEnabled()) {
+      const { upserts, deletes } = diffEntries(prev, entries);
+      this.outbox.enqueueEntries([...upserts.map(toRow), ...deletes.map(e => tombstone(e.id, e))]);
+    }
   }
 
   private loadRunningEntry(): RunningTimeEntry | null {
-    const data = localStorage.getItem(RUNNING_KEY);
-    return data ? JSON.parse(data) : null;
+    try {
+      const data = localStorage.getItem(RUNNING_KEY);
+      return data ? JSON.parse(data) : null;
+    } catch (err) {
+      console.error('Could not read the running entry; ignoring it.', err);
+      return null;
+    }
   }
 
   private saveRunningEntry(entry: RunningTimeEntry | null): void {
+    const prev = this._runningEntry$$.getValue();
     if (entry) {
       localStorage.setItem(RUNNING_KEY, JSON.stringify(entry));
     } else {
       localStorage.removeItem(RUNNING_KEY);
     }
     this._runningEntry$$.next(entry);
-    // Play/stop/lunch all flow through here; sync from the persistence layer.
-    this.syncToCloud();
+    if (entry) {
+      this.outbox.enqueueEntries([toRow(entry)]);
+    } else if (prev && !this._entries$$.getValue().some(e => e.id === prev.id)) {
+      // Cleared without becoming a completed entry: the timer was discarded.
+      this.outbox.enqueueEntries([tombstone(prev.id, prev)]);
+    }
+  }
+
+  /**
+   * Adopt state that came from the cloud. Writes storage and the subjects but
+   * queues nothing, so applying remote data never bounces back as a push.
+   */
+  applyRemoteState(entries: TimeEntry[], running: RunningTimeEntry | null): void {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    if (running) localStorage.setItem(RUNNING_KEY, JSON.stringify(running));
+    else localStorage.removeItem(RUNNING_KEY);
+    this._entries$$.next(entries);
+    this._runningEntry$$.next(running);
+  }
+
+  /** Current in-memory state (for the sync engine's merges). */
+  snapshot(): { entries: TimeEntry[]; running: RunningTimeEntry | null } {
+    return { entries: this._entries$$.getValue(), running: this._runningEntry$$.getValue() };
+  }
+
+  /**
+   * Merge entries from a backup into the current list (by id; the file wins
+   * on conflicts). Used for imports while signed in, which must never drop
+   * rows that only exist in the cloud.
+   */
+  mergeEntries(incoming: TimeEntry[]): void {
+    const byId = new Map(this._entries$$.getValue().map(e => [e.id, e]));
+    for (const e of incoming) {
+      if (e && typeof e.id === 'string' && typeof e.endTime === 'number') byId.set(e.id, e);
+    }
+    this.saveEntries(Array.from(byId.values()).sort((a, b) => b.startTime - a.startTime));
+  }
+
+  /** Close a running timer as a completed entry and adopt another as running. */
+  replaceRunning(closed: TimeEntry, running: RunningTimeEntry): void {
+    const others = this._entries$$.getValue().filter(e => e.id !== closed.id);
+    this.saveEntries([closed, ...others].sort((a, b) => b.startTime - a.startTime));
+    this.saveRunningEntry(running);
   }
 
   // --- Margin Config ---
@@ -366,11 +436,6 @@ export class TimeEntryService implements OnDestroy {
 
   startLunchBreak(): void {
     const running = this._runningEntry$$.getValue();
-    // Only the device that started the timer may pause it for lunch.
-    if (running && !this.canControlEntry(running)) {
-      console.warn('This timer was started on another device and cannot be paused here.');
-      return;
-    }
     const prevTitle = running?.title ?? null;
     this.stopTracking();
     localStorage.setItem(LUNCH_BREAK_ACTIVE_KEY, 'true');
@@ -411,27 +476,12 @@ export class TimeEntryService implements OnDestroy {
       duration: 0,
       startedBy: this.device.current(),
     };
-    this.saveRunningEntry(newRunningEntry); // persists + syncs to cloud
-  }
-
-  /**
-   * Whether THIS device is allowed to control (pause/stop) the given entry.
-   * Only the device that pressed play may do so. No entry — or a legacy entry
-   * without an origin — is always controllable.
-   */
-  canControlEntry(entry: RunningTimeEntry | TimeEntry | null): boolean {
-    const origin = entry?.startedBy;
-    return !origin || origin.deviceId === this.device.deviceId;
+    this.saveRunningEntry(newRunningEntry); // persists + queues for the cloud
   }
 
   stopTracking(): TimeEntry | null {
     const runningEntry = this._runningEntry$$.getValue();
     if (!runningEntry) {
-      return null;
-    }
-    // A timer started on another device is read-only here.
-    if (!this.canControlEntry(runningEntry)) {
-      console.warn('This timer was started on another device and cannot be stopped here.');
       return null;
     }
 
@@ -482,35 +532,11 @@ export class TimeEntryService implements OnDestroy {
     // 1. Add to history
     this.addEntry(completedEntry);
 
-    // 2. Clear running state (persists + syncs the final snapshot to cloud)
+    // 2. Clear running state. The completed entry already carries the same id,
+    // so the cloud row is updated in place rather than deleted.
     this.saveRunningEntry(null);
 
     return completedEntry;
-  }
-
-  /**
-   * Best-effort cloud push of the current localStorage snapshot. Triggered from
-   * the persistence layer (saveEntries/saveRunningEntry) on EVERY data mutation
-   * — start/stop/lunch, add/edit/delete intervals — so the gist never drifts
-   * from local. Does nothing without config; any network error is swallowed so
-   * the timer never breaks. localStorage stays the source of truth.
-   */
-  private syncQueued = false;
-  private syncToCloud(): void {
-    if (!this.gistSync.hasConfig()) return;
-    // Coalesce all sync requests fired during a single operation into one push.
-    // A stop, for example, touches both saveEntries() and saveRunningEntry();
-    // deferring to a microtask means we push ONCE, reading the final
-    // localStorage snapshot via exportAll() (running entry already cleared).
-    if (this.syncQueued) return;
-    this.syncQueued = true;
-    queueMicrotask(() => {
-      this.syncQueued = false;
-      this.gistSync.push(this.exportAll()).subscribe({
-        next: () => void 0,
-        error: () => void 0,
-      });
-    });
   }
 
   // --- CRUD Operations for History ---

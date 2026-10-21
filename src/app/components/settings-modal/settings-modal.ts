@@ -7,11 +7,12 @@ import { LunchSectionComponent } from './sections/lunch-section';
 import { PomodoroSectionComponent } from './sections/pomodoro-section';
 import { DataSectionComponent } from './sections/data-section';
 import { GeneralSectionComponent } from './sections/general-section';
+import { CloudSectionComponent } from './sections/cloud-section';
 import { TranslationService } from '../../i18n';
 import { TranslatePipe } from '../../i18n/translate.pipe';
 import { ModalA11yDirective } from '../../shared/modal-a11y.directive';
 
-type TabId = 'general' | 'schedule' | 'tracking' | 'focus' | 'data';
+type TabId = 'general' | 'schedule' | 'tracking' | 'focus' | 'cloud' | 'data';
 
 interface Tab {
   id: TabId;
@@ -32,6 +33,7 @@ interface Tab {
     PomodoroSectionComponent,
     DataSectionComponent,
     GeneralSectionComponent,
+    CloudSectionComponent,
     TranslatePipe,
     ModalA11yDirective,
   ],
@@ -123,6 +125,11 @@ interface Tab {
               @case ('focus') {
                 <div class="space-y-10">
                   <app-pomodoro-section class="block" />
+                </div>
+              }
+              @case ('cloud') {
+                <div class="space-y-10">
+                  <app-cloud-section class="block" />
                 </div>
               }
               @case ('data') {
@@ -230,6 +237,12 @@ export class SettingsModalComponent implements OnInit {
       labelKey: 'settings.tab.focus',
       descriptionKey: 'settings.tab.focusDesc',
       icon: `<svg aria-hidden="true" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>`,
+    },
+    {
+      id: 'cloud',
+      labelKey: 'settings.tab.cloud',
+      descriptionKey: 'settings.tab.cloudDesc',
+      icon: `<svg aria-hidden="true" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 18a4 4 0 01-.88-7.9A5 5 0 1115.9 8 4.5 4.5 0 0117 17H7z"/></svg>`,
     },
     {
       id: 'data',

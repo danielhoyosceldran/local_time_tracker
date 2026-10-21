@@ -1,18 +1,21 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 
-import { ManualEntryForm } from './manual-entry-form';
+import { ManualEntryFormComponent } from './manual-entry-form';
 
-describe('ManualEntryForm', () => {
-  let component: ManualEntryForm;
-  let fixture: ComponentFixture<ManualEntryForm>;
+describe('ManualEntryFormComponent', () => {
+  let component: ManualEntryFormComponent;
+  let fixture: ComponentFixture<ManualEntryFormComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ManualEntryForm]
+      imports: [ManualEntryFormComponent],
+      // Kendo pickers inject AnimationBuilder.
+      providers: [provideNoopAnimations()]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(ManualEntryForm);
+    fixture = TestBed.createComponent(ManualEntryFormComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

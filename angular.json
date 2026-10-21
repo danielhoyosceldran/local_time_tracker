@@ -27,7 +27,10 @@
             ],
             "polyfills": [
               "@angular/localize/init"
-            ]
+            ],
+            "loader": {
+              ".sql": "text"
+            }
           },
           "configurations": {
             "production": {
@@ -84,7 +87,10 @@
             ],
             "polyfills": [
               "@angular/localize/init"
-            ]
+            ],
+            "loader": {
+              ".sql": "text"
+            }
           }
         }
       }

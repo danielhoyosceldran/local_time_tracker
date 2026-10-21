@@ -8,18 +8,18 @@ import { formatDuration } from './utils/format';
 import { SoundPickerHostComponent } from './shared/sound-picker-host';
 import { TranslationService } from './i18n';
 import { ThemeService } from './services/theme.service';
-import { GistSyncService } from './services/gist-sync.service';
-import { GistSyncNotificationComponent } from './components/gist-sync-notification/gist-sync-notification';
+import { CloudSyncService } from './services/cloud/cloud-sync.service';
+import { CloudFirstConnectionComponent } from './components/cloud-first-connection/cloud-first-connection';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, SoundPickerHostComponent, GistSyncNotificationComponent],
+  imports: [RouterOutlet, SoundPickerHostComponent, CloudFirstConnectionComponent],
   template: `
     <router-outlet />
     <app-sound-picker-host />
-    <app-gist-sync-notification />
+    <app-cloud-first-connection />
   `,
 })
 export class AppComponent implements OnInit {
@@ -28,11 +28,13 @@ export class AppComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
   private translation = inject(TranslationService);
   private theme = inject(ThemeService);
-  private gistSync = inject(GistSyncService);
+  private cloudSync = inject(CloudSyncService);
 
   ngOnInit(): void {
-    // Best-effort cloud check: prompts only if the gist has more entries.
-    this.gistSync.checkOnStartup();
+    // The GitHub Gist sync was replaced by Supabase; drop its stale config (and token).
+    localStorage.removeItem('gistConfig');
+    // Restores a Supabase session if there is one; without it the app stays 100% local.
+    void this.cloudSync.start();
 
     this.timeEntryService.liveTodaySummary$
       .pipe(takeUntilDestroyed(this.destroyRef))

@@ -1,19 +1,17 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { firstValueFrom } from 'rxjs';
 import { TimeEntryService } from '../../../services/time-entry';
 import { DataRefreshService } from '../../../services/data-refresh.service';
-import { GistSyncService, GistSyncError } from '../../../services/gist-sync.service';
+import { CloudAuthService } from '../../../services/cloud/cloud-auth.service';
+import { CloudSyncService } from '../../../services/cloud/cloud-sync.service';
 import { SettingsSectionComponent } from '../shared/section';
 import { TranslatePipe } from '../../../i18n/translate.pipe';
 import { TranslationService } from '../../../i18n';
-import type { TranslationKey } from '../../../i18n/translations/en';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-data-section',
   standalone: true,
-  imports: [SettingsSectionComponent, TranslatePipe, FormsModule],
+  imports: [SettingsSectionComponent, TranslatePipe],
   template: `
     <app-settings-section [title]="'data.title' | t" iconBg="bg-slate-100 text-slate-700">
       <svg aria-hidden="true" icon class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
@@ -36,127 +34,18 @@ import type { TranslationKey } from '../../../i18n/translations/en';
         <button
           type="button"
           (click)="onReset()"
-          class="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 text-red-600 hover:bg-red-100 active:scale-95 transition-all"
+          [disabled]="signedIn()"
+          [title]="signedIn() ? ('data.resetSignedIn' | t) : ''"
+          class="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 text-red-600 hover:bg-red-100 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >{{ 'data.resetBtn' | t }}</button>
       </div>
 
-      @if (status()) {
-        <p class="text-xs text-slate-500 pb-2">{{ status() }}</p>
+      @if (signedIn()) {
+        <p class="text-xs text-slate-500 pb-2">{{ 'data.cloudHint' | t }}</p>
       }
 
-      <!-- Cloud sync (optional, via private GitHub Gist) -->
-      <div class="mt-4 pt-4 border-t border-slate-100">
-        <h4 class="text-xs font-semibold text-slate-700">{{ 'gistSync.sectionTitle' | t }}</h4>
-        <p class="text-xs text-slate-500 mt-0.5 mb-3">{{ 'gistSync.sectionHint' | t }}</p>
-
-        <div class="space-y-2.5">
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">{{ 'gistSync.tokenLabel' | t }}</label>
-            <input
-              type="password"
-              autocomplete="off"
-              [ngModel]="token()"
-              (ngModelChange)="token.set($event)"
-              placeholder="ghp_…"
-              class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs"
-            />
-            <p class="text-xs text-slate-500 mt-1">{{ 'gistSync.tokenHint' | t }}</p>
-          </div>
-
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">{{ 'gistSync.gistLabel' | t }}</label>
-            <input
-              type="text"
-              autocomplete="off"
-              [ngModel]="gistInput()"
-              (ngModelChange)="gistInput.set($event)"
-              placeholder="https://gist.github.com/…"
-              class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs"
-            />
-          </div>
-
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">{{ 'gistSync.fileLabel' | t }}</label>
-            <input
-              type="text"
-              autocomplete="off"
-              [ngModel]="fileName()"
-              (ngModelChange)="fileName.set($event)"
-              placeholder="data.json"
-              class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs"
-            />
-          </div>
-        </div>
-
-        <div class="flex flex-wrap gap-2 mt-3">
-          <button
-            type="button"
-            (click)="onSaveConfig()"
-            [disabled]="syncBusy()"
-            class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 active:scale-95 transition-all disabled:opacity-50"
-          >{{ 'gistSync.saveConfigBtn' | t }}</button>
-
-          <button
-            type="button"
-            (click)="onPush()"
-            [disabled]="syncBusy()"
-            class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50"
-          >{{ 'gistSync.pushBtn' | t }}</button>
-
-          <button
-            type="button"
-            (click)="onPull()"
-            [disabled]="syncBusy()"
-            class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 text-white hover:bg-slate-700 active:scale-95 transition-all disabled:opacity-50"
-          >{{ 'gistSync.pullBtn' | t }}</button>
-        </div>
-
-        @if (syncStatus()) {
-          <p class="text-xs mt-2" [class.text-red-500]="syncError()" [class.text-slate-500]="!syncError()">
-            {{ syncStatus() }}
-          </p>
-        }
-      </div>
-
-      <!-- Typed-confirmation modal: the user must type the exact safe-word
-           ("upload" / "download") before a destructive sync runs. -->
-      @if (confirmAction()) {
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" aria-hidden="true" (click)="cancelConfirm()"></div>
-
-          <div class="relative z-10 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(90vw,380px)] p-6">
-            <h2 class="text-base font-bold text-slate-800">{{ 'gistSync.confirmTitle' | t }}</h2>
-            <p class="mt-2 text-xs text-slate-500">
-              {{ confirmBodyKey() | t: { word: confirmWord() } }}
-            </p>
-
-            <input
-              type="text"
-              autocomplete="off"
-              autocapitalize="off"
-              spellcheck="false"
-              [ngModel]="confirmText()"
-              (ngModelChange)="confirmText.set($event)"
-              (keyup.enter)="runConfirm()"
-              [placeholder]="'gistSync.confirmPlaceholder' | t: { word: confirmWord() }"
-              class="mt-4 w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono"
-            />
-
-            <div class="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                (click)="cancelConfirm()"
-                class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 active:scale-95 transition-all"
-              >{{ 'gistSync.cancelBtn' | t }}</button>
-              <button
-                type="button"
-                (click)="runConfirm()"
-                [disabled]="!confirmValid()"
-                class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              >{{ 'gistSync.confirmBtn' | t }}</button>
-            </div>
-          </div>
-        </div>
+      @if (status()) {
+        <p class="text-xs text-slate-500 pb-2" role="status">{{ status() }}</p>
       }
     </app-settings-section>
   `,
@@ -165,31 +54,12 @@ export class DataSectionComponent {
   private time = inject(TimeEntryService);
   private dataRefresh = inject(DataRefreshService);
   private translation = inject(TranslationService);
-  private gist = inject(GistSyncService);
+  private auth = inject(CloudAuthService);
+  private cloudSync = inject(CloudSyncService);
 
   status = signal<string>('');
-
-  // Cloud sync form state, seeded from the saved config.
-  private cfg = this.gist.getConfig();
-  token = signal<string>(this.cfg?.token ?? '');
-  gistInput = signal<string>(this.cfg?.gistId ?? '');
-  fileName = signal<string>(this.cfg?.fileName ?? 'data.json');
-
-  syncStatus = signal<string>('');
-  syncError = signal<boolean>(false);
-  syncBusy = signal<boolean>(false);
-
-  // Typed-confirmation modal state. The user must type the exact safe-word
-  // before a destructive manual sync runs.
-  confirmAction = signal<'push' | 'pull' | null>(null);
-  confirmText = signal<string>('');
-  confirmWord = computed(() => (this.confirmAction() === 'push' ? 'upload' : 'download'));
-  confirmBodyKey = computed<TranslationKey>(() =>
-    this.confirmAction() === 'push' ? 'gistSync.confirmPushBody' : 'gistSync.confirmPullBody',
-  );
-  confirmValid = computed(
-    () => this.confirmText().trim().toLowerCase() === this.confirmWord(),
-  );
+  /** With a cloud session, import merges into the account and reset is blocked. */
+  signedIn = computed(() => this.auth.status() === 'signedIn');
 
   onExport(): void {
     const json = this.time.exportAll();
@@ -207,14 +77,20 @@ export class DataSectionComponent {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
-    if (!confirm(this.translation.t('data.importConfirm'))) {
+    const cloud = this.signedIn();
+    if (!confirm(this.translation.t(cloud ? 'data.importMergeConfirm' : 'data.importConfirm'))) {
       input.value = '';
       return;
     }
     file.text().then(async txt => {
       try {
-        this.time.importAll(txt);
-        await this.refreshAll();
+        if (cloud) {
+          // Merge by id into local + cloud; never drops rows that only exist remotely.
+          await this.cloudSync.importMerge(txt);
+        } else {
+          this.time.importAll(txt);
+          await this.refreshAll();
+        }
         this.status.set(this.translation.t('data.imported'));
       } catch {
         this.status.set(this.translation.t('data.importFailed'));
@@ -224,118 +100,15 @@ export class DataSectionComponent {
   }
 
   onReset(): void {
+    // Resetting while signed in would push an empty state to the account.
+    if (this.signedIn()) return;
     if (!confirm(this.translation.t('data.resetAllConfirm'))) return;
     this.time.resetAll();
     this.refreshAll();
     this.status.set(this.translation.t('data.resetDone'));
   }
 
-  // --- Cloud sync handlers ---
-
-  onSaveConfig(): void {
-    this.gist.saveConfig({
-      token: this.token(),
-      gistId: this.gistInput(),
-      fileName: this.fileName(),
-    });
-    // Reflect normalized values back (id extracted from URL, default file name).
-    const saved = this.gist.getConfig();
-    if (saved) {
-      this.token.set(saved.token);
-      this.gistInput.set(saved.gistId);
-      this.fileName.set(saved.fileName);
-    }
-    this.setSyncStatus('gistSync.configSaved', false);
-  }
-
-  // Push/Pull buttons only open the typed-confirmation modal; the actual
-  // network call runs from runConfirm() once the safe-word is typed.
-  onPush(): void {
-    this.requestConfirm('push');
-  }
-
-  onPull(): void {
-    this.requestConfirm('pull');
-  }
-
-  private requestConfirm(action: 'push' | 'pull'): void {
-    if (!this.gist.hasConfig()) {
-      this.setSyncStatus('gistSync.errNoConfig', true);
-      return;
-    }
-    this.confirmText.set('');
-    this.confirmAction.set(action);
-  }
-
-  cancelConfirm(): void {
-    this.confirmAction.set(null);
-    this.confirmText.set('');
-  }
-
-  runConfirm(): void {
-    if (!this.confirmValid()) return;
-    const action = this.confirmAction();
-    this.cancelConfirm();
-    if (action === 'push') {
-      void this.doPush();
-    } else if (action === 'pull') {
-      void this.doPull();
-    }
-  }
-
-  private async doPush(): Promise<void> {
-    this.syncBusy.set(true);
-    this.setSyncStatus('gistSync.busy', false);
-    try {
-      await firstValueFrom(this.gist.push(this.time.exportAll()));
-      this.setSyncStatus('gistSync.pushed', false);
-    } catch (err) {
-      this.setSyncStatus(errorKey(err), true);
-    } finally {
-      this.syncBusy.set(false);
-    }
-  }
-
-  private async doPull(): Promise<void> {
-    this.syncBusy.set(true);
-    this.setSyncStatus('gistSync.busy', false);
-    try {
-      const payload = await firstValueFrom(this.gist.pull());
-      if (!payload) {
-        this.setSyncStatus('gistSync.pulledEmpty', true);
-        return;
-      }
-      // Reuse the existing import path; importAll only reads `.data`.
-      this.time.importAll(JSON.stringify(payload));
-      await this.refreshAll();
-      this.gist.dismissPending(); // we are now in sync; drop any startup prompt
-      this.setSyncStatus('gistSync.pulled', false);
-    } catch (err) {
-      this.setSyncStatus(errorKey(err), true);
-    } finally {
-      this.syncBusy.set(false);
-    }
-  }
-
-  private setSyncStatus(key: TranslationKey, isError: boolean): void {
-    this.syncStatus.set(this.translation.t(key));
-    this.syncError.set(isError);
-  }
-
   private async refreshAll(): Promise<void> {
     await this.dataRefresh.refreshAll();
-  }
-}
-
-/** Map a typed sync error to its i18n key. Falls back to the network message. */
-function errorKey(err: unknown): TranslationKey {
-  const kind = (err as GistSyncError | undefined)?.kind;
-  switch (kind) {
-    case 'no-config': return 'gistSync.errNoConfig';
-    case 'unauthorized': return 'gistSync.errUnauthorized';
-    case 'not-found': return 'gistSync.errNotFound';
-    case 'validation': return 'gistSync.errValidation';
-    case 'parse': return 'gistSync.errParse';
-    default: return 'gistSync.errNetwork';
   }
 }

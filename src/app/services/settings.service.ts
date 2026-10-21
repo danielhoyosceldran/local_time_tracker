@@ -1,4 +1,5 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { CloudOutboxService } from './cloud/cloud-outbox.service';
 
 export type TimeFormat = '12h' | '24h';
 export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = Sunday
@@ -44,6 +45,8 @@ function loadJSON<T>(key: string, def: T): T {
 
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
+  private cloudOutbox = inject(CloudOutboxService);
+
   readonly workdayHours = signal(loadNumber(KEYS.workdayHours, DEFAULTS.workdayHours));
   readonly weeklyTargetHours = signal(loadNumber(KEYS.weeklyTargetHours, DEFAULTS.weeklyTargetHours));
   readonly workdays = signal<DayOfWeek[]>(
@@ -118,6 +121,8 @@ export class SettingsService {
   setCompanyStartDate(date: string): void {
     this.companyStartDate.set(date);
     localStorage.setItem(KEYS.companyStartDate, date);
+    // Saved outside the settings modal, so queue it for the cloud here.
+    this.cloudOutbox.requestSettingsScan();
   }
 
   reloadFromStorage(): void {

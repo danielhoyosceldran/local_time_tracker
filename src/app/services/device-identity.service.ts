@@ -8,10 +8,9 @@ import { EntryOrigin } from '../models/time-entry.model';
  * timer. The id is generated once and stored device-locally.
  *
  * IMPORTANT: `tt.deviceId` is intentionally NOT registered in
- * KNOWN_STORAGE_KEYS — like `gistConfig`, it must never travel inside the gist
- * payload or the downloadable backup. If it did, every device that imported the
- * backup would share the same id and the "only the starter can pause/stop"
- * guard would let everyone control everyone's timer.
+ * KNOWN_STORAGE_KEYS — like the `tt.cloud.*` keys, it must never travel inside
+ * the cloud settings or the downloadable backup. If it did, every device that
+ * imported the backup would share the same id and "started on …" would lie.
  */
 const DEVICE_ID_KEY = 'tt.deviceId';
 
