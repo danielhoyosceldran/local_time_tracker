@@ -28,7 +28,7 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
             </span>
             <div class="min-w-0">
               <p class="text-sm font-semibold text-slate-800">{{ 'gistSync.notifTitle' | t }}</p>
-              <p class="text-[12px] text-slate-500 leading-snug mt-0.5">
+              <p class="text-xs text-slate-500 leading-snug mt-0.5">
                 {{ 'gistSync.notifBody' | t: { remote: p.remoteCount, local: p.localCount } }}
               </p>
             </div>

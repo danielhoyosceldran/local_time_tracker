@@ -74,19 +74,19 @@ function buildMonthData(year: number, month: number): MonthData {
           </svg>
           <h3 class="text-slate-800 font-bold text-sm">{{ 'holiday.title' | t }} {{ currentYear }}</h3>
         </div>
-        <div class="flex items-center gap-2 text-[11px]">
+        <div class="flex items-center gap-2 text-xs">
           <!-- Type toggle -->
           <div class="flex items-center bg-slate-100 rounded-md p-0.5" [attr.title]="'holiday.typeTooltip' | t">
             <button
               type="button"
               (click)="addType.set('personal')"
-              class="px-2 py-0.5 rounded transition-colors"
+              class="hit-area px-2 py-0.5 rounded transition-colors"
               [ngClass]="addType() === 'personal' ? 'bg-indigo-600 text-white shadow' : 'text-slate-500 hover:text-slate-700'"
             >{{ 'holiday.personal' | t }}</button>
             <button
               type="button"
-              (click)="addType.set('public')"
-              class="px-2 py-0.5 rounded transition-colors"
+              (click)="addType.set('public')" [attr.aria-pressed]="addType() === 'public'"
+              class="hit-area px-2 py-0.5 rounded transition-colors"
               [ngClass]="addType() === 'public' ? 'bg-amber-500 text-amber-950 shadow' : 'text-slate-500 hover:text-slate-700'"
             >{{ 'holiday.public' | t }}</button>
           </div>
@@ -96,7 +96,7 @@ function buildMonthData(year: number, month: number): MonthData {
             <select
               [ngModel]="''"
               (ngModelChange)="onPresetChange($event)"
-              class="text-[11px] border border-slate-200 rounded-md px-1.5 py-0.5 bg-white text-slate-600 hover:border-slate-300"
+              class="text-xs border border-slate-200 rounded-md px-1.5 py-0.5 bg-white text-slate-600 hover:border-slate-300"
               [attr.title]="'holiday.presetTooltip' | t"
             >
               <option value="" disabled>{{ 'holiday.loadPreset' | t }}</option>
@@ -140,7 +140,7 @@ function buildMonthData(year: number, month: number): MonthData {
             </button>
           } @else {
             <span class="font-semibold text-slate-700">{{ h.total }}</span>
-            <button [attr.aria-label]="'holiday.editTotal' | t" (click)="startEdit(h.total)" class="p-1 -m-1 text-slate-400 hover:text-indigo-500" [attr.title]="'holiday.editTotal' | t">
+            <button [attr.aria-label]="'holiday.editTotal' | t" (click)="startEdit(h.total)" class="hit-area p-1 -m-1 text-slate-500 hover:text-indigo-500" [attr.title]="'holiday.editTotal' | t">
               <svg aria-hidden="true" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
               </svg>
@@ -163,7 +163,7 @@ function buildMonthData(year: number, month: number): MonthData {
           @for (month of months; track month.name) {
             <div class="month-cell">
               <!-- Month name -->
-              <div class="text-[11px] font-semibold text-slate-600 uppercase tracking-wide mb-1 text-center">
+              <div class="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1 text-center">
                 {{ month.name }}
               </div>
               <!-- Day headers -->
@@ -262,7 +262,7 @@ export class CompactHolidayCalendarComponent implements OnInit {
       return `${baseCore} rounded-sm text-slate-600 cursor-pointer ring-2 ring-indigo-500 bg-indigo-50`;
     }
     if (cell.isWeekend) {
-      return `${baseCore} rounded-sm text-slate-300 bg-slate-50/50`;
+      return `${baseCore} rounded-sm text-slate-500 bg-slate-50/50`;
     }
     return `${baseCore} rounded-sm text-slate-600 cursor-pointer hover:bg-indigo-50`;
   }

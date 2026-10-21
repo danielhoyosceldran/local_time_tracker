@@ -38,7 +38,7 @@ import { ModalA11yDirective } from './modal-a11y.directive';
           <button
             type="button"
             (click)="closed.emit()"
-            class="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            class="hit-area p-1 rounded-md text-slate-500 hover:text-slate-600 hover:bg-slate-100 transition-colors"
             [attr.aria-label]="'common.close' | t"
           >
             <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -87,7 +87,7 @@ import { ModalA11yDirective } from './modal-a11y.directive';
                 <button
                   type="button"
                   (click)="preview($event, s.id)"
-                  class="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors shrink-0"
+                  class="hit-area p-1.5 rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-200 transition-colors shrink-0"
                   [attr.title]="'sound.preview' | t"
                   [attr.aria-label]="('sound.preview' | t) + ': ' + s.label"
                 >

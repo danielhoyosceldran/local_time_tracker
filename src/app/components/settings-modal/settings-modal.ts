@@ -43,7 +43,7 @@ interface Tab {
       <div
         appModal
         labelledBy="settings-modal-title"
-        class="settings-box bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(60vw,900px)] min-w-[50vw] h-[min(80vh,700px)] flex flex-col overflow-hidden outline-none"
+        class="settings-box bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(94vw,900px)] md:w-[min(60vw,900px)] md:min-w-[50vw] h-[min(80vh,700px)] flex flex-col overflow-hidden outline-none"
         (click)="$event.stopPropagation()"
       >
         <!-- Header -->
@@ -58,7 +58,7 @@ interface Tab {
           <button
             type="button"
             (click)="onCancel()"
-            class="text-slate-400 hover:text-slate-600 transition-colors"
+            class="hit-area text-slate-500 hover:text-slate-600 transition-colors"
             [attr.aria-label]="'common.close' | t"
           >
             <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -93,7 +93,7 @@ interface Tab {
                     ></span>
                     <span class="flex flex-col">
                       <span class="text-sm font-medium">{{ tab.labelKey | t }}</span>
-                      <span class="tab-desc text-[11px] text-slate-500 leading-tight">{{ tab.descriptionKey | t }}</span>
+                      <span class="tab-desc text-xs text-slate-500 leading-tight">{{ tab.descriptionKey | t }}</span>
                     </span>
                   </button>
                 </li>

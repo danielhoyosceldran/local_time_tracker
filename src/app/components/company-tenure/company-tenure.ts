@@ -35,7 +35,7 @@ interface Tenure {
         @if (startDate() && !editing()) {
           <button [attr.aria-label]="'common.edit' | t"
             (click)="startEdit()"
-            class="ml-auto p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            class="hit-area ml-auto p-1 rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
             [title]="'common.edit' | t"
           >
             <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -59,19 +59,19 @@ interface Tenure {
               <div class="grid grid-cols-3 gap-2 text-center">
                 <div>
                   <div class="text-3xl font-extrabold font-mono text-tenure leading-none">{{ t.years }}</div>
-                  <div class="text-[11px] uppercase tracking-wide text-slate-500 mt-1">
+                  <div class="text-xs uppercase tracking-wide text-slate-500 mt-1">
                     {{ (t.years === 1 ? 'tenure.yearOne' : 'tenure.years') | t }}
                   </div>
                 </div>
                 <div>
                   <div class="text-3xl font-extrabold font-mono text-tenure-mid leading-none">{{ t.months }}</div>
-                  <div class="text-[11px] uppercase tracking-wide text-slate-500 mt-1">
+                  <div class="text-xs uppercase tracking-wide text-slate-500 mt-1">
                     {{ (t.months === 1 ? 'tenure.monthOne' : 'tenure.months') | t }}
                   </div>
                 </div>
                 <div>
                   <div class="text-3xl font-extrabold font-mono text-tenure-light leading-none">{{ t.days }}</div>
-                  <div class="text-[11px] uppercase tracking-wide text-slate-500 mt-1">
+                  <div class="text-xs uppercase tracking-wide text-slate-500 mt-1">
                     {{ (t.days === 1 ? 'tenure.dayOne' : 'tenure.days') | t }}
                   </div>
                 </div>
@@ -82,7 +82,7 @@ interface Tenure {
                 <span class="font-mono font-medium text-slate-700">{{ t.totalDays | number }}</span>
                 {{ 'tenure.totalDays' | t }}
               </div>
-              <div class="text-[11px] text-slate-500 text-center mt-1">
+              <div class="text-xs text-slate-500 text-center mt-1">
                 {{ 'tenure.since' | t }} <span class="font-mono">{{ formattedStart() }}</span>
               </div>
             </div>
@@ -94,7 +94,7 @@ interface Tenure {
           @if (!startDate()) {
             <p class="text-xs text-slate-500 text-center">{{ 'tenure.prompt' | t }}</p>
           }
-          <label for="tenure-start-date" class="text-[11px] font-medium text-slate-500">{{ 'tenure.startDate' | t }}</label>
+          <label for="tenure-start-date" class="text-xs font-medium text-slate-500">{{ 'tenure.startDate' | t }}</label>
           <input
             #dateInput
             id="tenure-start-date"
@@ -126,7 +126,9 @@ interface Tenure {
     </div>
 
     @if (celebration(); as m) {
-      <app-tenure-celebration-modal [milestone]="m" (close)="celebration.set(null)" />
+      @defer (on immediate) {
+        <app-tenure-celebration-modal [milestone]="m" (close)="celebration.set(null)" />
+      }
     }
   `,
 })

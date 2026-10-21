@@ -34,7 +34,7 @@ function confettiColors(): string[] {
   template: `
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
       <!-- Backdrop -->
-      <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" (click)="close.emit()"></div>
+      <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" aria-hidden="true" (click)="close.emit()"></div>
 
       <!-- Card -->
       <div

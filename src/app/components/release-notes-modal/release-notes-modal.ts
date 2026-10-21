@@ -16,7 +16,7 @@ import { ModalA11yDirective } from '../../shared/modal-a11y.directive';
       <div
         appModal
         labelledBy="release-notes-title"
-        class="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(60vw,640px)] min-w-[320px] max-h-[80vh] flex flex-col overflow-hidden outline-none"
+        class="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(94vw,640px)] md:w-[min(60vw,640px)] md:min-w-[320px] max-h-[80vh] flex flex-col overflow-hidden outline-none"
         (click)="$event.stopPropagation()"
       >
         <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white/60 backdrop-blur-xl">
@@ -30,7 +30,7 @@ import { ModalA11yDirective } from '../../shared/modal-a11y.directive';
           <button
             type="button"
             (click)="close.emit()"
-            class="text-slate-400 hover:text-slate-600 transition-colors"
+            class="hit-area text-slate-500 hover:text-slate-600 transition-colors"
             [attr.aria-label]="'common.close' | t"
             [attr.title]="'common.close' | t"
           >
@@ -50,7 +50,7 @@ import { ModalA11yDirective } from '../../shared/modal-a11y.directive';
               <ul class="space-y-1.5">
                 @for (note of release.notes; track $index) {
                   <li class="text-sm text-slate-600 flex gap-2">
-                    <span class="text-slate-300 mt-0.5">•</span>{{ note }}
+                    <span class="text-slate-400 mt-0.5" aria-hidden="true">•</span>{{ note }}
                   </li>
                 }
               </ul>

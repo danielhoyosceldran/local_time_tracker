@@ -50,7 +50,7 @@ interface WeekGroup {
         </div>
         <button [attr.aria-label]="'intervals.exportCsv' | t"
           (click)="downloadCSV()"
-          class="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-md transition"
+          class="hit-area p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-md transition"
           [attr.title]="'intervals.exportCsv' | t"
         >
           <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -75,7 +75,7 @@ interface WeekGroup {
                     <div class="text-sm font-bold text-slate-900">
                       {{ 'intervals.weekLabel' | t }} {{ week.weekNumber }} · {{ week.year }}
                     </div>
-                    <div class="text-[11px] text-slate-500">
+                    <div class="text-xs text-slate-500">
                       {{ week.startDate | date:'mediumDate' }} – {{ week.endDate | date:'mediumDate' }}
                     </div>
                   </div>
@@ -84,10 +84,10 @@ interface WeekGroup {
                          [class.text-emerald-600]="week.hoursWorked >= week.targetHours"
                          [class.text-indigo-600]="week.hoursWorked < week.targetHours">
                       {{ formatHoursToTime(week.hoursWorked) }}
-                      <span class="text-slate-400 font-normal">/</span>
+                      <span class="text-slate-500 font-normal">/</span>
                       {{ formatHoursToTime(week.targetHours) }}
                     </div>
-                    <div class="text-[11px] text-slate-500">
+                    <div class="text-xs text-slate-500">
                       {{ week.days.length }} {{ week.days.length === 1 ? ('intervals.daySingular' | t) : ('intervals.dayPlural' | t) }}
                     </div>
                   </div>
@@ -102,7 +102,7 @@ interface WeekGroup {
                         >
                           <div class="flex items-center gap-2 min-w-0 flex-1">
                             <svg aria-hidden="true"
-                              class="w-4 h-4 text-slate-400 transition-transform shrink-0"
+                              class="w-4 h-4 text-slate-500 transition-transform shrink-0"
                               [class.rotate-90]="expandedDays().has(day.date)"
                               fill="none"
                               stroke="currentColor"
@@ -112,7 +112,7 @@ interface WeekGroup {
                             </svg>
                             <div class="min-w-0 text-left">
                               <div class="text-xs font-semibold text-slate-900 truncate">{{ day.date | date:'mediumDate' }}</div>
-                              <div class="text-[11px] text-slate-500">{{ day.entries.length }} {{ day.entries.length === 1 ? ('intervals.intervalSingular' | t) : ('intervals.intervalPlural' | t) }}</div>
+                              <div class="text-xs text-slate-500">{{ day.entries.length }} {{ day.entries.length === 1 ? ('intervals.intervalSingular' | t) : ('intervals.intervalPlural' | t) }}</div>
                             </div>
                           </div>
                           <div class="text-sm font-bold font-mono text-indigo-600 shrink-0">
@@ -176,11 +176,11 @@ interface WeekGroup {
                                         {{ entry.title || ('intervals.noTitle' | t) }}
                                       </div>
                                       @if (entry.description) {
-                                        <div class="text-[11px] text-slate-600 truncate">
+                                        <div class="text-xs text-slate-600 truncate">
                                           {{ entry.description }}
                                         </div>
                                       }
-                                      <div class="flex items-center gap-1 text-[11px] text-slate-500 mt-0.5">
+                                      <div class="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
                                         <span>{{ entry.startTime | clockTime }}</span>
                                         <span>→</span>
                                         <span>{{ entry.endTime | clockTime }}</span>
@@ -193,7 +193,7 @@ interface WeekGroup {
                                       <div class="flex gap-0.5">
                                         <button [attr.aria-label]="'intervals.editTitle' | t"
                                           (click)="startEdit(entry)"
-                                          class="p-1 text-indigo-600 hover:bg-indigo-50 rounded transition"
+                                          class="hit-area p-1 text-indigo-600 hover:bg-indigo-50 rounded transition"
                                           [attr.title]="'intervals.editTitle' | t"
                                         >
                                           <svg aria-hidden="true" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -202,7 +202,7 @@ interface WeekGroup {
                                         </button>
                                         <button [attr.aria-label]="'intervals.deleteTitle' | t"
                                           (click)="deleteEntry(entry.id)"
-                                          class="p-1 text-red-600 hover:bg-red-50 rounded transition"
+                                          class="hit-area p-1 text-red-600 hover:bg-red-50 rounded transition"
                                           [attr.title]="'intervals.deleteTitle' | t"
                                         >
                                           <svg aria-hidden="true" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

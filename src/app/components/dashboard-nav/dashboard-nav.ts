@@ -91,13 +91,19 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
     </div>
 
     @if (panelOpen()) {
-      <app-release-notes-panel [releases]="svc.releases()" (close)="closePanel()" />
+      @defer (on immediate) {
+        <app-release-notes-panel [releases]="svc.releases()" (close)="closePanel()" />
+      }
     }
     @if (modalOpen()) {
-      <app-release-notes-modal [releases]="modalReleases()" (close)="closeModal()" />
+      @defer (on immediate) {
+        <app-release-notes-modal [releases]="modalReleases()" (close)="closeModal()" />
+      }
     }
     @if (settingsOpen()) {
-      <app-settings-modal (close)="closeSettings()" />
+      @defer (on immediate) {
+        <app-settings-modal (close)="closeSettings()" />
+      }
     }
     @if (mobileMenuOpen()) {
       <app-mobile-nav-menu (close)="closeMobileMenu()" />

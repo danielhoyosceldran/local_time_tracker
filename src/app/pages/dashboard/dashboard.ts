@@ -97,7 +97,9 @@ import { ViewStateService } from '../../services/view-state.service';
           <!-- Monthly Chart: wide -->
           <div class="tile col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4 min-h-[300px] xl:min-h-0 xl:h-full xl:col-span-4 xl:col-start-2 xl:row-start-4"
                [class.tile--active]="viewState.mobileView() === 'chart'">
-            <app-monthly-chart />
+            @defer (on idle) {
+              <app-monthly-chart />
+            }
           </div>
 
           <!-- Reminder -->

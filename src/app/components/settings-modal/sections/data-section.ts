@@ -41,17 +41,17 @@ import type { TranslationKey } from '../../../i18n/translations/en';
       </div>
 
       @if (status()) {
-        <p class="text-[11px] text-slate-500 pb-2">{{ status() }}</p>
+        <p class="text-xs text-slate-500 pb-2">{{ status() }}</p>
       }
 
       <!-- Cloud sync (optional, via private GitHub Gist) -->
       <div class="mt-4 pt-4 border-t border-slate-100">
         <h4 class="text-xs font-semibold text-slate-700">{{ 'gistSync.sectionTitle' | t }}</h4>
-        <p class="text-[11px] text-slate-500 mt-0.5 mb-3">{{ 'gistSync.sectionHint' | t }}</p>
+        <p class="text-xs text-slate-500 mt-0.5 mb-3">{{ 'gistSync.sectionHint' | t }}</p>
 
         <div class="space-y-2.5">
           <div>
-            <label class="block text-[11px] font-medium text-slate-600 mb-1">{{ 'gistSync.tokenLabel' | t }}</label>
+            <label class="block text-xs font-medium text-slate-600 mb-1">{{ 'gistSync.tokenLabel' | t }}</label>
             <input
               type="password"
               autocomplete="off"
@@ -60,11 +60,11 @@ import type { TranslationKey } from '../../../i18n/translations/en';
               placeholder="ghp_…"
               class="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs"
             />
-            <p class="text-[11px] text-slate-500 mt-1">{{ 'gistSync.tokenHint' | t }}</p>
+            <p class="text-xs text-slate-500 mt-1">{{ 'gistSync.tokenHint' | t }}</p>
           </div>
 
           <div>
-            <label class="block text-[11px] font-medium text-slate-600 mb-1">{{ 'gistSync.gistLabel' | t }}</label>
+            <label class="block text-xs font-medium text-slate-600 mb-1">{{ 'gistSync.gistLabel' | t }}</label>
             <input
               type="text"
               autocomplete="off"
@@ -76,7 +76,7 @@ import type { TranslationKey } from '../../../i18n/translations/en';
           </div>
 
           <div>
-            <label class="block text-[11px] font-medium text-slate-600 mb-1">{{ 'gistSync.fileLabel' | t }}</label>
+            <label class="block text-xs font-medium text-slate-600 mb-1">{{ 'gistSync.fileLabel' | t }}</label>
             <input
               type="text"
               autocomplete="off"
@@ -112,7 +112,7 @@ import type { TranslationKey } from '../../../i18n/translations/en';
         </div>
 
         @if (syncStatus()) {
-          <p class="text-[11px] mt-2" [class.text-red-500]="syncError()" [class.text-slate-500]="!syncError()">
+          <p class="text-xs mt-2" [class.text-red-500]="syncError()" [class.text-slate-500]="!syncError()">
             {{ syncStatus() }}
           </p>
         }
@@ -122,7 +122,7 @@ import type { TranslationKey } from '../../../i18n/translations/en';
            ("upload" / "download") before a destructive sync runs. -->
       @if (confirmAction()) {
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" (click)="cancelConfirm()"></div>
+          <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" aria-hidden="true" (click)="cancelConfirm()"></div>
 
           <div class="relative z-10 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(90vw,380px)] p-6">
             <h2 class="text-base font-bold text-slate-800">{{ 'gistSync.confirmTitle' | t }}</h2>

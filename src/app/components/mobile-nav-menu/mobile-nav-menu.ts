@@ -8,7 +8,7 @@ import { MOBILE_VIEWS, MobileView, ViewStateService } from '../../services/view-
   standalone: true,
   imports: [TranslatePipe],
   template: `
-    <div class="backdrop" (click)="close.emit()"></div>
+    <div class="backdrop" aria-hidden="true" (click)="close.emit()"></div>
     <nav class="drawer" role="dialog" aria-modal="true">
       <div class="drawer-head">
         <span class="drawer-title">{{ 'mobile.views' | t }}</span>
@@ -57,7 +57,7 @@ import { MOBILE_VIEWS, MobileView, ViewStateService } from '../../services/view-
       flex-direction: column;
       background: var(--tt-surface);
       border-right: 1px solid var(--tt-border);
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 10px 40px var(--tt-shadow-drawer);
       animation: slide 0.18s ease-out;
     }
     .drawer-head {

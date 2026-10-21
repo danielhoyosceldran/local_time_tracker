@@ -11,7 +11,7 @@ let nextRowId = 0;
       <div class="min-w-0">
         <div [id]="labelId" class="text-sm text-slate-700">{{ label() }}</div>
         @if (hint()) {
-          <div [id]="hintId" class="text-[11px] text-slate-500 leading-tight mt-0.5">{{ hint() }}</div>
+          <div [id]="hintId" class="text-xs text-slate-500 leading-tight mt-0.5">{{ hint() }}</div>
         }
       </div>
       <div class="shrink-0">
