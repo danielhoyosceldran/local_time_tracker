@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
-import { STORAGE_KEY, TimeEntryService, parseBackup, parseEntries } from './time-entry';
+import { STORAGE_KEY, TimeEntryService, parseBackup, parseEntries, parseImportedEntries } from './time-entry';
 import { normalizeRunningEntry, normalizeTimeEntry } from '../models/time-entry.model';
 
 describe('TimeEntryService', () => {
@@ -47,5 +47,19 @@ describe('backup parsing', () => {
     expect(() => parseBackup(JSON.stringify({ data: { 'tt.timeFormat': {} } }), ['tt.timeFormat'])).toThrow();
     expect(() => parseBackup('{"nope":1}', [STORAGE_KEY])).toThrow();
     expect(() => parseBackup('not json', [STORAGE_KEY])).toThrow();
+  });
+
+  it('skips inconsistent entries from a backup but keeps them when loading storage', () => {
+    const backwards = { ...ok, id: 'b', startTime: 5000, endTime: 1000, duration: 0 };
+    const negative = { ...ok, id: 'c', duration: -1 };
+    expect(parseImportedEntries([ok, backwards, negative]).map(e => e.id)).toEqual(['a']);
+    expect(parseEntries([ok, backwards, negative]).map(e => e.id)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('keeps only the known string fields of startedBy', () => {
+    const origin = { deviceId: 'd1', deviceName: 'PC', browser: 'Chrome' };
+    expect(normalizeTimeEntry({ ...ok, startedBy: { ...origin, extra: { big: 'x' } } })?.startedBy).toEqual(origin);
+    expect(normalizeTimeEntry({ ...ok, startedBy: { deviceName: 'no id' } })?.startedBy).toBeUndefined();
+    expect(normalizeTimeEntry({ ...ok, startedBy: ['d1'] })?.startedBy).toBeUndefined();
   });
 });

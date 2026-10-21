@@ -70,8 +70,15 @@ administración en [supabase/](supabase/README.md).
   que volver a entrar pasa otra vez por la fusión. Lo que quedaba sin subir al
   cerrar sesión se aparca en `tt.cloud.parked` (por usuario) y la fusión del
   siguiente login de ese usuario lo reaplica con la versión local actual.
-- **Filas inválidas:** si Postgres rechaza una fila por sus datos (`isDataError`),
-  sale de la cola a `tt.cloud.rejected` en vez de bloquear el resto.
+- **Filas inválidas:** si Postgres rechaza una fila por sus datos o porque su `id`
+  es de otra cuenta (RLS, `isRowRejection`), sale de la cola a `tt.cloud.rejected`
+  en vez de bloquear el resto. Un 42501 "permission denied" (sin sesión) NO.
+- **Trabajo en vuelo:** `pull`/`flush`/`connect` capturan `epoch` (sube en
+  `deactivate`) y descartan su resultado si cambió: nada escribe en la caché tras
+  cerrar sesión. `signOut` espera al flush en curso.
+- **Validación:** la migración 0003 añade CHECKs (tiempos, longitudes); los
+  tombstones están exentos. El import de backups filtra con `isValidTimeEntry`.
+- **Backup:** `.github/workflows/supabase-backup.yml` (semanal, cifrado con gpg).
 - Un fichaje cerrado nunca vuelve a "en marcha" en la nube (trigger
   `tt_keep_closed`, migración 0002).
 - **CSP:** `vercel.json` solo permite `*.supabase.co` en `connect-src` y scripts

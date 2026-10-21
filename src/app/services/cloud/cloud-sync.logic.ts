@@ -161,6 +161,20 @@ export function isDataError(code: string | undefined): boolean {
   return !!code && (code.startsWith('22') || code === '23502' || code === '23514');
 }
 
+/**
+ * Errors that only concern the row being written, so it can leave the outbox
+ * without blocking the rest: bad data, or an id that already belongs to
+ * another account (e.g. a backup imported from a different user), which RLS
+ * refuses with "new row violates row-level security policy". A missing grant
+ * ("permission denied for table", same code 42501) is NOT included: that
+ * means the request went out without a session and every row would fail.
+ */
+export function isRowRejection(error: { code?: string; message?: string } | null | undefined): boolean {
+  if (!error) return false;
+  if (isDataError(error.code)) return true;
+  return error.code === '42501' && /row-level security/i.test(error.message ?? '');
+}
+
 // --- Merge remote → local ---
 
 export interface LocalState {

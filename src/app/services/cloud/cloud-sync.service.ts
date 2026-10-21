@@ -1,7 +1,7 @@
 // src/app/services/cloud/cloud-sync.service.ts
 import { Injectable, effect, inject, signal, untracked } from '@angular/core';
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
-import { CLOUD_SETTING_KEYS, STORAGE_KEY, TimeEntryService, parseBackup, parseEntries } from '../time-entry';
+import { CLOUD_SETTING_KEYS, STORAGE_KEY, TimeEntryService, parseBackup, parseImportedEntries } from '../time-entry';
 import { DataRefreshService } from '../data-refresh.service';
 import { RunningTimeEntry, TimeEntry } from '../../models/time-entry.model';
 import { CloudAuthService, SchemaCheck } from './cloud-auth.service';
@@ -14,7 +14,7 @@ import {
   SettingRow,
   diffSettings,
   fromRow,
-  isDataError,
+  isRowRejection,
   mergeRemote,
   resolveRunningConflict,
   toRow,
@@ -90,8 +90,16 @@ export class CloudSyncService {
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private pullTimer: ReturnType<typeof setTimeout> | null = null;
   private retryDelay = 5_000;
+  /**
+   * Bumped on every deactivate (sign-out, account switch, reconnect). Async
+   * work captures it before awaiting and drops its result if it changed, so a
+   * request still in flight never writes into a cache that was wiped or now
+   * belongs to someone else.
+   */
+  private epoch = 0;
   private flushing = false;
   private flushAgain = false;
+  private flushRun: Promise<void> | null = null;
   private pulling = false;
   private pullAgain = false;
   private tick = 0;
@@ -141,9 +149,11 @@ export class CloudSyncService {
   }
 
   private async connect(uid: string): Promise<void> {
+    const epoch = this.epoch;
+    const stale = () => epoch !== this.epoch || uid !== this.userId;
     this.state.set('syncing');
     const schema = await this.auth.checkSchema();
-    if (uid !== this.userId) return;
+    if (stale()) return;
     this.schema.set(schema);
 
     const owner = localStorage.getItem(OWNER_KEY);
@@ -170,11 +180,12 @@ export class CloudSyncService {
     }
 
     const client = await this.clients.get();
-    if (!client) return;
+    if (!client || stale()) return;
     const { count, error } = await client
       .from('time_entries')
       .select('id', { count: 'exact', head: true })
       .eq('deleted', false);
+    if (stale()) return;
     if (error) {
       this.state.set('offline');
       this.scheduleRetry();
@@ -227,10 +238,12 @@ export class CloudSyncService {
 
       case 'merge': {
         this.state.set('syncing');
+        const epoch = this.epoch;
         const client = await this.clients.get();
-        if (!client) return;
+        if (!client || epoch !== this.epoch) return;
         try {
           const rows = await this.fetchEntryRows(client, null);
+          if (epoch !== this.epoch) return; // signed out while fetching
           const remoteIds = new Set(rows.map(r => r.id));
           const local = this.time.snapshot();
           const localOnly = local.entries.filter(e => !remoteIds.has(e.id));
@@ -280,11 +293,11 @@ export class CloudSyncService {
   async signOut(opts: { wipeLocal: boolean }): Promise<void> {
     const uid = this.userId;
     if (this.active) {
-      try {
-        await this.flush();
-      } catch {
-        // Best effort; local data is kept unless wiped below.
-      }
+      // Best effort (a failed push keeps its ops in the outbox, parked below).
+      // flush() hands back the run already in flight, and that run may chain
+      // one more pass for changes queued meanwhile: wait for those too.
+      await this.flush();
+      for (let i = 0; i < 3 && this.flushRun; i++) await this.flushRun;
     }
     // Still unpushed (offline): park the entry ops so the first-connection
     // merge of the next login re-applies them instead of letting the cloud
@@ -316,7 +329,7 @@ export class CloudSyncService {
     // Validate everything before the first write (throws on a bad file).
     const updates = parseBackup(json, [...CLOUD_SETTING_KEYS, STORAGE_KEY]);
     const rawEntries = updates[STORAGE_KEY];
-    const entries = rawEntries ? parseEntries(JSON.parse(rawEntries)) : [];
+    const entries = rawEntries ? parseImportedEntries(JSON.parse(rawEntries)) : [];
     for (const key of CLOUD_SETTING_KEYS) {
       if (!(key in updates)) continue;
       const value = updates[key];
@@ -348,6 +361,7 @@ export class CloudSyncService {
   }
 
   private deactivate(): void {
+    this.epoch++;
     this.active = false;
     this.outbox.setEnabled(false);
     this.firstConnection.set(null);
@@ -482,21 +496,28 @@ export class CloudSyncService {
 
   // --- Push ---
 
-  private async flush(): Promise<void> {
-    if (!this.active || !this.userId) return;
+  /** Push the outbox. While a run is in flight, returns that run (and queues one more pass). */
+  private flush(): Promise<void> {
+    if (!this.active || !this.userId) return Promise.resolve();
     if (this.flushing) {
       this.flushAgain = true;
-      return;
+      return this.flushRun ?? Promise.resolve();
     }
     this.flushing = true;
+    this.flushRun = this.runFlush(this.epoch, this.userId);
+    return this.flushRun;
+  }
+
+  private async runFlush(epoch: number, uid: string): Promise<void> {
+    const stale = () => epoch !== this.epoch;
     try {
       const client = await this.clients.get();
-      if (!client) return;
+      if (!client || stale()) return;
       for (let attempt = 0; attempt < 5; attempt++) {
         const sent = this.outbox.read();
-        const rows = Object.values(sent.entries).map(r => ({ ...r, user_id: this.userId }));
+        const rows = Object.values(sent.entries).map(r => ({ ...r, user_id: uid }));
         const settings = Object.entries(sent.settings).map(([key, value]) => ({
-          user_id: this.userId,
+          user_id: uid,
           key,
           value,
         }));
@@ -515,11 +536,11 @@ export class CloudSyncService {
           const chunk = closed.slice(i, i + UPSERT_CHUNK);
           const { error } = await client.from('time_entries').upsert(chunk, { onConflict: 'id' });
           if (!error) continue;
-          if (!isDataError(error.code)) throw error;
+          if (!isRowRejection(error)) throw error;
           // One bad row fails the whole batch: retry one by one to isolate it.
           for (const row of chunk) {
             const { error: rowError } = await client.from('time_entries').upsert(row, { onConflict: 'id' });
-            if (rowError && isDataError(rowError.code)) rejectRow(row, rowError);
+            if (isRowRejection(rowError)) rejectRow(row, rowError!);
             else if (rowError) throw rowError;
           }
         }
@@ -527,14 +548,15 @@ export class CloudSyncService {
         for (const row of live) {
           const { error } = await client.from('time_entries').upsert(row, { onConflict: 'id' });
           if (error?.code === '23505') {
-            await this.resolveRunningConflict(client, row);
+            await this.resolveRunningConflict(client, row, stale);
             conflict = true;
-          } else if (error && isDataError(error.code)) {
-            rejectRow(row, error);
+          } else if (isRowRejection(error)) {
+            rejectRow(row, error!);
           } else if (error) {
             throw error;
           }
         }
+        if (stale()) return;
         if (rejected.length) {
           console.warn('Cloud rejected invalid rows; they were taken out of the queue.', rejected);
           this.outbox.reject(rejected);
@@ -546,6 +568,7 @@ export class CloudSyncService {
             .upsert(settings, { onConflict: 'user_id,key' });
           if (error) throw error;
         }
+        if (stale()) return;
         this.outbox.ack(sent);
       }
       this.lastSyncAt.set(Date.now());
@@ -559,11 +582,13 @@ export class CloudSyncService {
         this.state.set('synced');
       }
     } catch (err) {
+      if (stale()) return;
       console.warn('Cloud push failed; will retry.', err);
       this.state.set(navigator.onLine ? 'error' : 'offline');
       this.scheduleRetry();
     } finally {
       this.flushing = false;
+      this.flushRun = null;
       if (this.flushAgain) {
         this.flushAgain = false;
         void this.flush();
@@ -572,7 +597,11 @@ export class CloudSyncService {
   }
 
   /** Another device has a different timer running: keep the later one. */
-  private async resolveRunningConflict(client: SupabaseClient, localRow: EntryRowPayload): Promise<void> {
+  private async resolveRunningConflict(
+    client: SupabaseClient,
+    localRow: EntryRowPayload,
+    stale: () => boolean,
+  ): Promise<void> {
     const { data, error } = await client
       .from('time_entries')
       .select(ENTRY_COLUMNS)
@@ -581,6 +610,7 @@ export class CloudSyncService {
       .neq('id', localRow.id)
       .maybeSingle();
     if (error) throw error;
+    if (stale()) return;
     const local = this.time.snapshot().running;
     if (!data || !local || local.id !== localRow.id) return;
     const remote = fromRow(data as EntryRow) as RunningTimeEntry;
@@ -597,11 +627,14 @@ export class CloudSyncService {
       return;
     }
     this.pulling = true;
+    const epoch = this.epoch;
+    const stale = () => epoch !== this.epoch;
     try {
       const client = await this.clients.get();
-      if (!client) return;
+      if (!client || stale()) return;
 
       const rows = await this.fetchEntryRows(client, localStorage.getItem(ENTRIES_CURSOR_KEY));
+      if (stale()) return;
       if (rows.length) {
         const merged = mergeRemote(this.time.snapshot(), rows, this.outbox.pendingEntryIds());
         if (merged.changed) this.time.applyRemoteState(merged.entries, merged.running);
@@ -609,14 +642,20 @@ export class CloudSyncService {
       }
 
       const settingRows = await this.fetchSettingRows(client, localStorage.getItem(SETTINGS_CURSOR_KEY));
+      if (stale()) return;
       if (settingRows.length) {
-        if (this.applyRemoteSettings(settingRows)) await this.dataRefresh.refreshAll();
+        // Cursor before the refresh: the refresh awaits, and nothing after it
+        // may write once the session is gone.
+        const changed = this.applyRemoteSettings(settingRows);
         this.saveCursor(SETTINGS_CURSOR_KEY, settingRows);
+        if (changed) await this.dataRefresh.refreshAll();
+        if (stale()) return;
       }
 
       this.lastSyncAt.set(Date.now());
       if (!this.flushing) this.state.set(this.outbox.size() ? 'pending' : 'synced');
     } catch (err) {
+      if (stale()) return;
       console.warn('Cloud pull failed; will retry.', err);
       this.state.set(navigator.onLine ? 'error' : 'offline');
       this.scheduleRetry();

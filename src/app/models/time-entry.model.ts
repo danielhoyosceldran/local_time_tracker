@@ -49,7 +49,7 @@ export function normalizeTimeEntry(value: unknown): TimeEntry | null {
   if (typeof id !== 'string' || !id) return null;
   if (![startTime, endTime, duration].every(n => typeof n === 'number' && Number.isFinite(n))) return null;
   const text = (v: unknown) => (typeof v === 'string' ? v : null);
-  const startedBy = e['startedBy'];
+  const startedBy = normalizeOrigin(e['startedBy']);
   return {
     id,
     title: text(e['title']),
@@ -57,8 +57,18 @@ export function normalizeTimeEntry(value: unknown): TimeEntry | null {
     startTime: Math.round(startTime as number),
     endTime: Math.round(endTime as number),
     duration: Math.round(duration as number),
-    ...(startedBy && typeof startedBy === 'object' ? { startedBy: startedBy as EntryOrigin } : {}),
+    ...(startedBy ? { startedBy } : {}),
   };
+}
+
+/** Keep only the known string fields of an EntryOrigin (it is stored as jsonb in the cloud). */
+function normalizeOrigin(value: unknown): EntryOrigin | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const o = value as Record<string, unknown>;
+  const text = (v: unknown) => (typeof v === 'string' ? v.slice(0, 200) : '');
+  const deviceId = text(o['deviceId']);
+  if (!deviceId) return null;
+  return { deviceId, deviceName: text(o['deviceName']), browser: text(o['browser']) };
 }
 
 /** Same as normalizeTimeEntry, for the running timer. */

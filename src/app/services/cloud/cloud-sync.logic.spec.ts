@@ -9,6 +9,7 @@ import {
   enqueueSettings,
   fromRow,
   isDataError,
+  isRowRejection,
   mergeRemote,
   resolveRunningConflict,
   toRow,
@@ -150,6 +151,23 @@ describe('cloud-sync.logic', () => {
       for (const code of [undefined, '', '23505', '42501', 'PGRST301', '08006']) {
         expect(isDataError(code)).toBeFalse();
       }
+    });
+  });
+
+  describe('isRowRejection', () => {
+    it('rejects data errors and ids owned by another account', () => {
+      expect(isRowRejection({ code: '23514', message: 'check violation' })).toBeTrue();
+      expect(isRowRejection({
+        code: '42501',
+        message: 'new row violates row-level security policy for table "time_entries"',
+      })).toBeTrue();
+    });
+
+    it('keeps missing-grant, auth and transient errors in the queue', () => {
+      expect(isRowRejection(null)).toBeFalse();
+      expect(isRowRejection({ code: '42501', message: 'permission denied for table time_entries' })).toBeFalse();
+      expect(isRowRejection({ code: 'PGRST301', message: 'JWT expired' })).toBeFalse();
+      expect(isRowRejection({ code: '23505', message: 'duplicate key' })).toBeFalse();
     });
   });
 

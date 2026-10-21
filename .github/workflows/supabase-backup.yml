@@ -1,0 +1,68 @@
+# Weekly backup of the Supabase database (the free plan has no backups).
+#
+# The dump is encrypted with a passphrase BEFORE it is uploaded, because
+# workflow artifacts can be downloaded by anyone with read access to the repo
+# (everyone, if it is public). Setup and restore: supabase/README.md.
+#
+# Required repository secrets:
+#   SUPABASE_DB_URL       Session pooler connection string (IPv4), with password.
+#   BACKUP_PASSPHRASE     Long random passphrase used to encrypt the dump.
+name: Supabase backup
+
+on:
+  schedule:
+    - cron: '17 3 * * 1' # Mondays 03:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check secrets
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::Set the SUPABASE_DB_URL and BACKUP_PASSPHRASE repository secrets."
+            exit 1
+          fi
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Dump roles, schema and data
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          mkdir -p backup
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup/roles.sql --role-only
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup/schema.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup/data.sql --use-copy --data-only
+
+      - name: Encrypt
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          name="supabase-$(date -u +%Y-%m-%d).tar.gz.gpg"
+          tar -czf - -C backup . \
+            | gpg --batch --yes --symmetric --cipher-algo AES256 \
+                  --passphrase-fd 3 -o "$name" 3<<<"$BACKUP_PASSPHRASE"
+          rm -rf backup
+          echo "BACKUP_FILE=$name" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BACKUP_FILE }}
+          path: ${{ env.BACKUP_FILE }}
+          retention-days: 90
+          if-no-files-found: error

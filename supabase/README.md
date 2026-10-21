@@ -13,8 +13,8 @@ varias personas. Cada una solo ve sus propios datos (Row Level Security).
 
 1. Crea una cuenta en <https://supabase.com> y un proyecto nuevo. El plan
    gratuito es suficiente; elige una región cercana (p. ej. UE).
-2. Abre **SQL Editor → New query** y pega y ejecuta
-   [`migrations/0001_init.sql`](migrations/0001_init.sql).
+2. Abre **SQL Editor → New query** y pega y ejecuta, en orden, los ficheros de
+   [`migrations/`](migrations/) (`0001_init.sql`, `0002_…`, `0003_…`).
    - El mismo SQL se puede copiar desde la app: *Ajustes → Nube → Copiar SQL
      de instalación*.
    - Con la Supabase CLI también vale `supabase db push`.
@@ -89,9 +89,39 @@ opciones, compatibles entre sí:
   ```
 
   `SUPABASE_DB_URL` es la *connection string* de **Project Settings → Database**.
-  Contiene la contraseña de la base de datos: no la guardes en el repo, y si
-  automatizas el dump (p. ej. con GitHub Actions) no lo subas como artefacto de
-  un repositorio público.
+  Contiene la contraseña de la base de datos: no la guardes en el repo.
+
+### Backup automático semanal (GitHub Actions)
+
+[`.github/workflows/supabase-backup.yml`](../.github/workflows/supabase-backup.yml)
+vuelca roles, esquema y datos cada lunes, los **cifra con una contraseña** y
+los guarda como artefacto del workflow durante 90 días. Se cifra antes de subir
+porque cualquiera con acceso de lectura al repo (todo el mundo, si es público)
+puede descargar los artefactos.
+
+1. En GitHub: **Settings → Secrets and variables → Actions → New repository
+   secret**:
+   - `SUPABASE_DB_URL`: en Supabase, **Connect → Session pooler** (no la
+     *direct connection*: en el plan gratuito es solo IPv6 y los runners de
+     GitHub son IPv4). Sustituye `[YOUR-PASSWORD]` por la contraseña de la base
+     de datos.
+   - `BACKUP_PASSPHRASE`: una contraseña larga y aleatoria. **Guárdala en tu
+     gestor de contraseñas**: sin ella el backup no sirve.
+2. **Actions → Supabase backup → Run workflow** para probarlo una vez.
+
+Restaurar (en tu equipo, con la Supabase CLI y `psql`):
+
+```bash
+gpg --decrypt supabase-AAAA-MM-DD.tar.gz.gpg | tar -xzf - -C restore/
+psql --single-transaction --variable ON_ERROR_STOP=1 --file restore/roles.sql --file restore/schema.sql --command 'SET session_replication_role = replica' --file restore/data.sql --dbname "$NUEVA_DB_URL"
+```
+
+Avisos:
+
+- GitHub **desactiva los workflows programados** de un repo público tras 60
+  días sin commits. Te avisa por email; basta con reactivarlo en *Actions*.
+- El dump incluye el esquema `auth` (emails y hashes de contraseñas): otra
+  razón para que vaya cifrado.
 
 ## Cabeceras de seguridad (Vercel)
 

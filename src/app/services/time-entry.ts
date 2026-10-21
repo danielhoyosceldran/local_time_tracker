@@ -820,7 +820,7 @@ export class TimeEntryService implements OnDestroy {
   importAll(json: string): void {
     const updates = parseBackup(json, KNOWN_STORAGE_KEYS);
     if (STORAGE_KEY in updates && updates[STORAGE_KEY] !== null) {
-      updates[STORAGE_KEY] = JSON.stringify(parseEntries(JSON.parse(updates[STORAGE_KEY])));
+      updates[STORAGE_KEY] = JSON.stringify(parseImportedEntries(JSON.parse(updates[STORAGE_KEY])));
     }
     if (RUNNING_KEY in updates && updates[RUNNING_KEY] !== null) {
       const running = normalizeRunningEntry(JSON.parse(updates[RUNNING_KEY]));
@@ -851,6 +851,21 @@ export function parseEntries(value: unknown): TimeEntry[] {
     console.warn(`Skipped ${value.length - out.length} unusable time entr(y/ies).`);
   }
   return out;
+}
+
+/**
+ * Entries from a backup file: repaired like parseEntries, and then entries
+ * that are inconsistent (end before start, negative duration) are skipped, so
+ * a hand-edited file cannot skew the totals or reach the cloud. Stored data
+ * keeps the lenient parseEntries: dropping it on load would lose it for good.
+ */
+export function parseImportedEntries(value: unknown): TimeEntry[] {
+  const repaired = parseEntries(value);
+  const valid = repaired.filter(isValidTimeEntry);
+  if (valid.length < repaired.length) {
+    console.warn(`Skipped ${repaired.length - valid.length} inconsistent time entr(y/ies) from the backup.`);
+  }
+  return valid;
 }
 
 /**
