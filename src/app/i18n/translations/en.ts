@@ -316,6 +316,7 @@ export const en = {
   'agenda.modalTitle': 'Calendar Settings',
   'agenda.urlLabel': 'Google Calendar Embed URL',
   'agenda.urlPlaceholder': 'https://calendar.google.com/...',
+  'agenda.invalidUrl': 'Enter an https:// address (e.g. the Google Calendar embed URL).',
 
   // Data section extras
   'data.exportBtn': 'Export',
@@ -405,6 +406,8 @@ export const en = {
   'cloud.noSignUpHint': 'Accounts are created by the project admin; you can\'t sign up from the app.',
   'cloud.lastSync': 'Last sync {time}',
   'cloud.pendingCount': '{n} change(s) waiting',
+  'cloud.rejectedCount': '{n} entry(ies) rejected by the server (invalid data); kept on this device only.',
+  'cloud.rejectedDismiss': 'Dismiss',
   'cloud.schemaMissing': 'This project has no Time Tracker tables yet. Copy the install SQL, run it in the Supabase SQL editor and retry.',
   'cloud.schemaOutdated': 'The database needs an update for this version of the app. Copy the SQL, run it in the Supabase SQL editor and retry.',
   'cloud.schemaNewer': 'The database is newer than this app. Reload the page to get the latest version.',

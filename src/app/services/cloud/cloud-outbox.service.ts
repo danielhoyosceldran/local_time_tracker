@@ -12,6 +12,16 @@ import {
 } from './cloud-sync.logic';
 
 const OUTBOX_KEY = 'tt.cloud.outbox';
+/** Rows the server refused because of their data (device-local, diagnostic). */
+const REJECTED_KEY = 'tt.cloud.rejected';
+const MAX_REJECTED = 200;
+
+export interface RejectedRow {
+  row: EntryRowPayload;
+  code: string;
+  message: string;
+  at: number;
+}
 
 /**
  * Persistent queue of local changes waiting to be pushed. It has no other
@@ -28,6 +38,9 @@ export class CloudOutboxService {
 
   private _size = signal(outboxSize(this.read()));
   readonly size = this._size.asReadonly();
+
+  private _rejectedCount = signal(this.readRejected().length);
+  readonly rejectedCount = this._rejectedCount.asReadonly();
 
   /** Emits whenever something is enqueued (CloudSyncService schedules a push). */
   readonly changed$ = new Subject<void>();
@@ -72,6 +85,36 @@ export class CloudOutboxService {
     this.write(ackOutbox(this.read(), sent), false);
   }
 
+  /**
+   * Take rows the server will never accept out of the queue (so they stop
+   * blocking the rest) and keep them aside for inspection. The local entries
+   * themselves are untouched.
+   */
+  reject(rejected: { row: EntryRowPayload; code: string; message: string }[]): void {
+    if (!rejected.length) return;
+    const entries: Record<string, EntryRowPayload> = {};
+    for (const r of rejected) entries[r.row.id] = r.row;
+    this.write(ackOutbox(this.read(), { entries, settings: {} }), false);
+    const at = Date.now();
+    const list = [...this.readRejected(), ...rejected.map(r => ({ ...r, at }))].slice(-MAX_REJECTED);
+    localStorage.setItem(REJECTED_KEY, JSON.stringify(list));
+    this._rejectedCount.set(list.length);
+  }
+
+  readRejected(): RejectedRow[] {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(REJECTED_KEY) ?? '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  clearRejected(): void {
+    localStorage.removeItem(REJECTED_KEY);
+    this._rejectedCount.set(0);
+  }
+
   pendingEntryIds(): Set<string> {
     return new Set(Object.keys(this.read().entries));
   }
@@ -79,6 +122,7 @@ export class CloudOutboxService {
   clear(): void {
     localStorage.removeItem(OUTBOX_KEY);
     this._size.set(0);
+    this.clearRejected();
   }
 
   private write(outbox: Outbox, notify = true): void {

@@ -2,7 +2,7 @@
 import { Injectable, OnDestroy, inject } from '@angular/core';
 import { BehaviorSubject, Observable, Subscription, combineLatest, interval, switchMap, map, of } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
-import { TimeEntry, RunningTimeEntry, DailySummary, WeeklySummary, DayGroup, GlobalBalance } from '../models/time-entry.model';
+import { TimeEntry, RunningTimeEntry, DailySummary, WeeklySummary, DayGroup, GlobalBalance, isValidTimeEntry } from '../models/time-entry.model';
 import { take, tap } from 'rxjs';
 import { HolidayDatesService } from './holiday-dates.service';
 import { SettingsService } from './settings.service';
@@ -291,7 +291,7 @@ export class TimeEntryService implements OnDestroy {
   mergeEntries(incoming: TimeEntry[]): void {
     const byId = new Map(this._entries$$.getValue().map(e => [e.id, e]));
     for (const e of incoming) {
-      if (e && typeof e.id === 'string' && typeof e.endTime === 'number') byId.set(e.id, e);
+      if (isValidTimeEntry(e)) byId.set(e.id, e);
     }
     this.saveEntries(Array.from(byId.values()).sort((a, b) => b.startTime - a.startTime));
   }

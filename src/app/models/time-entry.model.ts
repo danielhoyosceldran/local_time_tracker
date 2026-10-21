@@ -36,6 +36,27 @@ export function isRunningEntry(entry: TimeEntry | RunningTimeEntry): entry is Ru
   return entry.endTime === null;
 }
 
+/**
+ * Shape check for a completed entry coming from outside (a backup file). The
+ * cloud stores times as bigint epoch ms, so anything non-integer would be
+ * rejected by Postgres and must never reach the outbox.
+ */
+export function isValidTimeEntry(value: unknown): value is TimeEntry {
+  if (!value || typeof value !== 'object') return false;
+  const e = value as Record<string, unknown>;
+  const optionalText = (v: unknown) => v === undefined || v === null || typeof v === 'string';
+  return (
+    typeof e['id'] === 'string' && e['id'].length > 0 &&
+    Number.isSafeInteger(e['startTime']) &&
+    Number.isSafeInteger(e['endTime']) &&
+    Number.isSafeInteger(e['duration']) &&
+    (e['endTime'] as number) >= (e['startTime'] as number) &&
+    (e['duration'] as number) >= 0 &&
+    optionalText(e['title']) &&
+    optionalText(e['description'])
+  );
+}
+
 export interface DailySummary {
   date: string; // Format 'YYYY-MM-DD'
   totalDurationMs: number;

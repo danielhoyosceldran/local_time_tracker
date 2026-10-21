@@ -318,6 +318,7 @@ export const ca: Record<TranslationKey, string> = {
   'agenda.modalTitle': 'Configuració del calendari',
   'agenda.urlLabel': 'URL d\'inserció de Google Calendar',
   'agenda.urlPlaceholder': 'https://calendar.google.com/...',
+  'agenda.invalidUrl': 'Introdueix una adreça https:// (p. ex. la URL d’inserció de Google Calendar).',
 
   // Data section extras
   'data.exportBtn': 'Exportar',
@@ -407,6 +408,8 @@ export const ca: Record<TranslationKey, string> = {
   'cloud.noSignUpHint': 'Els comptes els crea l\'administrador del projecte; no és possible registrar-se des de l\'app.',
   'cloud.lastSync': 'Última sincronització {time}',
   'cloud.pendingCount': '{n} canvi(s) pendent(s)',
+  'cloud.rejectedCount': '{n} fitxatge(s) rebutjat(s) pel servidor (dades no vàlides); només es conserven en aquest dispositiu.',
+  'cloud.rejectedDismiss': 'Descarta l’avís',
   'cloud.schemaMissing': 'Aquest projecte encara no té les taules de Time Tracker. Copia l\'SQL d\'instal·lació, executa\'l a l\'SQL Editor de Supabase i torna-ho a provar.',
   'cloud.schemaOutdated': 'La base de dades necessita una actualització per a aquesta versió de l\'app. Copia l\'SQL, executa\'l a l\'SQL Editor de Supabase i torna-ho a provar.',
   'cloud.schemaNewer': 'La base de dades és més nova que aquesta app. Recarrega la pàgina per obtenir l\'última versió.',

@@ -2,6 +2,19 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
+/**
+ * The calendar URL ends up in an iframe `src` with Angular's sanitizer
+ * bypassed, and it can arrive from a backup or from the cloud. Only `https:`
+ * is allowed: `javascript:`/`data:` would run in this app's origin.
+ */
+export function isSafeCalendarUrl(url: string): boolean {
+  try {
+    return new URL(url).protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -12,12 +25,17 @@ export class CalendarSettingsService {
   public readonly calendarUrl$ = this._calendarUrl$$.asObservable();
 
   private load(): string {
-    return localStorage.getItem(this.STORAGE_KEY) || '';
+    const url = localStorage.getItem(this.STORAGE_KEY) || '';
+    return isSafeCalendarUrl(url) ? url : '';
   }
 
-  save(url: string): void {
-    localStorage.setItem(this.STORAGE_KEY, url);
-    this._calendarUrl$$.next(url);
+  /** Persist the URL (empty clears it). Returns false if it is not a safe https URL. */
+  save(url: string): boolean {
+    const trimmed = url.trim();
+    if (trimmed && !isSafeCalendarUrl(trimmed)) return false;
+    localStorage.setItem(this.STORAGE_KEY, trimmed);
+    this._calendarUrl$$.next(trimmed);
+    return true;
   }
 
   reloadFromStorage(): void {

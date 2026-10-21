@@ -13,6 +13,7 @@ import {
   SettingRow,
   diffSettings,
   fromRow,
+  isDataError,
   mergeRemote,
   resolveRunningConflict,
   toRow,
@@ -444,11 +445,21 @@ export class CloudSyncService {
         // one starts, or the one-running-per-user index rejects the batch.
         const closed = rows.filter(r => r.deleted || r.end_time !== null);
         const live = rows.filter(r => !r.deleted && r.end_time === null);
+        const rejected: Parameters<CloudOutboxService['reject']>[0] = [];
+        const rejectRow = (row: { id: string }, error: { code: string; message: string }) =>
+          rejected.push({ row: sent.entries[row.id], code: error.code, message: error.message });
+
         for (let i = 0; i < closed.length; i += UPSERT_CHUNK) {
-          const { error } = await client
-            .from('time_entries')
-            .upsert(closed.slice(i, i + UPSERT_CHUNK), { onConflict: 'id' });
-          if (error) throw error;
+          const chunk = closed.slice(i, i + UPSERT_CHUNK);
+          const { error } = await client.from('time_entries').upsert(chunk, { onConflict: 'id' });
+          if (!error) continue;
+          if (!isDataError(error.code)) throw error;
+          // One bad row fails the whole batch: retry one by one to isolate it.
+          for (const row of chunk) {
+            const { error: rowError } = await client.from('time_entries').upsert(row, { onConflict: 'id' });
+            if (rowError && isDataError(rowError.code)) rejectRow(row, rowError);
+            else if (rowError) throw rowError;
+          }
         }
         let conflict = false;
         for (const row of live) {
@@ -456,9 +467,15 @@ export class CloudSyncService {
           if (error?.code === '23505') {
             await this.resolveRunningConflict(client, row);
             conflict = true;
+          } else if (error && isDataError(error.code)) {
+            rejectRow(row, error);
           } else if (error) {
             throw error;
           }
+        }
+        if (rejected.length) {
+          console.warn('Cloud rejected invalid rows; they were taken out of the queue.', rejected);
+          this.outbox.reject(rejected);
         }
         if (conflict) continue; // the resolution re-queued rows; push them next round
         if (settings.length) {

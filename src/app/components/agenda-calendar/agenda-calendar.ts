@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { CalendarSettingsService } from '../../services/calendar-settings.service';
+import { CalendarSettingsService, isSafeCalendarUrl } from '../../services/calendar-settings.service';
 import { map, Observable } from 'rxjs';
 import { TranslatePipe } from '../../i18n/translate.pipe';
 
@@ -20,6 +20,7 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
         @if (calendarUrl$ | async; as url) {
           <iframe
             [src]="url"
+            sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"
             class="flex-1 w-full border-0 rounded-lg"
             [attr.title]="'agenda.title' | t"
           ></iframe>
@@ -55,7 +56,11 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
               [(ngModel)]="editingUrl"
               [placeholder]="'agenda.urlPlaceholder' | t"
               class="w-full border border-slate-300 rounded-lg px-3 py-2 mb-4 text-sm"
+              [attr.aria-invalid]="urlError()"
             />
+            @if (urlError()) {
+              <p class="-mt-3 mb-4 text-xs text-red-600" role="alert">{{ 'agenda.invalidUrl' | t }}</p>
+            }
             <div class="flex gap-2 justify-end">
               <button
                 (click)="showSettings.set(false)"
@@ -83,9 +88,11 @@ export class AgendaCalendarComponent {
   isCollapsed = signal(false);
   showSettings = signal(false);
   editingUrl = signal('');
+  urlError = signal(false);
 
   calendarUrl$: Observable<SafeResourceUrl | null> = this.calendarSettings.calendarUrl$.pipe(
-    map(url => url ? this.sanitizer.bypassSecurityTrustResourceUrl(url) : null)
+    // Re-checked here: this is the only place the sanitizer is bypassed.
+    map(url => url && isSafeCalendarUrl(url) ? this.sanitizer.bypassSecurityTrustResourceUrl(url) : null)
   );
 
   toggleCollapse(): void {
@@ -95,12 +102,16 @@ export class AgendaCalendarComponent {
   openSettings(): void {
     this.calendarSettings.calendarUrl$.subscribe(url => {
       this.editingUrl.set(url);
+      this.urlError.set(false);
       this.showSettings.set(true);
     }).unsubscribe();
   }
 
   saveSettings(): void {
-    this.calendarSettings.save(this.editingUrl());
+    if (!this.calendarSettings.save(this.editingUrl())) {
+      this.urlError.set(true);
+      return;
+    }
     this.showSettings.set(false);
   }
 }

@@ -1,4 +1,4 @@
-import { RunningTimeEntry, TimeEntry } from '../../models/time-entry.model';
+import { RunningTimeEntry, TimeEntry, isValidTimeEntry } from '../../models/time-entry.model';
 import {
   EntryRow,
   ackOutbox,
@@ -8,6 +8,7 @@ import {
   enqueueEntries,
   enqueueSettings,
   fromRow,
+  isDataError,
   mergeRemote,
   resolveRunningConflict,
   toRow,
@@ -138,6 +139,40 @@ describe('cloud-sync.logic', () => {
     it('reports changed, added and removed keys', () => {
       const changes = diffSettings({ a: '1', b: '2', c: null }, { a: '1', b: 'old', c: 'gone' });
       expect(changes).toEqual({ b: '2', c: null });
+    });
+  });
+  describe('isDataError', () => {
+    it('flags errors caused by the row itself', () => {
+      for (const code of ['22P02', '22003', '23502', '23514']) expect(isDataError(code)).toBeTrue();
+    });
+
+    it('does not flag transient, auth or conflict errors', () => {
+      for (const code of [undefined, '', '23505', '42501', 'PGRST301', '08006']) {
+        expect(isDataError(code)).toBeFalse();
+      }
+    });
+  });
+
+  describe('isValidTimeEntry', () => {
+    it('accepts a well-formed completed entry', () => {
+      expect(isValidTimeEntry(entry('a', 1000, 5000, 'x'))).toBeTrue();
+    });
+
+    it('rejects shapes the cloud would refuse', () => {
+      const ok = entry('a', 1000, 5000);
+      const bad: unknown[] = [
+        null,
+        'a',
+        { ...ok, id: '' },
+        { ...ok, startTime: '1000' },
+        { ...ok, startTime: 1000.5 },
+        { ...ok, endTime: null },
+        { ...ok, endTime: 500 },
+        { ...ok, duration: -1 },
+        { ...ok, duration: NaN },
+        { ...ok, title: 42 },
+      ];
+      for (const value of bad) expect(isValidTimeEntry(value)).withContext(JSON.stringify(value)).toBeFalse();
     });
   });
 });

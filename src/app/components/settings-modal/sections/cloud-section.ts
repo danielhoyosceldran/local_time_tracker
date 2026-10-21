@@ -126,6 +126,12 @@ const AUTH_ERROR_KEYS: Record<CloudAuthError, TranslationKey> = {
                 @if (outbox.size() > 0) {
                   <div class="text-xs text-slate-500">{{ 'cloud.pendingCount' | t: { n: outbox.size() } }}</div>
                 }
+                @if (outbox.rejectedCount() > 0) {
+                  <div class="text-xs text-amber-700">
+                    {{ 'cloud.rejectedCount' | t: { n: outbox.rejectedCount() } }}
+                    <button type="button" (click)="outbox.clearRejected()" class="underline hover:no-underline">{{ 'cloud.rejectedDismiss' | t }}</button>
+                  </div>
+                }
               </div>
             </div>
 

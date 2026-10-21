@@ -152,6 +152,15 @@ export function ackOutbox(current: Outbox, sent: Outbox): Outbox {
   return { entries, settings };
 }
 
+/**
+ * Postgres errors caused by the row's own data (bad type, NOT NULL, CHECK).
+ * Retrying such a row can never succeed, so it must leave the outbox instead
+ * of blocking every later change. Network/auth errors are not in this set.
+ */
+export function isDataError(code: string | undefined): boolean {
+  return !!code && (code.startsWith('22') || code === '23502' || code === '23514');
+}
+
 // --- Merge remote → local ---
 
 export interface LocalState {
