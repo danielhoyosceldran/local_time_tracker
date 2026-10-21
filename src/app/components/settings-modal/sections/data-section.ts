@@ -7,6 +7,14 @@ import { SettingsSectionComponent } from '../shared/section';
 import { TranslatePipe } from '../../../i18n/translate.pipe';
 import { TranslationService } from '../../../i18n';
 
+/**
+ * When this device last exported a backup. Device-local (like tt.deviceId):
+ * not a preference, so it is NOT in KNOWN_STORAGE_KEYS and never synced.
+ */
+const LAST_EXPORT_KEY = 'tt.lastExportAt';
+/** The free Supabase plan has no automatic backups: nudge after this long. */
+const BACKUP_STALE_MS = 30 * 24 * 60 * 60 * 1000;
+
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-data-section',
@@ -40,6 +48,17 @@ import { TranslationService } from '../../../i18n';
         >{{ 'data.resetBtn' | t }}</button>
       </div>
 
+      <p class="text-xs pb-2" [class]="backupStale() ? 'text-amber-700' : 'text-slate-500'">
+        @if (lastExportAt(); as at) {
+          {{ 'data.lastExport' | t: { date: formatDate(at) } }}
+        } @else {
+          {{ 'data.lastExportNever' | t }}
+        }
+        @if (backupStale()) {
+          {{ 'data.backupReminder' | t }}
+        }
+      </p>
+
       @if (signedIn()) {
         <p class="text-xs text-slate-500 pb-2">{{ 'data.cloudHint' | t }}</p>
       }
@@ -58,6 +77,11 @@ export class DataSectionComponent {
   private cloudSync = inject(CloudSyncService);
 
   status = signal<string>('');
+  lastExportAt = signal<number | null>(readLastExport());
+  backupStale = computed(() => {
+    const at = this.lastExportAt();
+    return at === null || Date.now() - at > BACKUP_STALE_MS;
+  });
   /** With a cloud session, import merges into the account and reset is blocked. */
   signedIn = computed(() => this.auth.status() === 'signedIn');
 
@@ -70,6 +94,9 @@ export class DataSectionComponent {
     a.download = `time-tracker-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    const now = Date.now();
+    localStorage.setItem(LAST_EXPORT_KEY, String(now));
+    this.lastExportAt.set(now);
     this.status.set(this.translation.t('data.exported'));
   }
 
@@ -108,7 +135,16 @@ export class DataSectionComponent {
     this.status.set(this.translation.t('data.resetDone'));
   }
 
+  formatDate(at: number): string {
+    return new Date(at).toLocaleDateString(this.translation.language());
+  }
+
   private async refreshAll(): Promise<void> {
     await this.dataRefresh.refreshAll();
   }
+}
+
+function readLastExport(): number | null {
+  const at = Number(localStorage.getItem(LAST_EXPORT_KEY));
+  return Number.isFinite(at) && at > 0 ? at : null;
 }

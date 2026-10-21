@@ -1,14 +1,16 @@
 // src/app/services/cloud/cloud-schema.ts
 import migration0001 from '../../../../supabase/migrations/0001_init.sql';
+import migration0002 from '../../../../supabase/migrations/0002_keep_closed_entries.sql';
 
 /**
  * Schema version this build expects (`public.schema_version()`). Bump it with
  * every new file in supabase/migrations and register the file below.
  */
-export const CLOUD_SCHEMA_VERSION = 1;
+export const CLOUD_SCHEMA_VERSION = 2;
 
 export const CLOUD_MIGRATIONS: ReadonlyArray<{ version: number; sql: string }> = [
   { version: 1, sql: migration0001 },
+  { version: 2, sql: migration0002 },
 ];
 
 /** SQL needed to bring a database at `fromVersion` up to date (0 = fresh install). */

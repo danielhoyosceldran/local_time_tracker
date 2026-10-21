@@ -39,9 +39,10 @@ tema, antigüedad y sus felicitaciones…).
 del gráfico (`monthlyChart.period`), el seguimiento de release notes
 (`release-notes-*`) y el estado en memoria de pestañas.
 
-**Claves locales del dispositivo (nunca en backup ni en la nube):** `tt.deviceId`
-y todo `tt.cloud.*` (config del proyecto, sesión, outbox, cursores, sombra y
-dueño de la caché). `timeTrackerPomodoroState` sí va en el backup, pero no a la
+**Claves locales del dispositivo (nunca en backup ni en la nube):** `tt.deviceId`,
+`tt.lastExportAt` (fecha del último export, para el aviso de backup) y todo
+`tt.cloud.*` (config del proyecto, sesión, outbox, filas rechazadas, operaciones
+aparcadas al cerrar sesión, cursores, sombra y dueño de la caché). `timeTrackerPomodoroState` sí va en el backup, pero no a la
 nube (es estado en ejecución).
 
 ## Sync con Supabase
@@ -66,7 +67,15 @@ administración en [supabase/](supabase/README.md).
   más antiguo se cierra cuando empezó el otro (`resolveRunningConflict`).
 - **Primera conexión** de un dispositivo con datos: subir, fusionar o (si son de
   otra cuenta, `tt.cloud.ownerUserId`) borrar. Logout limpia la vinculación, así
-  que volver a entrar pasa otra vez por la fusión.
+  que volver a entrar pasa otra vez por la fusión. Lo que quedaba sin subir al
+  cerrar sesión se aparca en `tt.cloud.parked` (por usuario) y la fusión del
+  siguiente login de ese usuario lo reaplica con la versión local actual.
+- **Filas inválidas:** si Postgres rechaza una fila por sus datos (`isDataError`),
+  sale de la cola a `tt.cloud.rejected` en vez de bloquear el resto.
+- Un fichaje cerrado nunca vuelve a "en marcha" en la nube (trigger
+  `tt_keep_closed`, migración 0002).
+- **CSP:** `vercel.json` solo permite `*.supabase.co` en `connect-src` y scripts
+  de `'self'` (nada de `<script>` inline ni `onload=` en `index.html`).
 - Con sesión: **reset deshabilitado** e **import = merge** hacia la cuenta.
 - **Migraciones:** cada cambio de esquema es un nuevo `supabase/migrations/000N_*.sql`
   que sube `public.schema_version()`; registra el fichero en

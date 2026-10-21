@@ -73,6 +73,32 @@ Supabase pausa los proyectos gratuitos tras **7 días sin actividad**. Si pasa:
 - Entra en el dashboard y pulsa **Restore project**. Al volver, la app sube lo
   pendiente automáticamente.
 
+## Copias de seguridad (plan gratuito)
+
+El plan gratuito **no hace backups automáticos** de la base de datos. Dos
+opciones, compatibles entre sí:
+
+- **Desde la app:** *Ajustes → Datos → Exportar* descarga un JSON con todos los
+  fichajes y ajustes. La sección muestra cuándo exportaste por última vez desde
+  ese dispositivo y avisa si han pasado más de 30 días.
+- **Desde la base de datos** (copia completa, con la
+  [Supabase CLI](https://supabase.com/docs/guides/cli)):
+
+  ```bash
+  supabase db dump --db-url "$SUPABASE_DB_URL" --data-only -f backup.sql
+  ```
+
+  `SUPABASE_DB_URL` es la *connection string* de **Project Settings → Database**.
+  Contiene la contraseña de la base de datos: no la guardes en el repo, y si
+  automatizas el dump (p. ej. con GitHub Actions) no lo subas como artefacto de
+  un repositorio público.
+
+## Cabeceras de seguridad (Vercel)
+
+`vercel.json` define una CSP que solo permite conexiones a `https://*.supabase.co`
+y `wss://*.supabase.co`. Si usas un dominio propio para Supabase, añádelo a
+`connect-src` o el login y la sincronización fallarán.
+
 ## Mantenimiento opcional
 
 Los borrados se guardan como *tombstones* (`deleted = true`) para propagarse al

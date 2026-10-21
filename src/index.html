@@ -17,16 +17,7 @@
 </head>
 <body>
   <app-root></app-root>
-  <script>
-    // Register the minimal service worker so the app is installable.
-    // It performs no caching, so the app still requires an internet connection.
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function () {
-        navigator.serviceWorker.register('sw.js').catch(function (err) {
-          console.error('SW registration failed:', err);
-        });
-      });
-    }
-  </script>
+  <!-- External file, not inline: the CSP in vercel.json allows only 'self' scripts. -->
+  <script src="sw-register.js"></script>
 </body>
 </html>

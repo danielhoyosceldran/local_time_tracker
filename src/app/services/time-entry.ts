@@ -2,7 +2,10 @@
 import { Injectable, OnDestroy, inject } from '@angular/core';
 import { BehaviorSubject, Observable, Subscription, combineLatest, interval, switchMap, map, of } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
-import { TimeEntry, RunningTimeEntry, DailySummary, WeeklySummary, DayGroup, GlobalBalance, isValidTimeEntry } from '../models/time-entry.model';
+import {
+  TimeEntry, RunningTimeEntry, DailySummary, WeeklySummary, DayGroup, GlobalBalance,
+  isValidTimeEntry, normalizeRunningEntry, normalizeTimeEntry,
+} from '../models/time-entry.model';
 import { take, tap } from 'rxjs';
 import { HolidayDatesService } from './holiday-dates.service';
 import { SettingsService } from './settings.service';
@@ -216,11 +219,12 @@ export class TimeEntryService implements OnDestroy {
   // --- LocalStorage Persistence ---
 
   // Corrupt/truncated JSON must not stop the app from booting: degrade to empty.
+  // Unusable items (null, missing times…) are skipped instead of crashing the
+  // summaries on every start.
   private loadEntries(): TimeEntry[] {
     try {
       const data = localStorage.getItem(STORAGE_KEY);
-      const parsed = data ? JSON.parse(data) : [];
-      return Array.isArray(parsed) ? parsed : [];
+      return parseEntries(data ? JSON.parse(data) : []);
     } catch (err) {
       console.error('Could not read stored entries; starting empty.', err);
       return [];
@@ -243,7 +247,7 @@ export class TimeEntryService implements OnDestroy {
   private loadRunningEntry(): RunningTimeEntry | null {
     try {
       const data = localStorage.getItem(RUNNING_KEY);
-      return data ? JSON.parse(data) : null;
+      return data ? normalizeRunningEntry(JSON.parse(data)) : null;
     } catch (err) {
       console.error('Could not read the running entry; ignoring it.', err);
       return null;
@@ -290,8 +294,9 @@ export class TimeEntryService implements OnDestroy {
    */
   mergeEntries(incoming: TimeEntry[]): void {
     const byId = new Map(this._entries$$.getValue().map(e => [e.id, e]));
-    for (const e of incoming) {
-      if (isValidTimeEntry(e)) byId.set(e.id, e);
+    for (const raw of incoming) {
+      const e = normalizeTimeEntry(raw);
+      if (e && isValidTimeEntry(e)) byId.set(e.id, e);
     }
     this.saveEntries(Array.from(byId.values()).sort((a, b) => b.startTime - a.startTime));
   }
@@ -806,18 +811,24 @@ export class TimeEntryService implements OnDestroy {
     return JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), data }, null, 2);
   }
 
+  /**
+   * Replace local data with a backup. Everything is validated before the first
+   * write, so a bad file either fails as a whole or imports cleanly: entries
+   * are repaired/filtered, the running timer is dropped if unusable, and
+   * settings must be strings (what exportAll writes).
+   */
   importAll(json: string): void {
-    const parsed = JSON.parse(json);
-    const data = parsed?.data;
-    if (!data || typeof data !== 'object') {
-      throw new Error('Invalid file shape');
+    const updates = parseBackup(json, KNOWN_STORAGE_KEYS);
+    if (STORAGE_KEY in updates && updates[STORAGE_KEY] !== null) {
+      updates[STORAGE_KEY] = JSON.stringify(parseEntries(JSON.parse(updates[STORAGE_KEY])));
     }
-    for (const key of KNOWN_STORAGE_KEYS) {
-      if (key in data) {
-        const value = data[key];
-        if (value === null) localStorage.removeItem(key);
-        else localStorage.setItem(key, String(value));
-      }
+    if (RUNNING_KEY in updates && updates[RUNNING_KEY] !== null) {
+      const running = normalizeRunningEntry(JSON.parse(updates[RUNNING_KEY]));
+      updates[RUNNING_KEY] = running ? JSON.stringify(running) : null;
+    }
+    for (const [key, value] of Object.entries(updates)) {
+      if (value === null) localStorage.removeItem(key);
+      else localStorage.setItem(key, value);
     }
   }
 
@@ -826,4 +837,40 @@ export class TimeEntryService implements OnDestroy {
       localStorage.removeItem(key);
     }
   }
+}
+
+/** Entries from storage or a backup: repaired where possible, unusable items skipped. */
+export function parseEntries(value: unknown): TimeEntry[] {
+  if (!Array.isArray(value)) throw new Error('Entries must be an array');
+  const out: TimeEntry[] = [];
+  for (const item of value) {
+    const e = normalizeTimeEntry(item);
+    if (e) out.push(e);
+  }
+  if (out.length < value.length) {
+    console.warn(`Skipped ${value.length - out.length} unusable time entr(y/ies).`);
+  }
+  return out;
+}
+
+/**
+ * Parse an exportAll() file into `key -> value` for the given keys, without
+ * writing anything. Throws if the file is not a backup or a value is not a
+ * string/null (numbers and booleans from hand-edited files are accepted).
+ */
+export function parseBackup(json: string, keys: readonly string[]): Record<string, string | null> {
+  const parsed = JSON.parse(json);
+  const data = parsed?.data;
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new Error('Invalid file shape');
+  }
+  const out: Record<string, string | null> = {};
+  for (const key of keys) {
+    if (!(key in data)) continue;
+    const value = data[key];
+    if (value === null || typeof value === 'string') out[key] = value;
+    else if (typeof value === 'number' || typeof value === 'boolean') out[key] = String(value);
+    else throw new Error(`Invalid value for ${key}`);
+  }
+  return out;
 }

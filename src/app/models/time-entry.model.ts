@@ -37,6 +37,40 @@ export function isRunningEntry(entry: TimeEntry | RunningTimeEntry): entry is Ru
 }
 
 /**
+ * Best-effort repair of a stored/imported completed entry: keeps anything
+ * usable (rounding times to whole ms, coercing text fields) and returns null
+ * only for items the app cannot render at all. Never drops data that merely
+ * looks unusual, so a legacy backup still loads.
+ */
+export function normalizeTimeEntry(value: unknown): TimeEntry | null {
+  if (!value || typeof value !== 'object') return null;
+  const e = value as Record<string, unknown>;
+  const { id, startTime, endTime, duration } = e;
+  if (typeof id !== 'string' || !id) return null;
+  if (![startTime, endTime, duration].every(n => typeof n === 'number' && Number.isFinite(n))) return null;
+  const text = (v: unknown) => (typeof v === 'string' ? v : null);
+  const startedBy = e['startedBy'];
+  return {
+    id,
+    title: text(e['title']),
+    description: text(e['description']),
+    startTime: Math.round(startTime as number),
+    endTime: Math.round(endTime as number),
+    duration: Math.round(duration as number),
+    ...(startedBy && typeof startedBy === 'object' ? { startedBy: startedBy as EntryOrigin } : {}),
+  };
+}
+
+/** Same as normalizeTimeEntry, for the running timer. */
+export function normalizeRunningEntry(value: unknown): RunningTimeEntry | null {
+  if (!value || typeof value !== 'object') return null;
+  const e = value as Record<string, unknown>;
+  const fixed = normalizeTimeEntry({ ...e, endTime: 0, duration: 0 });
+  if (!fixed) return null;
+  return { ...fixed, endTime: null, duration: 0 };
+}
+
+/**
  * Shape check for a completed entry coming from outside (a backup file). The
  * cloud stores times as bigint epoch ms, so anything non-integer would be
  * rejected by Postgres and must never reach the outbox.

@@ -1,7 +1,7 @@
 // src/app/services/cloud/cloud-sync.service.ts
 import { Injectable, effect, inject, signal, untracked } from '@angular/core';
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
-import { CLOUD_SETTING_KEYS, STORAGE_KEY, TimeEntryService } from '../time-entry';
+import { CLOUD_SETTING_KEYS, STORAGE_KEY, TimeEntryService, parseBackup, parseEntries } from '../time-entry';
 import { DataRefreshService } from '../data-refresh.service';
 import { RunningTimeEntry, TimeEntry } from '../../models/time-entry.model';
 import { CloudAuthService, SchemaCheck } from './cloud-auth.service';
@@ -10,6 +10,7 @@ import { SupabaseClientService } from './supabase-client.service';
 import {
   EntryRow,
   EntryRowPayload,
+  Outbox,
   SettingRow,
   diffSettings,
   fromRow,
@@ -18,6 +19,11 @@ import {
   resolveRunningConflict,
   toRow,
 } from './cloud-sync.logic';
+
+interface ParkedOps {
+  userId: string;
+  entries: Outbox['entries'];
+}
 
 /** What the sync indicator shows. */
 export type CloudSyncState =
@@ -46,6 +52,8 @@ const OWNER_KEY = 'tt.cloud.ownerUserId';
 const ENTRIES_CURSOR_KEY = 'tt.cloud.cursor.entries';
 const SETTINGS_CURSOR_KEY = 'tt.cloud.cursor.settings';
 const SHADOW_KEY = 'tt.cloud.settingsShadow';
+/** Entry ops still unpushed when the user signed out, kept for that user's next login. */
+const PARKED_KEY = 'tt.cloud.parked';
 
 const ENTRY_COLUMNS = 'id,title,description,start_time,end_time,duration,started_by,deleted,updated_at';
 const PAGE_SIZE = 1000;
@@ -178,7 +186,7 @@ export class CloudSyncService {
 
     if (localCount === 0) {
       // Fresh device: everything comes from the cloud, settings included.
-      localStorage.setItem(OWNER_KEY, uid);
+      this.bindOwner(uid);
       this.writeShadow(this.readSettings());
       this.activate();
     } else if (remoteCount === 0) {
@@ -209,7 +217,8 @@ export class CloudSyncService {
         return;
 
       case 'upload': {
-        localStorage.setItem(OWNER_KEY, uid);
+        // Every local entry is uploaded, so parked ops add nothing.
+        this.bindOwner(uid);
         this.outbox.setEnabled(true);
         this.enqueueAllLocal({ includeSettings: true });
         this.activate();
@@ -226,17 +235,28 @@ export class CloudSyncService {
           const local = this.time.snapshot();
           const localOnly = local.entries.filter(e => !remoteIds.has(e.id));
           const localRunning = local.running && !remoteIds.has(local.running.id) ? local.running : null;
+          // Edits/deletes of shared ids that were still unpushed at sign-out.
+          const parked = this.parkedRowsFor(uid, local);
 
-          // Local-only ids are treated as pending so the merge keeps them
-          // (including an unpushed running timer); the rest is the union.
-          const keep = new Set([...localOnly.map(e => e.id), ...(localRunning ? [localRunning.id] : [])]);
+          // Local-only and parked ids are treated as pending so the merge
+          // keeps the local version (including an unpushed running timer);
+          // the rest is the union.
+          const keep = new Set([
+            ...localOnly.map(e => e.id),
+            ...(localRunning ? [localRunning.id] : []),
+            ...parked.map(r => r.id),
+          ]);
           const merged = mergeRemote(local, rows, keep);
           if (merged.changed) this.time.applyRemoteState(merged.entries, merged.running);
           this.saveCursor(ENTRIES_CURSOR_KEY, rows);
 
-          localStorage.setItem(OWNER_KEY, uid);
+          this.bindOwner(uid);
           this.outbox.setEnabled(true);
-          this.outbox.enqueueEntries([...localOnly.map(toRow), ...(localRunning ? [toRow(localRunning)] : [])]);
+          this.outbox.enqueueEntries([
+            ...localOnly.map(toRow),
+            ...(localRunning ? [toRow(localRunning)] : []),
+            ...parked,
+          ]);
 
           if (choice.settingsFrom === 'local') {
             this.outbox.enqueueSettings(this.readSettings());
@@ -258,12 +278,23 @@ export class CloudSyncService {
   }
 
   async signOut(opts: { wipeLocal: boolean }): Promise<void> {
+    const uid = this.userId;
     if (this.active) {
       try {
         await this.flush();
       } catch {
         // Best effort; local data is kept unless wiped below.
       }
+    }
+    // Still unpushed (offline): park the entry ops so the first-connection
+    // merge of the next login re-applies them instead of letting the cloud
+    // version win. Wiping the local copy discards them (the dialog warns).
+    const pending = this.outbox.read().entries;
+    if (opts.wipeLocal) {
+      localStorage.removeItem(PARKED_KEY);
+    } else if (uid && Object.keys(pending).length) {
+      const parked: ParkedOps = { userId: uid, entries: { ...this.readParked(uid), ...pending } };
+      localStorage.setItem(PARKED_KEY, JSON.stringify(parked));
     }
     this.deactivate();
     await this.auth.signOut();
@@ -282,18 +313,17 @@ export class CloudSyncService {
    * Never deletes rows that only exist in the cloud.
    */
   async importMerge(json: string): Promise<void> {
-    const parsed = JSON.parse(json);
-    const data = parsed?.data;
-    if (!data || typeof data !== 'object') throw new Error('Invalid file shape');
+    // Validate everything before the first write (throws on a bad file).
+    const updates = parseBackup(json, [...CLOUD_SETTING_KEYS, STORAGE_KEY]);
+    const rawEntries = updates[STORAGE_KEY];
+    const entries = rawEntries ? parseEntries(JSON.parse(rawEntries)) : [];
     for (const key of CLOUD_SETTING_KEYS) {
-      if (!(key in data)) continue;
-      const value = data[key];
+      if (!(key in updates)) continue;
+      const value = updates[key];
       if (value === null) localStorage.removeItem(key);
-      else localStorage.setItem(key, String(value));
+      else localStorage.setItem(key, value);
     }
-    const rawEntries = data[STORAGE_KEY];
-    const entries: TimeEntry[] = rawEntries ? JSON.parse(rawEntries) : [];
-    if (Array.isArray(entries)) this.time.mergeEntries(entries);
+    this.time.mergeEntries(entries);
     await this.dataRefresh.refreshAll();
     this.scanSettings();
   }
@@ -334,6 +364,37 @@ export class CloudSyncService {
     if (channel) void this.clients.get().then(c => c?.removeChannel(channel));
   }
 
+  /** This device's cache now belongs to `uid`; parked ops were consumed or are moot. */
+  private bindOwner(uid: string): void {
+    localStorage.setItem(OWNER_KEY, uid);
+    localStorage.removeItem(PARKED_KEY);
+  }
+
+  private readParked(uid: string): Outbox['entries'] {
+    try {
+      const parked = JSON.parse(localStorage.getItem(PARKED_KEY) ?? 'null') as ParkedOps | null;
+      return parked?.userId === uid && parked.entries && typeof parked.entries === 'object'
+        ? parked.entries
+        : {};
+    } catch {
+      return {};
+    }
+  }
+
+  /**
+   * Parked ops for `uid`, re-derived from the CURRENT local state: the entry
+   * may have changed again while signed out, and that is what the user sees.
+   * Gone locally means deleted.
+   */
+  private parkedRowsFor(uid: string, local: { entries: TimeEntry[]; running: RunningTimeEntry | null }): EntryRowPayload[] {
+    const byId = new Map<string, TimeEntry | RunningTimeEntry>(local.entries.map(e => [e.id, e]));
+    if (local.running) byId.set(local.running.id, local.running);
+    return Object.entries(this.readParked(uid)).map(([id, row]) => {
+      const current = byId.get(id);
+      return current ? toRow(current) : { ...row, deleted: true };
+    });
+  }
+
   private clearBookkeeping(): void {
     for (const key of [OWNER_KEY, ENTRIES_CURSOR_KEY, SETTINGS_CURSOR_KEY, SHADOW_KEY]) {
       localStorage.removeItem(key);
@@ -365,6 +426,7 @@ export class CloudSyncService {
 
   private onTick(): void {
     this.scanSettings();
+    if (this.outbox.size()) this.scheduleFlush();
     // Realtime normally drives pulls; this is a safety net for missed events.
     if (++this.tick % 2 === 0) this.schedulePull();
   }
@@ -486,9 +548,16 @@ export class CloudSyncService {
         }
         this.outbox.ack(sent);
       }
-      this.retryDelay = 5_000;
       this.lastSyncAt.set(Date.now());
-      this.state.set(this.outbox.size() ? 'pending' : 'synced');
+      if (this.outbox.size()) {
+        // Gave up after repeated running-timer conflicts (or new changes
+        // arrived meanwhile): try again later instead of waiting for a mutation.
+        this.state.set('pending');
+        this.scheduleRetry();
+      } else {
+        this.retryDelay = 5_000;
+        this.state.set('synced');
+      }
     } catch (err) {
       console.warn('Cloud push failed; will retry.', err);
       this.state.set(navigator.onLine ? 'error' : 'offline');
@@ -561,14 +630,25 @@ export class CloudSyncService {
   }
 
   private async fetchEntryRows(client: SupabaseClient, cursor: string | null): Promise<EntryRow[]> {
+    // Keyset pagination on (updated_at, id): with offsets, a row updated while
+    // paging shifts the rest back and one row would be skipped for good (the
+    // cursor then moves past it). updated_at is compared as the exact string
+    // Postgres returned, since a JS Date would drop the microseconds.
     const all: EntryRow[] = [];
-    for (let from = 0; ; from += PAGE_SIZE) {
+    let last: EntryRow | null = null;
+    for (;;) {
       let query = client.from('time_entries').select(ENTRY_COLUMNS);
       if (cursor) query = query.gt('updated_at', withOverlap(cursor));
-      const { data, error } = await query.order('updated_at').order('id').range(from, from + PAGE_SIZE - 1);
+      if (last) {
+        const at = `"${last.updated_at}"`;
+        query = query.or(`updated_at.gt.${at},and(updated_at.eq.${at},id.gt.${last.id})`);
+      }
+      const { data, error } = await query.order('updated_at').order('id').limit(PAGE_SIZE);
       if (error) throw error;
-      all.push(...((data ?? []) as EntryRow[]));
-      if (!data || data.length < PAGE_SIZE) return all;
+      const page = (data ?? []) as EntryRow[];
+      all.push(...page);
+      if (page.length < PAGE_SIZE) return all;
+      last = page[page.length - 1];
     }
   }
 
