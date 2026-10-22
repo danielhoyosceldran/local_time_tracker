@@ -45,7 +45,7 @@ import { MOBILE_VIEWS, MobileView, ViewStateService } from '../../services/view-
       inset: 0;
       background: rgba(15, 23, 42, 0.45);
       backdrop-filter: blur(2px);
-      animation: fade 0.15s ease-out;
+      animation: fade 0.2s var(--ease-out);
     }
     .drawer {
       position: absolute;
@@ -58,7 +58,7 @@ import { MOBILE_VIEWS, MobileView, ViewStateService } from '../../services/view-
       background: var(--tt-surface);
       border-right: 1px solid var(--tt-border);
       box-shadow: 0 10px 40px var(--tt-shadow-drawer);
-      animation: slide 0.18s ease-out;
+      animation: slide 0.24s var(--ease-drawer);
     }
     .drawer-head {
       display: flex;
@@ -101,10 +101,21 @@ import { MOBILE_VIEWS, MobileView, ViewStateService } from '../../services/view-
       color: #6366f1;
       font-weight: 600;
     }
+    /* Closing: the parent removes the host with animate.leave="leaving".
+       Angular waits for the host's own animation, so it runs a no-op
+       "hold" as long as the children's exit. Exit is quicker than entry. */
+    :host(.leaving) { animation: hold 0.18s; pointer-events: none; }
+    :host(.leaving) .backdrop { animation: fade-out 0.18s var(--ease-out) forwards; }
+    :host(.leaving) .drawer { animation: slide-out 0.18s var(--ease-drawer) forwards; }
     @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+    @keyframes slide-out { to { transform: translateX(-100%); } }
     @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes fade-out { to { opacity: 0; } }
+    @keyframes hold { from, to { opacity: 1; } }
     @media (prefers-reduced-motion: reduce) {
-      .drawer { animation: fade 0.15s ease-out !important; }
+      .backdrop, .drawer { animation: fade 0.15s ease-out !important; }
+      :host(.leaving) { animation-duration: 0.15s !important; }
+      :host(.leaving) .backdrop, :host(.leaving) .drawer { animation: fade-out 0.15s ease-out forwards !important; }
     }
   `],
 })

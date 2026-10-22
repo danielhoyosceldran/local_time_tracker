@@ -106,7 +106,7 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
       }
     }
     @if (mobileMenuOpen()) {
-      <app-mobile-nav-menu (close)="closeMobileMenu()" />
+      <app-mobile-nav-menu animate.leave="leaving" (close)="closeMobileMenu()" />
     }
   `,
   styles: [`
