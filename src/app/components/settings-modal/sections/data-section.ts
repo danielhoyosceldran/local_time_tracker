@@ -31,7 +31,7 @@ const BACKUP_STALE_MS = 30 * 24 * 60 * 60 * 1000;
         <button
           type="button"
           (click)="onExport()"
-          class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 text-white hover:bg-slate-700 active:scale-95 transition-all"
+          class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 text-white hover:bg-slate-700 active:scale-95 transition"
         >{{ 'data.exportBtn' | t }}</button>
 
         <label class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer transition-colors">
@@ -44,7 +44,7 @@ const BACKUP_STALE_MS = 30 * 24 * 60 * 60 * 1000;
           (click)="onReset()"
           [disabled]="signedIn()"
           [title]="signedIn() ? ('data.resetSignedIn' | t) : ''"
-          class="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 text-red-600 hover:bg-red-100 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          class="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 text-red-600 hover:bg-red-100 active:scale-95 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >{{ 'data.resetBtn' | t }}</button>
       </div>
 

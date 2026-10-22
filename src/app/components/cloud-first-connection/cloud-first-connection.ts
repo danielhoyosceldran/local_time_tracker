@@ -58,12 +58,12 @@ import { downloadBackup } from '../../utils/download';
 
           <div class="mt-5 flex flex-wrap justify-end gap-2">
             <button type="button" (click)="choose({ kind: 'cancel' })" [disabled]="busy()"
-              class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 active:scale-95 transition-all disabled:opacity-50">
+              class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 active:scale-95 transition disabled:opacity-50">
               {{ 'cloud.first.cancelBtn' | t }}
             </button>
             @if (fc.kind === 'reader') {
               <button type="button" (click)="choose({ kind: 'toLocal' })" [disabled]="busy()"
-                class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50">
+                class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 transition disabled:opacity-50">
                 {{ 'cloud.first.readerBtn' | t }}
               </button>
             }
@@ -77,7 +77,7 @@ export class CloudFirstConnectionComponent {
   protected sync = inject(CloudSyncService);
   private time = inject(TimeEntryService);
 
-  readonly optionBtn = 'w-full text-left px-4 py-3 rounded-xl border border-slate-200 bg-white hover:bg-indigo-50 active:scale-[0.99] transition-all disabled:opacity-50';
+  readonly optionBtn = 'w-full text-left px-4 py-3 rounded-xl border border-slate-200 bg-white hover:bg-indigo-50 active:scale-[0.99] transition disabled:opacity-50';
 
   busy = signal(false);
 

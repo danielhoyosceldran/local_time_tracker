@@ -24,7 +24,7 @@ export interface SegmentedOption<T = string | number> {
           type="button"
           [attr.aria-pressed]="opt.value === value()"
           (click)="changed.emit(opt.value)"
-          class="px-3 py-1 text-xs font-medium rounded-md transition-all"
+          class="px-3 py-1 text-xs font-medium rounded-md transition"
           [ngClass]="opt.value === value()
             ? 'bg-white text-slate-800 shadow-sm'
             : 'text-slate-500 hover:text-slate-700'"

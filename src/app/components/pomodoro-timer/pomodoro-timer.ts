@@ -26,7 +26,7 @@ interface PomodoroState {
   imports: [CommonModule, TranslatePipe],
   template: `
     <div
-      class="rounded-2xl p-3 h-full flex flex-col overflow-y-auto transition-all duration-500"
+      class="rounded-2xl p-3 h-full flex flex-col overflow-y-auto transition-colors duration-300"
       [ngClass]="containerClasses()"
     >
       <div class="flex items-center gap-1.5 mb-1">
@@ -49,13 +49,13 @@ interface PomodoroState {
             <button
               type="button"
               (click)="setPhase('work')"
-              class="px-3 py-0.5 transition-all active:scale-95"
+              class="px-3 py-0.5 transition active:scale-95"
               [ngClass]="phase() === 'work' ? 'bg-white/20 text-white' : 'text-white/40 hover:bg-white/10'"
             >{{ 'pomodoro.work' | t }}</button>
             <button
               type="button"
               (click)="setPhase('break')"
-              class="px-3 py-0.5 transition-all active:scale-95"
+              class="px-3 py-0.5 transition active:scale-95"
               [ngClass]="phase() === 'break' ? 'bg-white/20 text-white' : 'text-white/40 hover:bg-white/10'"
             >{{ 'pomodoro.break' | t }}</button>
           </div>
@@ -72,7 +72,7 @@ interface PomodoroState {
         <button
           [attr.aria-label]="(running() ? 'pomodoro.pause' : 'pomodoro.start') | t"
           (click)="toggleRunning()"
-          class="p-2 rounded-xl bg-white/20 backdrop-blur-sm hover:bg-white/30 active:scale-95 transition-all text-white"
+          class="p-2 rounded-xl bg-white/20 backdrop-blur-sm hover:bg-white/30 active:scale-95 transition text-white"
         >
           @if (running()) {
             <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -86,7 +86,7 @@ interface PomodoroState {
         </button>
         <button [attr.aria-label]="'common.reset' | t"
           (click)="reset()"
-          class="p-2 rounded-xl bg-white/20 backdrop-blur-sm hover:bg-white/30 active:scale-95 transition-all text-white"
+          class="p-2 rounded-xl bg-white/20 backdrop-blur-sm hover:bg-white/30 active:scale-95 transition text-white"
         >
           <svg aria-hidden="true" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>

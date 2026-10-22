@@ -26,7 +26,7 @@ import { WriteAccessService } from '../../services/write-access.service';
           <p class="mt-0.5 text-xs text-slate-600">{{ r }}</p>
         </div>
         <button type="button" (click)="takeControl()" [disabled]="busy()"
-          class="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-50">
+          class="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 active:scale-95 transition disabled:opacity-50">
           {{ 'lock.takeControl' | t }}
         </button>
       </div>

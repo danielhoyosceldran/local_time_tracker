@@ -221,11 +221,11 @@ export class CloudSectionComponent {
   private config = inject(CloudConfigService);
   private translation = inject(TranslationService);
 
-  readonly primaryBtn = 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-900 text-white hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-50';
-  readonly secondaryBtn = 'px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 active:scale-95 transition-all disabled:opacity-50';
+  readonly primaryBtn = 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-900 text-white hover:bg-slate-800 active:scale-95 transition disabled:opacity-50';
+  readonly secondaryBtn = 'px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 active:scale-95 transition disabled:opacity-50';
   readonly ghostBtn = 'px-3 py-1.5 text-xs font-medium rounded-lg text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50';
-  readonly dangerBtn = 'px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 text-red-600 hover:bg-red-100 active:scale-95 transition-all disabled:opacity-50';
-  readonly dangerSolidBtn = 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700 active:scale-95 transition-all disabled:opacity-50';
+  readonly dangerBtn = 'px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 text-red-600 hover:bg-red-100 active:scale-95 transition disabled:opacity-50';
+  readonly dangerSolidBtn = 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700 active:scale-95 transition disabled:opacity-50';
 
   code = signal('');
   url = signal(this.config.config()?.url ?? '');

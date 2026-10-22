@@ -60,7 +60,7 @@ import { CloudSyncIndicatorComponent } from '../cloud-sync-indicator/cloud-sync-
         <!-- Resume Button -->
         <button
           (click)="resumeFromLunch()"
-          class="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 transition-all"
+          class="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 transition"
         >
           {{ 'timer.resumeFromLunch' | t }}
         </button>
@@ -102,14 +102,14 @@ import { CloudSyncIndicatorComponent } from '../cloud-sync-indicator/cloud-sync-
         <div class="flex gap-2">
           <button
             (click)="stopTracking()"
-            class="flex-1 py-4 px-4 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white font-bold rounded-2xl shadow-lg shadow-rose-200 transition-all"
+            class="flex-1 py-4 px-4 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white font-bold rounded-2xl shadow-lg shadow-rose-200 transition"
           >
             {{ 'timer.stopBtn' | t }}
           </button>
           @if (lunchButtonEnabled$ | async) {
             <button [attr.aria-label]="'timer.lunchBtn' | t"
               (click)="startLunch()"
-              class="py-4 px-4 bg-orange-100 hover:bg-orange-200 active:scale-95 text-orange-600 font-bold rounded-2xl transition-all"
+              class="py-4 px-4 bg-orange-100 hover:bg-orange-200 active:scale-95 text-orange-600 font-bold rounded-2xl transition"
               [title]="'timer.lunchBtn' | t"
             >
               <!-- Pause icon -->
@@ -140,7 +140,7 @@ import { CloudSyncIndicatorComponent } from '../cloud-sync-indicator/cloud-sync-
 
           <button
             type="submit"
-            class="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 transition-all mt-auto"
+            class="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 transition mt-auto"
           >
             {{ 'timer.startBtn' | t }}
           </button>

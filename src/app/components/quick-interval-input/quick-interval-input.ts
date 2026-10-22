@@ -69,7 +69,7 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
         <button
           type="submit"
           [disabled]="manualForm.invalid"
-          class="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 mt-auto"
+          class="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 mt-auto"
         >
           {{ 'quickInterval.addBtn' | t }}
         </button>
