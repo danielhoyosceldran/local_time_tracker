@@ -42,10 +42,10 @@ import { ClockTimePipe } from '../../pipes/clock-time.pipe';
                     </div>
                   } @else {
                     <div class="mt-2 space-y-2 p-3 bg-white border border-indigo-200 rounded-md">
-                        <input [(ngModel)]="editTitle" type="text" placeholder="New Title" 
+                        <input [(ngModel)]="editTitle" type="text" maxlength="1000" placeholder="New Title" 
                             class="w-full border border-gray-300 rounded-md p-1.5 text-sm focus:border-primary"
                         >
-                        <textarea [(ngModel)]="editDescription" rows="2" placeholder="New Description" 
+                        <textarea [(ngModel)]="editDescription" rows="2" maxlength="10000" placeholder="New Description" 
                             class="w-full border border-gray-300 rounded-md p-1.5 text-sm focus:border-primary"
                         ></textarea>
                         <div class="flex justify-end space-x-2">

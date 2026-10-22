@@ -130,7 +130,8 @@ export class CloudOutboxService {
   /**
    * Take rows the server will never accept out of the queue (so they stop
    * blocking the rest) and keep them aside for inspection. The local entries
-   * themselves are untouched.
+   * themselves are untouched, and a reload from the cloud keeps them too
+   * (see rejectedEntryIds).
    */
   reject(rejected: { row: EntryRowPayload; code: string; message: string }[]): void {
     if (!rejected.length) return;
@@ -138,11 +139,33 @@ export class CloudOutboxService {
     for (const r of rejected) entries[r.row.id] = r.row;
     this.write(ackOutbox(this.read(), { entries, settings: {} }), false);
     const at = Date.now();
-    const list = [...this.readRejected(), ...rejected.map(r => ({ ...r, at }))].slice(-MAX_REJECTED);
+    // One item per id: the latest refusal replaces earlier ones.
+    const list = [...this.readRejected().filter(r => !(r.row.id in entries)), ...rejected.map(r => ({ ...r, at }))]
+      .slice(-MAX_REJECTED);
+    this.writeRejected(list);
+  }
+
+  /** Ids of local entries the server refused (live rows only: a refused delete keeps nothing). */
+  rejectedEntryIds(): Set<string> {
+    return new Set(this.readRejected().filter(r => !r.row.deleted).map(r => r.row.id));
+  }
+
+  /** The server accepted these ids after all (edited, deleted…): they are no longer refused. */
+  forgetRejected(ids: string[]): void {
+    if (!ids.length) return;
+    const gone = new Set(ids);
+    const list = this.readRejected();
+    const kept = list.filter(r => !gone.has(r.row.id));
+    if (kept.length !== list.length) this.writeRejected(kept);
+  }
+
+  private writeRejected(list: RejectedRow[]): void {
     try {
-      localStorage.setItem(REJECTED_KEY, JSON.stringify(list));
+      if (list.length) localStorage.setItem(REJECTED_KEY, JSON.stringify(list));
+      else localStorage.removeItem(REJECTED_KEY);
     } catch {
-      // Diagnostic list only: losing it under quota pressure is acceptable.
+      // Quota: the entries stay in the local copy; only a reload from the cloud
+      // (taking over the lock) would no longer know to keep them.
     }
     this._rejectedCount.set(list.length);
   }
@@ -165,12 +188,12 @@ export class CloudOutboxService {
     return new Set(Object.keys(this.read().entries));
   }
 
+  /** Drop every queued op. The refused rows stay listed: their entries still exist locally. */
   clear(): void {
     this.unsaved = null;
     localStorage.removeItem(OUTBOX_KEY);
     this.bumpRevision();
     this._size.set(0);
-    this.clearRejected();
   }
 
   /**

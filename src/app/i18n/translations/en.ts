@@ -474,7 +474,7 @@ export const en = {
   'lock.takeControlConfirm': 'The other device becomes read-only. Changes it has not uploaded yet will be discarded there (it keeps a backup). Continue?',
   'lock.settingsReadOnly': 'Read-only: another device is using this account.',
   'lock.discardedTitle': 'Changes on this device were discarded',
-  'lock.discardedBody': 'Another device took control before these changes reached the cloud, so the cloud copy was kept. A backup of this device from {date} is available.',
+  'lock.discardedBody': 'The edit lock changed hands (another device or tab) before these changes reached the cloud, so the cloud copy was kept. A backup of this device from {date} is available.',
   'lock.discardedDownload': 'Download backup',
   'lock.discardedDismiss': 'Dismiss',
 };

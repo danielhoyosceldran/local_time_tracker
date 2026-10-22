@@ -27,6 +27,7 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
             <input
               type="text"
               formControlName="title"
+              maxlength="1000"
               [placeholder]="'quickInterval.taskName' | t"
               class="w-full px-0 py-2 border-0 border-b border-slate-200 text-sm text-slate-800 placeholder-slate-400 bg-transparent focus:border-indigo-500 transition-colors"
             />

@@ -449,6 +449,7 @@ export class CloudSyncService {
       localStorage.removeItem(key);
     }
     this.outbox.clear();
+    this.outbox.clearRejected();
   }
 
   // --- Edit lock ---
@@ -512,7 +513,7 @@ export class CloudSyncService {
         // Lost the lock with changes still unpushed (offline, frozen tab, or
         // taken by force): the cloud wins. Keep a backup, then adopt it.
         this.discardLocalChanges();
-        await this.resyncFromCloud(epoch);
+        await this.resyncFromCloud(epoch, { backedUp: true });
       } else {
         this.schedulePull();
       }
@@ -529,11 +530,11 @@ export class CloudSyncService {
       // instance shows (a missed pull, a setting tweaked while read-only) is
       // pushed as if it were a change.
       this.access.set({ kind: 'checking' });
-      // Still queued: changes of the tab of this browser that held the lock
-      // until now (taken by force, or it froze/died before pushing). They were
-      // written under its lock, not ours: the cloud wins, but keep a backup.
-      if (this.outbox.pendingCount()) this.discardLocalChanges();
-      await this.resyncFromCloud(epoch);
+      // Anything still queued belongs to the tab of this browser that held the
+      // lock until now (taken by force, or it froze/died before pushing): it
+      // was written under its lock, not ours. The cloud wins, with a backup
+      // (taken only once the cloud copy arrived: if it fails, nothing is lost).
+      await this.resyncFromCloud(epoch, { backedUp: false });
       if (epoch !== this.epoch) return;
     }
     this.access.set({ kind: 'holder' });
@@ -557,15 +558,16 @@ export class CloudSyncService {
     const backup = { at: Date.now(), json: this.time.exportAll() };
     this.discardedInMemory = this.storage.setItem(DISCARDED_KEY, JSON.stringify(backup)) ? null : backup;
     this.discardedAt.set(backup.at);
-    console.warn('Another instance holds the edit lock: unpushed local changes were discarded (a backup was kept).');
+    console.warn('The edit lock changed hands: unpushed local changes were discarded for the cloud copy (a backup was kept).');
     this.outbox.clear();
   }
 
-  private async resyncFromCloud(epoch: number): Promise<void> {
+  /** After the lock changed hands. `backedUp`: the caller already discarded (and backed up) the queue. */
+  private async resyncFromCloud(epoch: number, opts: { backedUp: boolean }): Promise<void> {
     try {
       const client = await this.clients.get();
       if (!client || epoch !== this.epoch) return;
-      await this.replaceLocalWithCloud(client, epoch);
+      await this.replaceLocalWithCloud(client, epoch, { lockChange: true, backedUp: opts.backedUp });
     } catch (err) {
       if (epoch !== this.epoch) return;
       console.warn('Could not reload the cloud copy; will retry.', err);
@@ -578,15 +580,38 @@ export class CloudSyncService {
    * Make the local copy exactly the cloud's: entries, running timer and
    * settings (a key without a row goes back to its default). Queues nothing.
    * Returns false if the session changed meanwhile (nothing was written).
+   *
+   * `lockChange` (the lock changed hands, not an explicit "cloud → local"):
+   * entries the server refused stay, since they can never be in the cloud and
+   * the rejected notice promises they are kept on this device; and unless the
+   * caller already did (`backedUp`), a backup is kept first if anything
+   * unpushed or local-only is about to go.
    */
-  private async replaceLocalWithCloud(client: SupabaseClient, epoch: number): Promise<boolean> {
+  private async replaceLocalWithCloud(
+    client: SupabaseClient,
+    epoch: number,
+    opts: { lockChange: boolean; backedUp: boolean } = { lockChange: false, backedUp: false },
+  ): Promise<boolean> {
     const rows = await this.fetchEntryRows(client, null);
     const settingRows = await this.fetchSettingRows(client, null);
     if (epoch !== this.epoch) return false;
 
+    let kept: TimeEntry[] = [];
+    if (opts.lockChange) {
+      const inCloud = new Set(rows.map(r => r.id)); // tombstones included
+      const refused = this.outbox.rejectedEntryIds();
+      const local = this.time.snapshot();
+      kept = local.entries.filter(e => refused.has(e.id) && !inCloud.has(e.id));
+      const keptIds = new Set(kept.map(e => e.id));
+      const dropped = [...local.entries, ...(local.running ? [local.running] : [])]
+        .filter(e => !inCloud.has(e.id) && !keptIds.has(e.id));
+      if (!opts.backedUp && (this.outbox.pendingCount() || dropped.length)) this.discardLocalChanges();
+    }
+
     const live = rows.filter(r => !r.deleted).map(fromRow);
     const running = (live.find(e => e.endTime === null) as RunningTimeEntry | undefined) ?? null;
-    const entries = (live.filter(e => e.endTime !== null) as TimeEntry[]).sort((a, b) => b.startTime - a.startTime);
+    const entries = [...(live.filter(e => e.endTime !== null) as TimeEntry[]), ...kept]
+      .sort((a, b) => b.startTime - a.startTime);
     this.time.applyRemoteState(entries, running);
 
     const remote = new Map(settingRows.map(r => [r.key, r.value]));
@@ -596,6 +621,8 @@ export class CloudSyncService {
       else localStorage.setItem(key, value);
     }
     this.outbox.clear();
+    // "Cloud → local": the refused entries went with the rest of the local copy.
+    if (!opts.lockChange) this.outbox.clearRejected();
     this.saveCursor(ENTRIES_CURSOR_KEY, rows);
     this.saveCursor(SETTINGS_CURSOR_KEY, settingRows);
     this.writeShadow(this.readSettings());
@@ -785,6 +812,9 @@ export class CloudSyncService {
         }
         if (stale()) return;
         this.outbox.ack(sent);
+        // Refused before and accepted now (edited, deleted): no longer refused.
+        const refused = new Set(rejected.map(r => r.row.id));
+        this.outbox.forgetRejected(rows.map(r => r.id).filter(id => !refused.has(id)));
       }
       this.lastSyncAt.set(Date.now());
       if (this.outbox.size()) {

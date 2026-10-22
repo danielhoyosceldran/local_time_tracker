@@ -170,6 +170,26 @@ describe('CloudSyncService', () => {
       expect(service.state()).toBe('synced');
     });
 
+    it('forgets a refusal once the row is accepted (edited or deleted)', async () => {
+      await signIn();
+      time.applyRemoteState([entry('foreign')], null);
+      outbox.reject([{ row: closedRow('foreign'), code: '23514', message: 'check violation' }]);
+      expect(outbox.rejectedCount()).toBe(1);
+
+      time.updateEntry('foreign', 'fixed', null);
+      await new Promise(r => setTimeout(r, 250));
+      await settle();
+
+      expect(outbox.rejectedCount()).toBe(0);
+    });
+
+    it('lists a row refused twice only once', async () => {
+      outbox.reject([{ row: closedRow('x'), code: '23514', message: 'one' }]);
+      outbox.reject([{ row: closedRow('x'), code: '23514', message: 'two' }]);
+
+      expect(outbox.readRejected().map(r => r.message)).toEqual(['two']);
+    });
+
     it('keeps everything queued when the request has no grant (no session)', async () => {
       queue('a', 'b');
       client.upsert = async () => ({ error: { code: '42501', message: 'permission denied for table time_entries' } });
@@ -277,6 +297,51 @@ describe('CloudSyncService', () => {
       expect(access.state().kind).toBe('holder');
       expect(localStorage.getItem('tt.cloud.discarded')).toContain('their-edit');
       expect(outbox.size()).toBe(0);
+    });
+
+    it('does not discard the queue when the cloud copy cannot be loaded while taking control', async () => {
+      const remote = fakeRemote('r1');
+      client.claim = force => (force ? { acquired: true, device: null } : { acquired: false, device: OTHER_DEVICE });
+      await signIn();
+      outbox.enqueueEntries([closedRow('their-edit')]);
+      const realSelect = client.select;
+      client.select = table =>
+        table === 'time_entries' ? Promise.resolve({ error: { code: '08006', message: 'network down' } }) : realSelect(table);
+
+      await service.takeControl();
+      await settle();
+
+      // Still queued, or pushed once this instance went on as the holder: either way not thrown away.
+      expect(outbox.pendingEntryIds().has('their-edit') || remote.has('their-edit')).toBeTrue();
+      expect(service.discardedAt()).toBeNull();
+    });
+
+    it('keeps the entries the server refused when it reloads the cloud copy on taking control', async () => {
+      fakeRemote('r1');
+      client.claim = force => (force ? { acquired: true, device: null } : { acquired: false, device: OTHER_DEVICE });
+      await signIn();
+      time.applyRemoteState([...time.snapshot().entries, entry('refused')], null);
+      outbox.reject([{ row: closedRow('refused'), code: '23514', message: 'check violation' }]);
+
+      await service.takeControl();
+      await settle();
+
+      expect(time.snapshot().entries.map(e => e.id).sort()).toEqual(['r1', 'refused']);
+      expect(outbox.rejectedCount()).toBe(1);
+      expect(service.discardedAt()).withContext('nothing was lost').toBeNull();
+    });
+
+    it('keeps a backup before a reload drops local-only entries', async () => {
+      fakeRemote('r1');
+      client.claim = force => (force ? { acquired: true, device: null } : { acquired: false, device: OTHER_DEVICE });
+      await signIn();
+      time.applyRemoteState([...time.snapshot().entries, entry('local-only')], null);
+
+      await service.takeControl();
+      await settle();
+
+      expect(time.snapshot().entries.map(e => e.id)).toEqual(['r1']);
+      expect(localStorage.getItem('tt.cloud.discarded')).toContain('local-only');
     });
 
     it('turns read-only when the server refuses a write because the lock moved', async () => {

@@ -130,12 +130,14 @@ interface WeekGroup {
                                       type="text"
                                       [ngModel]="editTitle()"
                                       (ngModelChange)="editTitle.set($event)"
+                                      maxlength="1000"
                                       [placeholder]="'intervals.titlePlaceholder' | t"
                                       class="w-full px-2 py-1 border border-slate-300 rounded text-xs"
                                     />
                                     <textarea
                                       [ngModel]="editDescription()"
                                       (ngModelChange)="editDescription.set($event)"
+                                      maxlength="10000"
                                       rows="2"
                                       [placeholder]="'intervals.descriptionPlaceholder' | t"
                                       class="w-full px-2 py-1 border border-slate-300 rounded text-xs"

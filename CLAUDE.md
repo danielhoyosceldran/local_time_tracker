@@ -112,6 +112,12 @@ administración en [supabase/](supabase/README.md).
 - **Filas inválidas:** si Postgres rechaza una fila por sus datos o porque su `id`
   es de otra cuenta (RLS, `isRowRejection`), sale de la cola a `tt.cloud.rejected`
   en vez de bloquear el resto. Un 42501 "permission denied" (sin sesión) NO.
+  Esas entradas se quedan en local también cuando el cambio de mutex recarga la
+  copia de la nube (`replaceLocalWithCloud` con `lockChange`), y salen de la lista
+  cuando el servidor acepta su fila (editada o borrada). Si esa recarga va a
+  quitar algo sin subir o que solo existe en local, antes se guarda el backup en
+  `tt.cloud.discarded`. Los inputs de título/descripción limitan a 1000/10000
+  caracteres, igual que los CHECK de la 0003.
 - **Trabajo en vuelo:** `pull`/`flush`/`connect` capturan `epoch` (sube en
   `deactivate`) y descartan su resultado si cambió: nada escribe en la caché tras
   cerrar sesión. `signOut` espera al flush en curso.
