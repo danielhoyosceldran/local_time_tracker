@@ -127,7 +127,7 @@ interface Tenure {
 
     @if (celebration(); as m) {
       @defer (on immediate) {
-        <app-tenure-celebration-modal [milestone]="m" (close)="celebration.set(null)" />
+        <app-tenure-celebration-modal animate.leave="tt-leave" [milestone]="m" (close)="celebration.set(null)" />
       }
     }
   `,

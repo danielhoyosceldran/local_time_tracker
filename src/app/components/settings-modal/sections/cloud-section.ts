@@ -191,10 +191,10 @@ const AUTH_ERROR_KEYS: Record<CloudAuthError, TranslationKey> = {
       </div>
 
       @if (confirmSignOut()) {
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" aria-hidden="true" (click)="confirmSignOut.set(false)"></div>
+        <div animate.leave="tt-leave" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div class="tt-backdrop absolute inset-0 bg-slate-900/40 backdrop-blur-sm" aria-hidden="true" (click)="confirmSignOut.set(false)"></div>
           <div role="dialog" aria-modal="true" aria-labelledby="cloud-signout-title"
-            class="relative z-10 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(90vw,400px)] p-6">
+            class="tt-modal relative z-10 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(90vw,400px)] p-6">
             <h2 id="cloud-signout-title" class="text-base font-bold text-slate-800">{{ 'cloud.signOutTitle' | t }}</h2>
             @if (outbox.size() > 0) {
               <p class="mt-2 text-xs text-amber-700">{{ 'cloud.signOutPending' | t: { n: outbox.size() } }}</p>

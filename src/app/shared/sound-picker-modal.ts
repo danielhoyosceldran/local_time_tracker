@@ -16,13 +16,13 @@ import { ModalA11yDirective } from './modal-a11y.directive';
       class="fixed inset-0 z-50 flex items-center justify-center"
       (click)="onBackdrop($event)"
     >
-      <div class="absolute inset-0 bg-black/30 backdrop-blur-[1px]"></div>
+      <div class="tt-backdrop absolute inset-0 bg-black/30 backdrop-blur-[1px]"></div>
 
       <!-- Card -->
       <div
         appModal
         labelledBy="sound-picker-title"
-        class="relative bg-white rounded-xl shadow-2xl border border-slate-200 w-64 overflow-hidden outline-none"
+        class="tt-modal relative bg-white rounded-xl shadow-2xl border border-slate-200 w-64 overflow-hidden outline-none"
         (click)="$event.stopPropagation()"
         (keydown.escape)="$event.stopPropagation(); closed.emit()"
       >

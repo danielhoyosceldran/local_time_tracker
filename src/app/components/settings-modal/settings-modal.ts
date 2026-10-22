@@ -40,13 +40,13 @@ interface Tab {
   ],
   template: `
     <div
-      class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 flex items-center justify-center p-4"
+      class="tt-backdrop fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 flex items-center justify-center p-4"
       (click)="onCancel()"
     >
       <div
         appModal
         labelledBy="settings-modal-title"
-        class="settings-box bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(94vw,900px)] md:w-[min(60vw,900px)] md:min-w-[50vw] h-[min(80vh,700px)] flex flex-col overflow-hidden outline-none"
+        class="tt-modal settings-box bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(94vw,900px)] md:w-[min(60vw,900px)] md:min-w-[50vw] h-[min(80vh,700px)] flex flex-col overflow-hidden outline-none"
         (click)="$event.stopPropagation()"
       >
         <!-- Header -->

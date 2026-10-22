@@ -165,6 +165,33 @@ html, body {
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────
+   Motion primitives
+   Enter: a CSS animation that runs when the element is inserted.
+   Leave: `animate.leave="tt-leave"` on the node Angular removes (an @if
+   root, or the component host in the parent template: Angular only runs
+   leave animations on the removed root). Angular waits for that node's own
+   animation, so .tt-leave always animates the node itself.
+   ───────────────────────────────────────────────────────────────────── */
+@keyframes tt-fade-in { from { opacity: 0; } }
+@keyframes tt-fade-out { to { opacity: 0; } }
+@keyframes tt-modal-in { from { opacity: 0; transform: scale(0.96); } }
+@keyframes tt-shrink-out { to { transform: scale(0.96); } }
+
+/* Modals: centred, so they scale from the centre. */
+.tt-backdrop { animation: tt-fade-in 150ms var(--ease-out); }
+.tt-modal { animation: tt-modal-in 200ms var(--ease-out); }
+
+.tt-leave { animation: tt-fade-out 150ms var(--ease-out) forwards; pointer-events: none; }
+.tt-leave .tt-modal { animation: tt-shrink-out 150ms var(--ease-out) forwards; }
+
+/* Reduced motion: opacity only, no scaling. */
+@media (prefers-reduced-motion: reduce) {
+  .tt-backdrop, .tt-modal { animation: tt-fade-in 150ms ease-out !important; }
+  .tt-leave { animation-duration: 150ms !important; }
+  .tt-leave .tt-modal { animation: none !important; }
+}
+
 /* Discrete scrollbars */
 * {
   scrollbar-width: thin;

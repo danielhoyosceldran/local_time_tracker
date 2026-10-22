@@ -10,13 +10,13 @@ import { ModalA11yDirective } from '../../shared/modal-a11y.directive';
   imports: [TranslatePipe, ModalA11yDirective],
   template: `
     <div
-      class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      class="tt-backdrop fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       (click)="close.emit()"
     >
       <div
         appModal
         labelledBy="release-notes-title"
-        class="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(94vw,640px)] md:w-[min(60vw,640px)] md:min-w-[320px] max-h-[80vh] flex flex-col overflow-hidden outline-none"
+        class="tt-modal bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(94vw,640px)] md:w-[min(60vw,640px)] md:min-w-[320px] max-h-[80vh] flex flex-col overflow-hidden outline-none"
         (click)="$event.stopPropagation()"
       >
         <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white/60 backdrop-blur-xl">

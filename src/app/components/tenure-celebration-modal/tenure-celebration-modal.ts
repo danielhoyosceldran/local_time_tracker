@@ -34,13 +34,13 @@ function confettiColors(): string[] {
   template: `
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
       <!-- Backdrop -->
-      <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" aria-hidden="true" (click)="close.emit()"></div>
+      <div class="tt-backdrop absolute inset-0 bg-slate-900/40 backdrop-blur-sm" aria-hidden="true" (click)="close.emit()"></div>
 
       <!-- Card -->
       <div
         appModal
         labelledBy="tenure-celebration-title"
-        class="relative z-10 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(90vw,420px)] px-7 py-8 text-center outline-none"
+        class="tt-modal relative z-10 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(90vw,420px)] px-7 py-8 text-center outline-none"
       >
         <!-- Trophy badge -->
         <div

@@ -11,6 +11,7 @@ import { SoundId } from './sounds';
   template: `
     @if (svc.request(); as r) {
       <app-sound-picker-modal
+        animate.leave="tt-leave"
         [title]="r.title"
         [current]="r.current()"
         (soundSelected)="onSelect(r.onSelect, $event)"

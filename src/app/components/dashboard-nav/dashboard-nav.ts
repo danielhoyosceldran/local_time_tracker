@@ -97,12 +97,12 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
     }
     @if (modalOpen()) {
       @defer (on immediate) {
-        <app-release-notes-modal [releases]="modalReleases()" (close)="closeModal()" />
+        <app-release-notes-modal animate.leave="tt-leave" [releases]="modalReleases()" (close)="closeModal()" />
       }
     }
     @if (settingsOpen()) {
       @defer (on immediate) {
-        <app-settings-modal (close)="closeSettings()" />
+        <app-settings-modal animate.leave="tt-leave" (close)="closeSettings()" />
       }
     }
     @if (mobileMenuOpen()) {
