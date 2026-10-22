@@ -7,6 +7,7 @@ import { SupabaseClientService } from './supabase-client.service';
 import { DataRefreshService } from '../data-refresh.service';
 import { STORAGE_KEY, TimeEntryService } from '../time-entry';
 import { EntryRow, EntryRowPayload } from './cloud-sync.logic';
+import { SchemaCheck } from './cloud-auth.service';
 
 type Result = { data?: unknown; error?: { code: string; message: string } | null; count?: number };
 
@@ -51,6 +52,8 @@ class FakeClient {
 const UID = 'u1';
 const OWNER_KEY = 'tt.cloud.ownerUserId';
 const ENTRIES_CURSOR_KEY = 'tt.cloud.cursor.entries';
+const LAST_OWNER_KEY = 'tt.cloud.lastOwnerUserId';
+const PARKED_KEY = 'tt.cloud.parked';
 
 function closedRow(id: string): EntryRowPayload {
   return { id, title: id, description: null, start_time: 1000, end_time: 2000, duration: 1000, started_by: null, deleted: false };
@@ -65,6 +68,7 @@ describe('CloudSyncService', () => {
   let userId: ReturnType<typeof signal<string | null>>;
   let service: CloudSyncService;
   let outbox: CloudOutboxService;
+  let schema: SchemaCheck;
 
   beforeEach(() => {
     localStorage.clear();
@@ -72,6 +76,7 @@ describe('CloudSyncService', () => {
     localStorage.setItem(OWNER_KEY, UID);
     client = new FakeClient();
     userId = signal<string | null>(null);
+    schema = { kind: 'ok' };
     TestBed.configureTestingModule({
       providers: [
         { provide: SupabaseClientService, useValue: { get: async () => client, reset: () => {} } },
@@ -80,9 +85,10 @@ describe('CloudSyncService', () => {
           provide: CloudAuthService,
           useValue: {
             userId,
+            status: () => (userId() ? 'signedIn' : 'signedOut'),
             init: async () => {},
             signOut: async () => userId.set(null),
-            checkSchema: async () => ({ kind: 'ok' }),
+            checkSchema: async () => schema,
           },
         },
       ],
@@ -106,9 +112,7 @@ describe('CloudSyncService', () => {
     const rlsError = { code: '42501', message: 'new row violates row-level security policy for table "time_entries"' };
 
     function queue(...ids: string[]): void {
-      outbox.setEnabled(true);
       outbox.enqueueEntries(ids.map(closedRow));
-      outbox.setEnabled(false);
     }
 
     it('moves the refused row aside and keeps syncing the rest', async () => {
@@ -137,7 +141,6 @@ describe('CloudSyncService', () => {
   });
 
   describe('local data left by another account', () => {
-    const LAST_OWNER_KEY = 'tt.cloud.lastOwnerUserId';
 
     function seedLocalEntry(): void {
       TestBed.inject(TimeEntryService).applyRemoteState(
@@ -152,6 +155,21 @@ describe('CloudSyncService', () => {
 
       expect(localStorage.getItem(OWNER_KEY)).toBeNull();
       expect(localStorage.getItem(LAST_OWNER_KEY)).toBe(UID);
+      expect(service.state()).toBe('disabled');
+    });
+
+    it('parks the bound account\'s queued ops under that account when its dialog is cancelled', async () => {
+      localStorage.setItem(OWNER_KEY, 'someone-else');
+      outbox.enqueueEntries([closedRow('theirs')]);
+
+      await signIn();
+      expect(service.firstConnection()?.kind).toBe('foreign');
+      await service.resolveFirstConnection({ kind: 'cancel' });
+
+      const parked = JSON.parse(localStorage.getItem(PARKED_KEY) ?? 'null');
+      expect(parked?.userId).toBe('someone-else');
+      expect(Object.keys(parked?.entries ?? {})).toEqual(['theirs']);
+      expect(localStorage.getItem(LAST_OWNER_KEY)).toBe('someone-else');
     });
 
     it('asks before mixing it into a different account', async () => {
@@ -172,6 +190,69 @@ describe('CloudSyncService', () => {
       await signIn();
 
       expect(service.firstConnection()?.kind).toBe('upload');
+    });
+  });
+
+  describe('changes made while the data is bound but nothing can be pushed', () => {
+    const entry = { id: 'offline-1', title: 'x', description: null, startTime: 1000, endTime: 2000, duration: 1000 };
+    let pushed: string[];
+
+    beforeEach(() => {
+      pushed = [];
+      client.upsert = async (_table, rows) => {
+        pushed.push(...(Array.isArray(rows) ? rows : [rows]).map(r => (r as EntryRowPayload).id ?? ''));
+        return { error: null };
+      };
+    });
+
+    it('queues them before the session is restored (right after a reload)', () => {
+      TestBed.inject(TimeEntryService).addEntry(entry);
+
+      expect(outbox.pendingEntryIds().has('offline-1')).toBeTrue();
+    });
+
+    it('keeps queueing after the session ends without a sign-out, and pushes on the next sign-in', async () => {
+      await signIn();
+      userId.set(null); // refresh token expired or revoked
+      TestBed.tick();
+      await settle();
+      expect(service.state()).toBe('reauth');
+
+      TestBed.inject(TimeEntryService).addEntry(entry);
+      expect(outbox.pendingEntryIds().has('offline-1')).toBeTrue();
+      expect(pushed).toEqual([]);
+
+      await signIn();
+
+      expect(pushed).toContain('offline-1');
+      expect(outbox.size()).toBe(0);
+      expect(service.state()).toBe('synced');
+    });
+
+    it('keeps queueing while the database waits for a migration', async () => {
+      schema = { kind: 'outdated', version: 2 };
+      await signIn();
+      expect(service.state()).toBe('setup');
+
+      TestBed.inject(TimeEntryService).addEntry(entry);
+
+      expect(outbox.pendingEntryIds().has('offline-1')).toBeTrue();
+      expect(pushed).toEqual([]);
+    });
+
+    it('stops queueing once the local data is wiped and forgotten', () => {
+      outbox.enqueueEntries([closedRow('old')]);
+      localStorage.setItem(PARKED_KEY, JSON.stringify({ userId: UID, entries: { p: closedRow('p') } }));
+      localStorage.setItem(LAST_OWNER_KEY, UID);
+
+      service.forgetLocalData();
+      TestBed.inject(TimeEntryService).addEntry(entry);
+
+      expect(outbox.size()).toBe(0);
+      expect(localStorage.getItem(OWNER_KEY)).toBeNull();
+      expect(localStorage.getItem(LAST_OWNER_KEY)).toBeNull();
+      expect(localStorage.getItem(PARKED_KEY)).toBeNull();
+      expect(service.state()).toBe('disabled');
     });
   });
 

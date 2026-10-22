@@ -59,6 +59,11 @@ administración en [supabase/](supabase/README.md).
 - **Merge por `id`**, nunca reemplazo: lógica pura y testeada en
   [cloud-sync.logic.ts](src/app/services/cloud/cloud-sync.logic.ts). Una operación
   local pendiente gana a la remota; si no, gana la remota.
+- **Encolar ≠ empujar:** la outbox encola siempre que la caché esté vinculada a
+  una cuenta (`tt.cloud.ownerUserId`), haya sesión o no (sesión caducada, esquema
+  pendiente de migración, arranque antes de restaurar la sesión). Solo el
+  *push* depende de que el sync esté activo. Sin sesión y con datos vinculados,
+  el estado es `reauth` (aviso en el indicador y en Ajustes → Nube).
 - **Aplicar datos remotos no re-encola:** usa `TimeEntryService.applyRemoteState()`
   o escribe `localStorage` + `DataRefreshService.refreshAll()`. No llames a
   `saveEntries` con datos que vienen de la nube.
@@ -84,7 +89,11 @@ administración en [supabase/](supabase/README.md).
   `tt_keep_closed`, migración 0002).
 - **CSP:** `vercel.json` solo permite `*.supabase.co` en `connect-src` y scripts
   de `'self'` (nada de `<script>` inline ni `onload=` en `index.html`).
-- Con sesión: **reset deshabilitado** e **import = merge** hacia la cuenta.
+- Con sesión: **reset deshabilitado**. **Import = merge** hacia la cuenta con
+  sesión o con la caché vinculada. Un reset sin sesión llama a
+  `CloudSyncService.forgetLocalData()` (desvincula y descarta outbox y operaciones
+  aparcadas: si no, una edición aparcada se convertiría en un borrado en la nube
+  en la siguiente fusión).
 - **Migraciones:** cada cambio de esquema es un nuevo `supabase/migrations/000N_*.sql`
   que sube `public.schema_version()`; registra el fichero en
   [cloud-schema.ts](src/app/services/cloud/cloud-schema.ts) y sube

@@ -13,6 +13,12 @@ import {
 } from './cloud-sync.logic';
 
 const OUTBOX_KEY = 'tt.cloud.outbox';
+/**
+ * Account this device's local data belongs to (set by CloudSyncService when
+ * the cache is bound to an account, cleared on sign-out). While it is set,
+ * every local change is queued, with or without a live session.
+ */
+export const CLOUD_OWNER_KEY = 'tt.cloud.ownerUserId';
 /** Rows the server refused because of their data (device-local, diagnostic). */
 const REJECTED_KEY = 'tt.cloud.rejected';
 const MAX_REJECTED = 200;
@@ -36,8 +42,6 @@ export interface RejectedRow {
 export class CloudOutboxService {
   private storage = inject(StorageHealthService);
 
-  /** True while signed in; local changes are only queued when it is set. */
-  private enabled = false;
   /**
    * The outbox when localStorage refused to store it (quota). Kept in memory
    * so the change is still pushed while this tab is open; the next write that
@@ -56,12 +60,15 @@ export class CloudOutboxService {
   /** Emits when settings may have changed and should be diffed against the shadow. */
   readonly settingsScan$ = new Subject<void>();
 
-  setEnabled(enabled: boolean): void {
-    this.enabled = enabled;
-  }
-
+  /**
+   * Whether local changes are queued: while the local data belongs to an
+   * account, not only while a session is live. An expired session, a schema
+   * waiting for its migration or the first instants after a reload must not
+   * let a change slip by unqueued: nothing would ever push it later. Read from
+   * storage, so every tab agrees.
+   */
   isEnabled(): boolean {
-    return this.enabled;
+    return localStorage.getItem(CLOUD_OWNER_KEY) !== null;
   }
 
   read(): Outbox {
@@ -77,18 +84,18 @@ export class CloudOutboxService {
   }
 
   enqueueEntries(rows: EntryRowPayload[]): void {
-    if (!this.enabled || !rows.length) return;
+    if (!rows.length || !this.isEnabled()) return;
     this.write(enqueueEntries(this.read(), rows));
   }
 
   enqueueSettings(changes: Record<string, string | null>): void {
-    if (!this.enabled || !Object.keys(changes).length) return;
+    if (!Object.keys(changes).length || !this.isEnabled()) return;
     this.write(enqueueSettings(this.read(), changes));
   }
 
   /** Ask for a settings diff (after the settings modal saves, an import, …). */
   requestSettingsScan(): void {
-    if (this.enabled) this.settingsScan$.next();
+    if (this.isEnabled()) this.settingsScan$.next();
   }
 
   ack(sent: Outbox): void {

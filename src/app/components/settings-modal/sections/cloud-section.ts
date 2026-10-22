@@ -19,6 +19,7 @@ const STATE_KEYS: Record<CloudSyncState, TranslationKey> = {
   pending: 'cloud.state.pending',
   offline: 'cloud.state.offline',
   error: 'cloud.state.error',
+  reauth: 'cloud.state.reauth',
 };
 
 const AUTH_ERROR_KEYS: Record<CloudAuthError, TranslationKey> = {
@@ -93,6 +94,14 @@ const AUTH_ERROR_KEYS: Record<CloudAuthError, TranslationKey> = {
 
           @case ('signedOut') {
             <p class="text-xs text-slate-500">{{ 'cloud.project' | t: { host: projectHost() } }}</p>
+            @if (sync.state() === 'reauth') {
+              <p class="rounded-lg bg-amber-100 p-3 text-xs text-amber-700" role="status">
+                {{ 'cloud.reauthHint' | t }}
+                @if (outbox.size() > 0) {
+                  <span class="block mt-1 font-medium">{{ 'cloud.pendingCount' | t: { n: outbox.size() } }}</span>
+                }
+              </p>
+            }
             <form class="space-y-2.5" (ngSubmit)="signIn()">
               <div>
                 <label for="cloud-email" class="block text-xs font-medium text-slate-600 mb-1">{{ 'cloud.emailLabel' | t }}</label>
@@ -248,7 +257,8 @@ export class CloudSectionComponent {
       case 'synced': return 'text-emerald-600';
       case 'error': return 'text-red-600';
       case 'offline':
-      case 'setup': return 'text-amber-600';
+      case 'setup':
+      case 'reauth': return 'text-amber-600';
       default: return 'text-slate-500';
     }
   });

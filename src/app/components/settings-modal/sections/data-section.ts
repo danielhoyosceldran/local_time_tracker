@@ -82,7 +82,7 @@ export class DataSectionComponent {
     const at = this.lastExportAt();
     return at === null || Date.now() - at > BACKUP_STALE_MS;
   });
-  /** With a cloud session, import merges into the account and reset is blocked. */
+  /** With a cloud session reset is blocked; import merges whenever the data is bound to an account. */
   signedIn = computed(() => this.auth.status() === 'signedIn');
 
   onExport(): void {
@@ -104,7 +104,9 @@ export class DataSectionComponent {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
-    const cloud = this.signedIn();
+    // Bound without a session (it expired) still means the data is the
+    // account's: replacing it would leave the cloud out of step.
+    const cloud = this.signedIn() || this.cloudSync.isBound();
     if (!confirm(this.translation.t(cloud ? 'data.importMergeConfirm' : 'data.importConfirm'))) {
       input.value = '';
       return;
@@ -131,6 +133,10 @@ export class DataSectionComponent {
     if (this.signedIn()) return;
     if (!confirm(this.translation.t('data.resetAllConfirm'))) return;
     this.time.resetAll();
+    // The account binding, unpushed and parked ops described data that is
+    // gone now: a parked edit would otherwise become a cloud delete at the
+    // next sign-in's merge.
+    this.cloudSync.forgetLocalData();
     this.refreshAll();
     this.status.set(this.translation.t('data.resetDone'));
   }

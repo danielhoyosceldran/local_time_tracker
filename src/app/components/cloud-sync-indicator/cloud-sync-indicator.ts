@@ -36,6 +36,7 @@ export class CloudSyncIndicatorComponent {
       case 'offline': return { label: 'cloud.state.offline', color: 'text-slate-400', pulse: false, slash: true };
       case 'setup': return { label: 'cloud.state.setup', color: 'text-amber-500', pulse: false, slash: false };
       case 'error': return { label: 'cloud.state.error', color: 'text-red-500', pulse: false, slash: true };
+      case 'reauth': return { label: 'cloud.state.reauth', color: 'text-amber-500', pulse: false, slash: true };
     }
   });
 }

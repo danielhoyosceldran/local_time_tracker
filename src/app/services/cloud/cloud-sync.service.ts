@@ -5,7 +5,7 @@ import { CLOUD_SETTING_KEYS, STORAGE_KEY, TimeEntryService, parseBackup, parseIm
 import { DataRefreshService } from '../data-refresh.service';
 import { RunningTimeEntry, TimeEntry } from '../../models/time-entry.model';
 import { CloudAuthService, SchemaCheck } from './cloud-auth.service';
-import { CloudOutboxService } from './cloud-outbox.service';
+import { CLOUD_OWNER_KEY, CloudOutboxService } from './cloud-outbox.service';
 import { SupabaseClientService } from './supabase-client.service';
 import {
   EntryRow,
@@ -33,7 +33,8 @@ export type CloudSyncState =
   | 'synced'
   | 'pending'    // local changes waiting to be pushed
   | 'offline'
-  | 'error';
+  | 'error'
+  | 'reauth';    // the local data belongs to an account but there is no session: changes queue until sign-in
 
 /** Decision needed the first time this device connects to an account. */
 export type FirstConnection =
@@ -48,7 +49,8 @@ export type FirstConnectionChoice =
   | { kind: 'cancel' };
 
 // Device-local sync bookkeeping (never exported, never synced).
-const OWNER_KEY = 'tt.cloud.ownerUserId';
+/** Bound account. While set, the outbox queues every local change (see CloudOutboxService.isEnabled). */
+const OWNER_KEY = CLOUD_OWNER_KEY;
 const ENTRIES_CURSOR_KEY = 'tt.cloud.cursor.entries';
 const SETTINGS_CURSOR_KEY = 'tt.cloud.cursor.settings';
 const SHADOW_KEY = 'tt.cloud.settingsShadow';
@@ -124,6 +126,7 @@ export class CloudSyncService {
     if (this.started) return;
     this.started = true;
     await this.auth.init();
+    this.settleIdle();
   }
 
   /** Re-read config/session after the cloud settings changed. */
@@ -132,6 +135,7 @@ export class CloudSyncService {
     this.userId = null;
     this.clients.reset();
     await this.auth.init();
+    this.settleIdle();
   }
 
   /** Manual "Sync now". */
@@ -152,6 +156,15 @@ export class CloudSyncService {
     this.deactivate();
     this.userId = uid;
     if (uid) await this.connect(uid);
+    // Session gone without signOut() (expired or revoked refresh token): the
+    // data is still bound, so changes keep queueing and the state says so.
+    else this.settleIdle();
+  }
+
+  /** State while there is no session: say so if changes are piling up for an account. */
+  private settleIdle(): void {
+    if (this.userId) return;
+    this.state.set(this.outbox.isEnabled() && this.auth.status() === 'signedOut' ? 'reauth' : 'disabled');
   }
 
   private async connect(uid: string): Promise<void> {
@@ -237,7 +250,6 @@ export class CloudSyncService {
       case 'upload': {
         // Every local entry is uploaded, so parked ops add nothing.
         this.bindOwner(uid);
-        this.outbox.setEnabled(true);
         this.enqueueAllLocal({ includeSettings: true });
         this.activate();
         return;
@@ -271,7 +283,6 @@ export class CloudSyncService {
           this.saveCursor(ENTRIES_CURSOR_KEY, rows);
 
           this.bindOwner(uid);
-          this.outbox.setEnabled(true);
           this.outbox.enqueueEntries([
             ...localOnly.map(toRow),
             ...(localRunning ? [toRow(localRunning)] : []),
@@ -313,10 +324,13 @@ export class CloudSyncService {
     // Whose data stays on this device (not necessarily `uid`: signing out of
     // the first-connection dialog leaves the previous owner's data in place).
     const dataOwner = localStorage.getItem(OWNER_KEY) ?? localStorage.getItem(LAST_OWNER_KEY);
+    // The outbox queues for the bound account, which is not `uid` when this
+    // is the "cancel" of a foreign-data dialog: park the ops under their owner.
+    const opsOwner = localStorage.getItem(OWNER_KEY) ?? uid;
     if (opts.wipeLocal) {
       localStorage.removeItem(PARKED_KEY);
-    } else if (uid && Object.keys(pending).length) {
-      const parked: ParkedOps = { userId: uid, entries: { ...this.readParked(uid), ...pending } };
+    } else if (opsOwner && Object.keys(pending).length) {
+      const parked: ParkedOps = { userId: opsOwner, entries: { ...this.readParked(opsOwner), ...pending } };
       localStorage.setItem(PARKED_KEY, JSON.stringify(parked));
     }
     this.deactivate();
@@ -325,6 +339,9 @@ export class CloudSyncService {
     // Forget the account binding: signing in again goes through the
     // first-connection merge, so offline edits made meanwhile are not lost.
     this.clearBookkeeping();
+    // The session-change effect may have run during the await above, while
+    // the data was still bound, and left 'reauth' behind.
+    this.settleIdle();
     if (opts.wipeLocal) {
       this.time.resetAll();
       await this.dataRefresh.refreshAll();
@@ -358,10 +375,30 @@ export class CloudSyncService {
     return this.active;
   }
 
+  /**
+   * Whether the local data belongs to an account, with or without a session.
+   * Its changes are queued for that account, so an import must merge into it
+   * rather than replace it.
+   */
+  isBound(): boolean {
+    return this.outbox.isEnabled();
+  }
+
+  /**
+   * The local data was wiped (reset while signed out): drop the account
+   * binding and every unpushed op with it. The next sign-in starts like a new
+   * device and downloads the account; nothing is deleted in the cloud.
+   */
+  forgetLocalData(): void {
+    if (this.userId) return;
+    this.clearBookkeeping();
+    localStorage.removeItem(PARKED_KEY);
+    this.settleIdle();
+  }
+
   private activate(online = true): void {
     if (!this.userId) return;
     this.active = true;
-    this.outbox.setEnabled(true);
     this.state.set(online ? 'syncing' : 'offline');
     void this.subscribeRealtime();
     document.addEventListener('visibilitychange', this.onVisibility);
@@ -375,7 +412,6 @@ export class CloudSyncService {
   private deactivate(): void {
     this.epoch++;
     this.active = false;
-    this.outbox.setEnabled(false);
     this.firstConnection.set(null);
     this.schema.set(null);
     this.state.set('disabled');
