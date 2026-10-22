@@ -1,6 +1,7 @@
 // src/app/app.component.ts
-import { afterNextRender, ChangeDetectionStrategy, Component, DestroyRef, inject, OnInit } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { afterNextRender, ChangeDetectionStrategy, Component, DestroyRef, inject, Injector, OnInit } from '@angular/core';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { filter, take } from 'rxjs';
 import { Title } from '@angular/platform-browser';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TimeEntryService } from './services/time-entry';
@@ -36,8 +37,12 @@ export class AppComponent implements OnInit {
   private cloudSync = inject(CloudSyncService);
 
   constructor() {
-    // Entrance motion is for state changes, not for the page appearing.
-    afterNextRender(() => setTimeout(markMotionReady));
+    // Entrance motion is for state changes, not for the page appearing. The
+    // dashboard is a lazy route, so wait for the first navigation to render.
+    const injector = inject(Injector);
+    inject(Router)
+      .events.pipe(filter(e => e instanceof NavigationEnd), take(1))
+      .subscribe(() => afterNextRender(() => setTimeout(markMotionReady), { injector }));
   }
 
   ngOnInit(): void {
