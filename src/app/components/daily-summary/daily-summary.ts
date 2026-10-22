@@ -18,7 +18,7 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
   template: `
     <div
       (click)="navigateToIntervals()"
-      class="bg-white/80 backdrop-blur-xl border border-white rounded-2xl shadow-sm shadow-slate-200/50 p-4 h-full flex flex-col overflow-hidden cursor-pointer active:scale-95 transition-all relative"
+      class="bg-white/80 backdrop-blur-xl border border-white rounded-2xl shadow-sm shadow-slate-200/50 p-4 h-full flex flex-col overflow-hidden cursor-pointer active:scale-[0.98] transition-transform duration-150 ease-out relative"
     >
       <!-- Water tank background layer -->
       @if (todaySummary$ | async; as summary) {
