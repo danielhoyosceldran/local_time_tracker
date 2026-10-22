@@ -67,7 +67,25 @@ que:
 
 ## Pausa por inactividad (plan gratuito)
 
-Supabase pausa los proyectos gratuitos tras **7 días sin actividad**. Si pasa:
+Supabase pausa los proyectos gratuitos tras **7 días sin actividad**. Para
+evitarlo, el despliegue en Vercel incluye un **cron diario**
+(`crons` en [`vercel.json`](../vercel.json) →
+[`api/keepalive.ts`](../api/keepalive.ts)) que hace una petición inofensiva
+(`rpc/schema_version`) cada día a las 06:17 UTC. Configúralo una vez en
+**Vercel → Project → Settings → Environment Variables** (entorno *Production*) y
+vuelve a desplegar:
+
+- `SUPABASE_URL`: la Project URL.
+- `SUPABASE_PUBLISHABLE_KEY`: la publishable/anon key (nunca la secret key).
+- `CRON_SECRET`: una cadena aleatoria larga. Vercel la envía al cron como
+  `Authorization: Bearer …`, así que nadie más puede invocar el endpoint.
+
+Los crons solo se ejecutan en el despliegue de producción. Puedes ver cada
+ejecución en **Vercel → Project → Settings → Cron Jobs** (botón *Run* para
+probarlo) y sus logs en **Logs**. Un fallo no envía email en el plan Hobby;
+con un ping diario hacen falta 7 fallos seguidos para que el proyecto se pause.
+
+Si aun así se pausa:
 
 - La app sigue funcionando en local y marca la sincronización como "sin conexión".
 - Entra en el dashboard y pulsa **Restore project**. Al volver, la app sube lo
