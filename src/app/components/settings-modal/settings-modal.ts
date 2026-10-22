@@ -12,6 +12,7 @@ import { CloudSectionComponent } from './sections/cloud-section';
 import { TranslationService } from '../../i18n';
 import { TranslatePipe } from '../../i18n/translate.pipe';
 import { ModalA11yDirective } from '../../shared/modal-a11y.directive';
+import { EnterMotionDirective } from '../../shared/enter-motion.directive';
 
 type TabId = 'general' | 'schedule' | 'tracking' | 'focus' | 'cloud' | 'data';
 
@@ -37,6 +38,7 @@ interface Tab {
     CloudSectionComponent,
     TranslatePipe,
     ModalA11yDirective,
+    EnterMotionDirective,
   ],
   template: `
     <div
@@ -108,33 +110,33 @@ interface Tab {
           <div class="flex-1 overflow-y-auto px-6 py-6">
             @switch (active()) {
               @case ('general') {
-                <div class="space-y-10">
+                <div appEnter="fade" class="space-y-10">
                   <app-general-section class="block" />
                 </div>
               }
               @case ('schedule') {
-                <div class="space-y-10">
+                <div appEnter="fade" class="space-y-10">
                   <app-workday-section class="block" />
                 </div>
               }
               @case ('tracking') {
-                <div class="space-y-10">
+                <div appEnter="fade" class="space-y-10">
                   <app-autoround-section class="block" />
                   <app-lunch-section class="block" />
                 </div>
               }
               @case ('focus') {
-                <div class="space-y-10">
+                <div appEnter="fade" class="space-y-10">
                   <app-pomodoro-section class="block" />
                 </div>
               }
               @case ('cloud') {
-                <div class="space-y-10">
+                <div appEnter="fade" class="space-y-10">
                   <app-cloud-section class="block" />
                 </div>
               }
               @case ('data') {
-                <div class="space-y-10">
+                <div appEnter="fade" class="space-y-10">
                   <app-data-section class="block" />
                 </div>
               }

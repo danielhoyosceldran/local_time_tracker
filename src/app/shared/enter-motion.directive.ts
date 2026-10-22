@@ -85,7 +85,7 @@ export class EnterMotionDirective implements OnInit {
 
   ngOnInit(): void {
     if (!motionReady || typeof this.el.animate !== 'function') return;
-    if (this.el.parentElement?.closest(`[${ENTERING_ATTR}]`)) return;
+    if (this.ancestorIsEntering()) return;
 
     const preset = PRESETS[this.appEnter() || 'swap'];
     this.el.setAttribute(ENTERING_ATTR, '');
@@ -96,5 +96,27 @@ export class EnterMotionDirective implements OnInit {
     const done = () => this.el.removeAttribute(ENTERING_ATTR);
     animation.onfinish = done;
     animation.oncancel = done;
+  }
+
+  /**
+   * True when something above is already animating in: another appEnter, or a
+   * finite CSS keyframe entrance such as .tt-modal. Transitions and looping
+   * animations (animate-pulse) don't count.
+   */
+  private ancestorIsEntering(): boolean {
+    for (let node = this.el.parentElement; node; node = node.parentElement) {
+      if (node.hasAttribute(ENTERING_ATTR)) return true;
+      const entering = node
+        .getAnimations()
+        .some(
+          a =>
+            typeof CSSAnimation !== 'undefined' &&
+            a instanceof CSSAnimation &&
+            a.playState === 'running' &&
+            a.effect?.getTiming().iterations !== Infinity,
+        );
+      if (entering) return true;
+    }
+    return false;
   }
 }
