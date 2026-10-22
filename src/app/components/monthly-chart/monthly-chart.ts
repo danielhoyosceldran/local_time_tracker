@@ -190,9 +190,14 @@ export class MonthlyChartComponent implements OnInit, OnDestroy {
     const gridColor = cssVar('--tt-chart-grid');
     const tooltipBg = cssVar('--tt-chart-tooltip-bg');
     const tooltipText = cssVar('--tt-chart-tooltip-text');
+    const reduceMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
     return {
       responsive: true,
       maintainAspectRatio: false,
+      // Chart.js defaults to 1000ms on every update (data, period, theme flip).
+      animation: reduceMotion ? false : { duration: 400, easing: 'easeOutQuart' },
       scales: {
         y: {
           beginAtZero: true,
