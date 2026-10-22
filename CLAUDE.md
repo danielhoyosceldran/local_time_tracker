@@ -74,8 +74,10 @@ administración en [supabase/](supabase/README.md).
   otra cuenta: `tt.cloud.ownerUserId`, o tras un logout
   `tt.cloud.lastOwnerUserId`) borrar. Logout limpia la vinculación, así
   que volver a entrar pasa otra vez por la fusión. Lo que quedaba sin subir al
-  cerrar sesión se aparca en `tt.cloud.parked` (por usuario) y la fusión del
-  siguiente login de ese usuario lo reaplica con la versión local actual.
+  cerrar sesión, y todo fichaje que cambie después en local mientras
+  `tt.cloud.lastOwnerUserId` siga puesto, se aparca en `tt.cloud.parked` (por
+  usuario; solo importan los `id`) y la fusión del siguiente login de ese
+  usuario lo reaplica con la versión local actual (ausente = borrado).
 - **Filas inválidas:** si Postgres rechaza una fila por sus datos o porque su `id`
   es de otra cuenta (RLS, `isRowRejection`), sale de la cola a `tt.cloud.rejected`
   en vez de bloquear el resto. Un 42501 "permission denied" (sin sesión) NO.

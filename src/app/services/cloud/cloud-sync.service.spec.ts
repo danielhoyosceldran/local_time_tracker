@@ -256,6 +256,59 @@ describe('CloudSyncService', () => {
     });
   });
 
+  describe('changes made after an explicit sign-out (data kept on the device)', () => {
+    /** In-memory stand-in for the account's rows: upserts land in it, selects read it. */
+    let remote: Map<string, EntryRow>;
+    let version: number;
+
+    beforeEach(() => {
+      remote = new Map();
+      version = 0;
+      const put = (row: EntryRowPayload) =>
+        remote.set(row.id, { ...row, updated_at: `2026-10-01T10:00:${String(++version).padStart(2, '0')}.000000+00:00` });
+      put(closedRow('a'));
+      put(closedRow('b'));
+      client.upsert = async (_table, rows) => {
+        (Array.isArray(rows) ? rows : [rows]).forEach(r => put(r as EntryRowPayload));
+        return { error: null };
+      };
+      client.select = async table => {
+        if (table !== 'time_entries') return { data: [], error: null };
+        const rows = [...remote.values()];
+        return { data: rows, count: rows.filter(r => !r.deleted).length, error: null };
+      };
+    });
+
+    it('survive the merge of the next sign-in instead of being undone by the cloud', async () => {
+      const time = TestBed.inject(TimeEntryService);
+      await signIn();
+      expect(time.snapshot().entries.map(e => e.id).sort()).toEqual(['a', 'b']);
+      await service.signOut({ wipeLocal: false });
+
+      time.updateEntry('a', 'edited offline', null);
+      time.deleteEntry('b');
+
+      await signIn();
+      expect(service.firstConnection()?.kind).toBe('merge');
+      await service.resolveFirstConnection({ kind: 'merge', settingsFrom: 'cloud' });
+      await settle();
+
+      expect(time.snapshot().entries.map(e => [e.id, e.title])).toEqual([['a', 'edited offline']]);
+      expect(remote.get('a')?.title).toBe('edited offline');
+      expect(remote.get('b')?.deleted).toBeTrue();
+      expect(localStorage.getItem(PARKED_KEY)).toBeNull();
+    });
+
+    it('are not tracked for data that never belonged to an account', () => {
+      localStorage.removeItem(OWNER_KEY);
+
+      TestBed.inject(TimeEntryService).addEntry({ id: 'local', title: 'x', description: null, startTime: 1000, endTime: 2000, duration: 1000 });
+
+      expect(localStorage.getItem(PARKED_KEY)).toBeNull();
+      expect(outbox.size()).toBe(0);
+    });
+  });
+
   describe('sign-out while a pull is in flight', () => {
     it('does not write the late response into the wiped cache', async () => {
       let answer!: (r: Result) => void;

@@ -245,7 +245,7 @@ export class TimeEntryService implements OnDestroy {
     // Every mutation (add/update/delete/stop) lands here, so this is the one
     // place that queues cloud changes. Remote/import/reload paths write the
     // subjects directly and never echo back.
-    if (this.outbox.isEnabled()) {
+    if (this.outbox.isTracking()) {
       const { upserts, deletes } = diffEntries(prev, entries);
       this.outbox.enqueueEntries([...upserts.map(toRow), ...deletes.map(e => tombstone(e.id, e))]);
     }

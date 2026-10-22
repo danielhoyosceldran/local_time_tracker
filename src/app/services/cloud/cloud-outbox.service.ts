@@ -10,6 +10,7 @@ import {
   enqueueEntries,
   enqueueSettings,
   outboxSize,
+  tombstone,
 } from './cloud-sync.logic';
 
 const OUTBOX_KEY = 'tt.cloud.outbox';
@@ -19,9 +20,27 @@ const OUTBOX_KEY = 'tt.cloud.outbox';
  * every local change is queued, with or without a live session.
  */
 export const CLOUD_OWNER_KEY = 'tt.cloud.ownerUserId';
+/**
+ * Account the local data belonged to when it was last signed out. OWNER is
+ * cleared on sign-out (the next login must go through the merge), so this is
+ * what lets a different account's login spot data that is not its own.
+ */
+export const CLOUD_LAST_OWNER_KEY = 'tt.cloud.lastOwnerUserId';
+/**
+ * Entry ops of a signed-out account: those still unpushed at sign-out, plus
+ * every local change made afterwards. The first-connection merge of that
+ * account's next login re-applies them (local wins) instead of letting the
+ * cloud version silently undo them.
+ */
+export const CLOUD_PARKED_KEY = 'tt.cloud.parked';
 /** Rows the server refused because of their data (device-local, diagnostic). */
 const REJECTED_KEY = 'tt.cloud.rejected';
 const MAX_REJECTED = 200;
+
+export interface ParkedOps {
+  userId: string;
+  entries: Outbox['entries'];
+}
 
 export interface RejectedRow {
   row: EntryRowPayload;
@@ -71,6 +90,11 @@ export class CloudOutboxService {
     return localStorage.getItem(CLOUD_OWNER_KEY) !== null;
   }
 
+  /** Whether enqueueEntries() records anything: queued for a bound account, or parked for a signed-out one. */
+  isTracking(): boolean {
+    return this.isEnabled() || localStorage.getItem(CLOUD_LAST_OWNER_KEY) !== null;
+  }
+
   read(): Outbox {
     if (this.unsaved) return this.unsaved;
     try {
@@ -84,8 +108,38 @@ export class CloudOutboxService {
   }
 
   enqueueEntries(rows: EntryRowPayload[]): void {
-    if (!rows.length || !this.isEnabled()) return;
-    this.write(enqueueEntries(this.read(), rows));
+    if (!rows.length) return;
+    if (this.isEnabled()) {
+      this.write(enqueueEntries(this.read(), rows));
+      return;
+    }
+    // Signed out, but the data is known to be an account's: remember which
+    // entries changed, or the next login's merge would let the cloud undo
+    // the edits and resurrect the deletes. Only the ids matter (the merge
+    // re-derives each row from the current local entry; a gone one becomes a
+    // tombstone), so bare tombstones keep a long local-only stretch from
+    // duplicating the data in storage.
+    const owner = localStorage.getItem(CLOUD_LAST_OWNER_KEY);
+    if (owner) this.park(owner, rows.map(r => tombstone(r.id)));
+  }
+
+  /** Parked entry ops of `uid` (empty if what is parked belongs to someone else). */
+  readParked(uid: string): Outbox['entries'] {
+    try {
+      const parked = JSON.parse(localStorage.getItem(CLOUD_PARKED_KEY) ?? 'null') as ParkedOps | null;
+      return parked?.userId === uid && parked.entries && typeof parked.entries === 'object'
+        ? parked.entries
+        : {};
+    } catch {
+      return {};
+    }
+  }
+
+  /** Add ops to `uid`'s parked set (coalesced by id, like the outbox). */
+  park(uid: string, rows: EntryRowPayload[]): void {
+    const entries = enqueueEntries({ entries: this.readParked(uid), settings: {} }, rows).entries;
+    const parked: ParkedOps = { userId: uid, entries };
+    this.storage.setItem(CLOUD_PARKED_KEY, JSON.stringify(parked));
   }
 
   enqueueSettings(changes: Record<string, string | null>): void {

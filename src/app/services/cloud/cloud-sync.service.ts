@@ -5,12 +5,16 @@ import { CLOUD_SETTING_KEYS, STORAGE_KEY, TimeEntryService, parseBackup, parseIm
 import { DataRefreshService } from '../data-refresh.service';
 import { RunningTimeEntry, TimeEntry } from '../../models/time-entry.model';
 import { CloudAuthService, SchemaCheck } from './cloud-auth.service';
-import { CLOUD_OWNER_KEY, CloudOutboxService } from './cloud-outbox.service';
+import {
+  CLOUD_LAST_OWNER_KEY,
+  CLOUD_OWNER_KEY,
+  CLOUD_PARKED_KEY,
+  CloudOutboxService,
+} from './cloud-outbox.service';
 import { SupabaseClientService } from './supabase-client.service';
 import {
   EntryRow,
   EntryRowPayload,
-  Outbox,
   SettingRow,
   diffSettings,
   fromRow,
@@ -19,11 +23,6 @@ import {
   resolveRunningConflict,
   toRow,
 } from './cloud-sync.logic';
-
-interface ParkedOps {
-  userId: string;
-  entries: Outbox['entries'];
-}
 
 /** What the sync indicator shows. */
 export type CloudSyncState =
@@ -54,14 +53,10 @@ const OWNER_KEY = CLOUD_OWNER_KEY;
 const ENTRIES_CURSOR_KEY = 'tt.cloud.cursor.entries';
 const SETTINGS_CURSOR_KEY = 'tt.cloud.cursor.settings';
 const SHADOW_KEY = 'tt.cloud.settingsShadow';
-/** Entry ops still unpushed when the user signed out, kept for that user's next login. */
-const PARKED_KEY = 'tt.cloud.parked';
-/**
- * Account the local data belonged to when it was last signed out. OWNER_KEY
- * is cleared on sign-out (the next login must go through the merge), so this
- * is what lets a different account's login spot data that is not its own.
- */
-const LAST_OWNER_KEY = 'tt.cloud.lastOwnerUserId';
+/** Ops of a signed-out account, kept for its next login (see CLOUD_PARKED_KEY). */
+const PARKED_KEY = CLOUD_PARKED_KEY;
+/** Whose data stays on this device after a sign-out (see CLOUD_LAST_OWNER_KEY). */
+const LAST_OWNER_KEY = CLOUD_LAST_OWNER_KEY;
 
 const ENTRY_COLUMNS = 'id,title,description,start_time,end_time,duration,started_by,deleted,updated_at';
 const PAGE_SIZE = 1000;
@@ -317,9 +312,13 @@ export class CloudSyncService {
       await this.flush();
       for (let i = 0; i < 3 && this.flushRun; i++) await this.flushRun;
     }
+    this.deactivate();
+    await this.auth.signOut();
+    this.userId = null;
     // Still unpushed (offline): park the entry ops so the first-connection
     // merge of the next login re-applies them instead of letting the cloud
     // version win. Wiping the local copy discards them (the dialog warns).
+    // Read after the await: a change made while it ran was still queued.
     const pending = this.outbox.read().entries;
     // Whose data stays on this device (not necessarily `uid`: signing out of
     // the first-connection dialog leaves the previous owner's data in place).
@@ -330,12 +329,8 @@ export class CloudSyncService {
     if (opts.wipeLocal) {
       localStorage.removeItem(PARKED_KEY);
     } else if (opsOwner && Object.keys(pending).length) {
-      const parked: ParkedOps = { userId: opsOwner, entries: { ...this.readParked(opsOwner), ...pending } };
-      localStorage.setItem(PARKED_KEY, JSON.stringify(parked));
+      this.outbox.park(opsOwner, Object.values(pending));
     }
-    this.deactivate();
-    await this.auth.signOut();
-    this.userId = null;
     // Forget the account binding: signing in again goes through the
     // first-connection merge, so offline edits made meanwhile are not lost.
     this.clearBookkeeping();
@@ -433,17 +428,6 @@ export class CloudSyncService {
     localStorage.removeItem(LAST_OWNER_KEY);
   }
 
-  private readParked(uid: string): Outbox['entries'] {
-    try {
-      const parked = JSON.parse(localStorage.getItem(PARKED_KEY) ?? 'null') as ParkedOps | null;
-      return parked?.userId === uid && parked.entries && typeof parked.entries === 'object'
-        ? parked.entries
-        : {};
-    } catch {
-      return {};
-    }
-  }
-
   /**
    * Parked ops for `uid`, re-derived from the CURRENT local state: the entry
    * may have changed again while signed out, and that is what the user sees.
@@ -452,7 +436,7 @@ export class CloudSyncService {
   private parkedRowsFor(uid: string, local: { entries: TimeEntry[]; running: RunningTimeEntry | null }): EntryRowPayload[] {
     const byId = new Map<string, TimeEntry | RunningTimeEntry>(local.entries.map(e => [e.id, e]));
     if (local.running) byId.set(local.running.id, local.running);
-    return Object.entries(this.readParked(uid)).map(([id, row]) => {
+    return Object.entries(this.outbox.readParked(uid)).map(([id, row]) => {
       const current = byId.get(id);
       return current ? toRow(current) : { ...row, deleted: true };
     });
