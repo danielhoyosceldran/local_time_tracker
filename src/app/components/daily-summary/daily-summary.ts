@@ -22,9 +22,11 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
     >
       <!-- Water tank background layer -->
       @if (todaySummary$ | async; as summary) {
+        <!-- Full-height layer slid down by the missing share: transform, not
+             height, because this re-renders every second while the timer runs. -->
         <div
-          class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-500/20 to-indigo-500/30 rounded-b-2xl transition-all duration-700"
-          [style.height.%]="getProgress(summary.totalDurationMs)"
+          class="absolute inset-0 bg-gradient-to-t from-blue-500/20 to-indigo-500/30 transition-transform duration-700 ease-out"
+          [style.transform]="'translateY(' + (100 - getProgress(summary.totalDurationMs)) + '%)'"
         >
           <!-- Water surface shimmer -->
           <div class="absolute top-0 left-0 right-0 h-1 bg-white/40 blur-sm animate-pulse"></div>
