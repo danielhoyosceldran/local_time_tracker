@@ -177,6 +177,7 @@ html, body {
 @keyframes tt-fade-out { to { opacity: 0; } }
 @keyframes tt-modal-in { from { opacity: 0; transform: scale(0.96); } }
 @keyframes tt-shrink-out { to { transform: scale(0.96); } }
+@keyframes tt-grow-in { from { transform: scale(0.9); } }
 @keyframes tt-popover-in { from { opacity: 0; transform: scale(0.95); } }
 @keyframes tt-popover-out { to { transform: scale(0.95); } }
 /* Banners use `translate`, not `transform`: they are centred with -translate-x-1/2. */
@@ -188,6 +189,15 @@ html, body {
 /* Modals: centred, so they scale from the centre. */
 .tt-backdrop { animation: tt-fade-in 150ms var(--ease-out); }
 .tt-modal { animation: tt-modal-in 200ms var(--ease-out); }
+
+/* Celebration (rare, so it may overshoot a little). Opacity and scale are
+   separate animations so the overshoot curve only touches the scale. */
+.tt-modal.tt-celebrate {
+  animation: tt-fade-in 200ms var(--ease-out), tt-grow-in 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.tt-celebrate-badge {
+  animation: tt-fade-in 200ms var(--ease-out) 80ms both, tt-grow-in 400ms cubic-bezier(0.34, 1.56, 0.64, 1) 80ms both;
+}
 
 /* Popovers grow out of their trigger: set transform-origin to its side. */
 .tt-popover { animation: tt-popover-in 150ms var(--ease-out); }
@@ -204,7 +214,7 @@ html, body {
 
 /* Reduced motion: opacity only, no scaling. */
 @media (prefers-reduced-motion: reduce) {
-  .tt-backdrop, .tt-modal, .tt-popover { animation: tt-fade-in 150ms ease-out !important; }
+  .tt-backdrop, .tt-modal, .tt-popover, .tt-celebrate-badge { animation: tt-fade-in 150ms ease-out !important; }
   .tt-leave { animation-duration: 150ms !important; }
   .tt-leave .tt-modal, .tt-leave .tt-popover { animation: none !important; }
   .tt-banner-top, .tt-banner-bottom { animation: tt-fade-in 150ms ease-out !important; }

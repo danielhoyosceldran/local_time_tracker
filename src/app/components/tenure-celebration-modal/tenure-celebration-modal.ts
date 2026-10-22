@@ -40,11 +40,11 @@ function confettiColors(): string[] {
       <div
         appModal
         labelledBy="tenure-celebration-title"
-        class="tt-modal relative z-10 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(90vw,420px)] px-7 py-8 text-center outline-none"
+        class="tt-modal tt-celebrate relative z-10 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 w-[min(90vw,420px)] px-7 py-8 text-center outline-none"
       >
         <!-- Trophy badge -->
         <div
-          class="mx-auto mb-4 w-16 h-16 rounded-full bg-tenure-soft flex items-center justify-center"
+          class="tt-celebrate-badge mx-auto mb-4 w-16 h-16 rounded-full bg-tenure-soft flex items-center justify-center"
         >
           <svg aria-hidden="true" class="w-8 h-8 text-tenure" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
