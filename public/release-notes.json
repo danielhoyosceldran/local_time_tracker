@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.10.0-alpha",
+    "date": "2026-10-22",
+    "notes": [
+      "Optional cloud sync: sign in under Settings → Cloud to keep your entries and settings on all your devices",
+      "Only one device edits at a time; the others are read-only and show who is using the account",
+      "Control passes on when that device closes the app or after 2 minutes without activity, or right away with 'Take control'",
+      "When you connect a device that already has data, you choose which copy to keep: the cloud's or this device's",
+      "If changes made offline could not be uploaded because another device took control, a backup of them is kept for you to download"
+    ]
+  },
+  {
     "version": "0.9.0-alpha",
     "date": "2026-06-03",
     "notes": [

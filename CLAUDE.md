@@ -2,8 +2,9 @@
 
 Local-first time tracker (Angular 21, standalone components, signals). All state
 lives in the browser's `localStorage`. Optionally, a signed-in user syncs it with
-a Supabase project (see "Sync con Supabase"); without a session the app is 100%
-local.
+a Supabase project (see "Sync con Supabase"): then the cloud is the source of
+truth, `localStorage` is the working copy, and only one instance at a time (the
+holder of the edit lock) may write. Without a session the app is 100% local.
 
 ## Persistencia y export/import (IMPORTANTE)
 
@@ -180,8 +181,8 @@ la columna **Solucionado** y referencia el commit/PR.
 | 6 | **Borrar/editar no disparan push** → la nube queda con datos viejos; otro dispositivo los "trae" y resucita lo borrado | ~~Disparar `syncToCloud()` en cada mutación~~ → **Resuelto:** el sync se centralizó en la capa de persistencia (`saveEntries`/`saveRunningEntry`), por la que pasan TODAS las mutaciones; las llamadas se agrupan en un microtask (un push por operación, con el estado final). Import/reload no pasan por ahí, así que traer de la nube no rebota. | 50% | ✅ Sí |
 | 2 | **Pull/import/"traer del cloud" = reemplazo total**, no merge → entries locales únicas se pierden | **Merge por `id`** (conservar la versión más reciente por `endTime`/edición) en lugar de sobreescribir | 45% | ✅ Sí (merge por `id`; import con sesión = merge) |
 | 1 | Play en dispositivo vacío/reseteado **sube snapshot pobre y borra la nube entera** (last-writer-wins) | **Pull-then-merge antes del primer push** de la sesión; bloquear push que reduzca drásticamente el nº de entries sin confirmación | 40% | ✅ Sí (un dispositivo vacío descarga sin preguntar; con datos, diálogo explícito nube → local / local → nube con sus consecuencias; mutex de edición) |
-| 4 | **Multi-pestaña** mismo navegador: la 2ª pestaña pisa el running entry de la 1ª (sesión en curso perdida) | Escuchar evento `window.storage` y recargar signals con `reloadFromStorage()` | 35% | ✅ Sí (evento `storage` en `TimeEntryService`) |
-| 5 | **Running entry compartido** (feature de identidad de dispositivo) bloquea al otro: no puede pararlo ni arrancar el suyo; si el dueño desaparece, queda irrecuperable | Permitir **"forzar parada / tomar control"** de un timer ajeno; no bloquear el inicio de uno nuevo si el running entry es de otro dispositivo | 30% | ✅ Sí (sin bloqueo por dispositivo; conflicto offline resuelto) |
+| 4 | **Multi-pestaña** mismo navegador: la 2ª pestaña pisa el running entry de la 1ª (sesión en curso perdida) | Escuchar evento `window.storage` y recargar signals con `reloadFromStorage()` | 35% | ✅ Sí (evento `storage` en `TimeEntryService`; con sesión, además, solo la pestaña con el mutex escribe) |
+| 5 | **Running entry compartido** (feature de identidad de dispositivo) bloquea al otro: no puede pararlo ni arrancar el suyo; si el dueño desaparece, queda irrecuperable | Permitir **"forzar parada / tomar control"** de un timer ajeno; no bloquear el inicio de uno nuevo si el running entry es de otro dispositivo | 30% | ✅ Sí (lo para quien tenga el mutex, sea cual sea el dispositivo que lo arrancó; el mutex caduca a los 2 min y se puede "tomar el control") |
 | 8 | Sin gist configurado, el navegador **vacía `localStorage`** (incógnito, "borrar al cerrar", presión de almacenamiento) → pérdida total | Backup opt-in más visible / aviso de respaldo; export automático periódico | 25% | 🟡 Mitigado (con sesión los datos están en la nube) |
 | 9 | `reset` deja `gistConfig` vivo → el siguiente play **pushea vacío y borra la nube** | Misma guardia anti-reducción del #1; o pedir confirmación de re-sync tras reset | 15% | ✅ Sí (reset deshabilitado con sesión; logout limpia vinculación) |
 | 7 | `localStorage` **corrupto/truncado** → `JSON.parse` sin try/catch en el arranque → app no bootea | Envolver los `JSON.parse` de carga ([time-entry.ts](src/app/services/time-entry.ts) `loadEntries`/`loadRunningEntry`) en **try/catch** (degradar a vacío + avisar) | 8% | ✅ Sí (try/catch en `loadEntries`/`loadRunningEntry`) |
