@@ -179,6 +179,11 @@ html, body {
 @keyframes tt-shrink-out { to { transform: scale(0.96); } }
 @keyframes tt-popover-in { from { opacity: 0; transform: scale(0.95); } }
 @keyframes tt-popover-out { to { transform: scale(0.95); } }
+/* Banners use `translate`, not `transform`: they are centred with -translate-x-1/2. */
+@keyframes tt-drop-in { from { opacity: 0; translate: 0 -8px; } }
+@keyframes tt-drop-out { to { opacity: 0; translate: 0 -8px; } }
+@keyframes tt-rise-in { from { opacity: 0; translate: 0 8px; } }
+@keyframes tt-rise-out { to { opacity: 0; translate: 0 8px; } }
 
 /* Modals: centred, so they scale from the centre. */
 .tt-backdrop { animation: tt-fade-in 150ms var(--ease-out); }
@@ -187,15 +192,23 @@ html, body {
 /* Popovers grow out of their trigger: set transform-origin to its side. */
 .tt-popover { animation: tt-popover-in 150ms var(--ease-out); }
 
+/* Banners come from the edge they sit on. */
+.tt-banner-top { animation: tt-drop-in 200ms var(--ease-out); }
+.tt-banner-bottom { animation: tt-rise-in 200ms var(--ease-out); }
+
 .tt-leave { animation: tt-fade-out 150ms var(--ease-out) forwards; pointer-events: none; }
 .tt-leave .tt-modal { animation: tt-shrink-out 150ms var(--ease-out) forwards; }
 .tt-leave .tt-popover { animation: tt-popover-out 150ms var(--ease-out) forwards; }
+.tt-leave.tt-banner-top { animation: tt-drop-out 150ms var(--ease-out) forwards; }
+.tt-leave.tt-banner-bottom { animation: tt-rise-out 150ms var(--ease-out) forwards; }
 
 /* Reduced motion: opacity only, no scaling. */
 @media (prefers-reduced-motion: reduce) {
   .tt-backdrop, .tt-modal, .tt-popover { animation: tt-fade-in 150ms ease-out !important; }
   .tt-leave { animation-duration: 150ms !important; }
   .tt-leave .tt-modal, .tt-leave .tt-popover { animation: none !important; }
+  .tt-banner-top, .tt-banner-bottom { animation: tt-fade-in 150ms ease-out !important; }
+  .tt-leave.tt-banner-top, .tt-leave.tt-banner-bottom { animation: tt-fade-out 150ms ease-out forwards !important; }
 }
 
 /* Discrete scrollbars */

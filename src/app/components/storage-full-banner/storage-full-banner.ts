@@ -14,8 +14,8 @@ import { StorageHealthService } from '../../services/storage-health.service';
   imports: [TranslatePipe],
   template: `
     @if (storage.full()) {
-      <div role="alert"
-        class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[min(92vw,480px)] flex items-start gap-3 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-red-200 p-4">
+      <div role="alert" animate.leave="tt-leave"
+        class="tt-banner-bottom fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[min(92vw,480px)] flex items-start gap-3 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-red-200 p-4">
         <div class="flex-1">
           <p class="text-sm font-semibold text-red-700">{{ 'storage.fullTitle' | t }}</p>
           <p class="mt-1 text-xs text-slate-600">{{ 'storage.fullBody' | t }}</p>

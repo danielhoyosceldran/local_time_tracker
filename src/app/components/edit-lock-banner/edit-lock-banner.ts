@@ -1,10 +1,11 @@
 // src/app/components/edit-lock-banner/edit-lock-banner.ts
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { TranslatePipe } from '../../i18n/translate.pipe';
 import { TranslationService } from '../../i18n';
 import { CloudSyncService } from '../../services/cloud/cloud-sync.service';
 import { DeviceIdentityService } from '../../services/device-identity.service';
 import { WriteAccessService } from '../../services/write-access.service';
+import { prefersReducedMotion } from '../../shared/enter-motion.directive';
 
 /**
  * Says that this instance is read-only because another one holds the edit
@@ -18,8 +19,8 @@ import { WriteAccessService } from '../../services/write-access.service';
   imports: [TranslatePipe],
   template: `
     @if (reader(); as r) {
-      <div role="status"
-        class="fixed top-3 left-1/2 -translate-x-1/2 z-40 w-[min(92vw,560px)] flex items-start gap-3 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 px-4 py-3 transition-shadow"
+      <div #lockBanner role="status" animate.leave="tt-leave"
+        class="tt-banner-top fixed top-3 left-1/2 -translate-x-1/2 z-40 w-[min(92vw,560px)] flex items-start gap-3 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/60 px-4 py-3 transition-shadow"
         [class.ring-2]="flash()" [class.ring-amber-500]="flash()">
         <div class="flex-1 min-w-0">
           <p class="text-sm font-semibold text-amber-700">{{ 'lock.readOnlyTitle' | t }}</p>
@@ -32,8 +33,8 @@ import { WriteAccessService } from '../../services/write-access.service';
       </div>
     }
     @if (sync.discardedAt(); as at) {
-      <div role="alert"
-        class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[min(92vw,480px)] flex items-start gap-3 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-red-200 p-4">
+      <div role="alert" animate.leave="tt-leave"
+        class="tt-banner-bottom fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[min(92vw,480px)] flex items-start gap-3 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-red-200 p-4">
         <div class="flex-1">
           <p class="text-sm font-semibold text-red-700">{{ 'lock.discardedTitle' | t }}</p>
           <p class="mt-1 text-xs text-slate-600">{{ 'lock.discardedBody' | t: { date: formatDate(at) } }}</p>
@@ -61,6 +62,7 @@ export class EditLockBannerComponent {
   busy = signal(false);
   /** Briefly highlights the banner when a change was refused. */
   flash = signal(false);
+  private lockBanner = viewChild<ElementRef<HTMLElement>>('lockBanner');
 
   /** The banner text, or null when this instance can write. */
   reader = computed(() => {
@@ -79,6 +81,15 @@ export class EditLockBannerComponent {
       this.flash.set(true);
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => this.flash.set(false), 1200);
+      // A short sideways nudge on every refused edit: "not here". Uses the
+      // `translate` property so it doesn't fight the -translate-x-1/2 centring.
+      const el = untracked(this.lockBanner)?.nativeElement;
+      if (el && !prefersReducedMotion()) {
+        el.animate(
+          [{ translate: '0' }, { translate: '-4px' }, { translate: '4px' }, { translate: '-2px' }, { translate: '0' }],
+          { duration: 300, easing: 'ease-in-out' },
+        );
+      }
     });
   }
 
