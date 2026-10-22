@@ -124,11 +124,15 @@ import { EnterMotionDirective } from '../../shared/enter-motion.directive';
     /* Móvil: solo el panel activo, a pantalla completa. Escritorio intacto. */
     @media (max-width: 639.98px) {
       .tile { display: none; }
+      /* Switching view from the menu: the new panel fades in rather than
+         replacing the old one in a single frame. */
       .tile.tile--active {
         display: block;
         min-height: calc(100dvh - 6rem);
+        animation: tile-in 150ms var(--ease-out);
       }
     }
+    @keyframes tile-in { from { opacity: 0; } }
   `]
 })
 export class DashboardComponent {
