@@ -11,6 +11,7 @@ import { Observable, combineLatest, map, take } from 'rxjs';
 import { TranslatePipe } from '../../i18n/translate.pipe';
 import { ClockTimePipe } from '../../pipes/clock-time.pipe';
 import { TranslationService } from '../../i18n';
+import { EnterMotionDirective } from '../../shared/enter-motion.directive';
 
 interface WeekGroup {
   weekKey: string;
@@ -27,7 +28,7 @@ interface WeekGroup {
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-intervals-view',
   standalone: true,
-  imports: [CommonModule, FormsModule, KENDO_DATETIMEPICKER, TranslatePipe, ClockTimePipe],
+  imports: [CommonModule, FormsModule, KENDO_DATETIMEPICKER, TranslatePipe, ClockTimePipe, EnterMotionDirective],
   template: `
     <div class="h-full flex flex-col bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm shadow-slate-200/50 border border-white overflow-hidden">
       <!-- Toolbar -->
@@ -121,7 +122,7 @@ interface WeekGroup {
                         </button>
 
                         @if (expandedDays().has(day.date)) {
-                          <div class="border-t border-slate-100">
+                          <div appEnter="reveal" class="border-t border-slate-100">
                             @for (entry of day.entries; track entry.id) {
                               <div class="px-3 py-2 border-b border-slate-50 last:border-b-0 hover:bg-slate-50">
                                 @if (editingEntry() === entry.id) {
