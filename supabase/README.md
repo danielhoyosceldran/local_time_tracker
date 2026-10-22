@@ -2,8 +2,12 @@
 
 La app funciona 100 % en local por defecto. Si inicias sesión en un proyecto de
 Supabase, tus fichajes y ajustes se sincronizan entre todos tus dispositivos.
-`localStorage` sigue siendo la caché, así que la app funciona sin conexión y sube
-los cambios al recuperarla.
+`localStorage` sigue siendo la copia de trabajo que lee la app.
+
+**La app necesita internet.** Sin conexión no se garantiza nada: una pestaña que
+ya estaba abierta sigue usando la copia local, el indicador avisa de que no hay
+conexión y la app intenta subir lo pendiente cuando vuelve, pero no es un modo
+soportado (ver más abajo qué pasa si mientras tanto otro dispositivo edita).
 
 Nadie puede registrarse desde la app: **los usuarios los crea el administrador
 del proyecto** desde el dashboard de Supabase. Un mismo proyecto puede alojar a
@@ -57,9 +61,10 @@ el resto queda en **solo lectura** y muestra quién tiene el control.
 - Al cerrar la app se libera. Si se cierra de golpe (sin conexión, batería),
   el resto lo puede coger cuando lleve **2 minutos** sin renovarse.
 - **Tomar el control** lo quita al otro dispositivo al momento.
-- Si el dispositivo con el mutex se queda sin conexión, sigue funcionando. Si al
-  volver otro ha cogido el mutex, gana la nube: sus cambios sin subir se
-  descartan, pero antes se guarda un backup que puedes descargar desde el aviso.
+- Si el dispositivo con el mutex se queda sin conexión (no soportado: la app
+  necesita internet), sigue usando su copia local. Si al volver otro ha cogido
+  el mutex, gana la nube: sus cambios sin subir se descartan, pero antes se
+  guarda un backup que puedes descargar desde el aviso.
 - El servidor lo garantiza (migración 0004): rechaza cualquier escritura de una
   instancia que no tenga el mutex.
 
@@ -113,7 +118,7 @@ con un ping diario hacen falta 7 fallos seguidos para que el proyecto se pause.
 
 Si aun así se pausa:
 
-- La app sigue funcionando en local y marca la sincronización como "sin conexión".
+- La app usa la copia local y marca la sincronización como "sin conexión".
 - Entra en el dashboard y pulsa **Restore project**. Al volver, la app sube lo
   pendiente automáticamente.
 

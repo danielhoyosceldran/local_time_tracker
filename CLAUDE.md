@@ -51,8 +51,13 @@ nube (es estado en ejecución).
 Código en [src/app/services/cloud/](src/app/services/cloud/); SQL y guía de
 administración en [supabase/](supabase/README.md).
 
-- **Con sesión, la nube es la verdad;** `localStorage` es la copia que lee la UI
-  (sigue funcionando sin conexión). Las mutaciones pasan por
+- **La app necesita internet.** No hay modo offline soportado: `public/sw.js`
+  no cachea nada (solo existe para que sea instalable) y no hay que prometer lo
+  contrario en la UI ni en la documentación. Si una pestaña abierta pierde la
+  red, usa la copia local y lo que dependa de Supabase avisa de que no hay
+  conexión (`cloud.state.offline`, `cloud.err.network`).
+- **Con sesión, la nube es la verdad;** `localStorage` es la copia que lee la UI.
+  Las mutaciones pasan por
   `saveEntries`/`saveRunningEntry` de `TimeEntryService`, que calculan el diff y lo
   encolan en `CloudOutboxService` (`tt.cloud.outbox`, persistente, coalescido por
   `id`/clave). `CloudSyncService` lo sube (upsert; borrados = tombstone
@@ -80,7 +85,7 @@ administración en [supabase/](supabase/README.md).
   `TimeEntryService`, festivos, calendario, `SettingsDraftService.apply()` y
   `setCompanyStartDate`). El lector no sube ajustes; lo que retoque en local
   (tema, idioma…) se sustituye por lo de la nube cuando toma el mutex.
-- **Sin conexión, el dueño sigue editando** (y un arranque sin respuesta del
+- **Sin conexión (no soportado, best effort), el dueño sigue editando** (y un arranque sin respuesta del
   servidor cuenta como dueño). Si al reconectar otro tiene el mutex, gana la
   nube: los cambios sin subir se descartan, antes se guarda un export completo
   en `tt.cloud.discarded` (aviso con botón de descarga) y la copia local se

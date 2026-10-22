@@ -10,11 +10,18 @@ en Vercel como PWA instalable.
 
 ## Datos
 
-- **Sin cuenta (por defecto):** todo vive en el `localStorage` del navegador.
+**La app necesita conexión a internet.** No funciona sin conexión ni se
+garantiza nada en ese caso: el service worker no guarda nada en caché (solo
+sirve para poder instalarla). Si una pestaña ya abierta se queda sin red, sigue
+usando la copia local y lo que dependa de Supabase muestra que no hay conexión.
+
+Hay dos modos:
+
+- **Sin cuenta, modo local (por defecto):** todo vive en el `localStorage` del navegador.
   Ajustes → Datos permite exportar e importar un backup JSON completo.
-- **Con cuenta (opcional):** los datos se sincronizan entre dispositivos con un
-  proyecto de Supabase. La nube pasa a ser la copia de referencia y el
-  `localStorage` es la copia de trabajo, que sigue funcionando sin conexión.
+- **Con cuenta, modo online (opcional):** los datos se sincronizan entre
+  dispositivos con un proyecto de Supabase. La nube pasa a ser la copia de
+  referencia y el `localStorage` es la copia de trabajo que lee la UI.
   - **Un solo dispositivo editando a la vez:** el primero que abre la app coge
     el mutex de edición; el resto queda en solo lectura hasta que se cierre o
     pasen 2 minutos sin actividad. Se puede "tomar el control" en cualquier momento.
