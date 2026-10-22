@@ -178,6 +178,35 @@ cada plantilla con variantes `dark:`, [src/styles.css](src/styles.css) reescribe
 conjunto de utilidades Tailwind que usa la app. Si usas clases estándar
 (`bg-white/95`, `bg-slate-900/40`, `text-slate-800`…) el modo oscuro funciona solo.
 
+## Animaciones
+
+Sin librería de animación: Tailwind + CSS + Web Animations API. Reutiliza esto en
+vez de inventar curvas o duraciones nuevas:
+
+- **Curvas** (tokens en [src/styles.css](src/styles.css), en Tailwind como
+  `ease-out` / `ease-in-out` / `ease-drawer`): entrar/salir y pulsar →
+  `--ease-out`; mover por pantalla → `--ease-in-out`; cajones → `--ease-drawer`.
+  Hover/color: la curva por defecto de Tailwind. Nada de `ease-in` ni de
+  `transition-all` (usa `transition`, `transition-colors`, `transition-transform`).
+- **Duraciones:** UI < 300 ms (pulsar ~150, popover/modal 150–200, salida más
+  corta que la entrada). Pulsar: `active:scale-95` en botones pequeños,
+  `active:scale-[0.97]` en los grandes, `0.98` en tarjetas enteras.
+- **Solo `transform`/`opacity`** para lo que se repinta a menudo (las barras y el
+  "depósito" se actualizan cada segundo con el timer).
+- **Modales / popovers / banners:** clases `tt-backdrop`, `tt-modal`,
+  `tt-popover` (+ `origin-*` hacia su disparador), `tt-banner-top|bottom`. Para la
+  salida, `animate.leave="tt-leave"` **en el nodo que se elimina**: la raíz del
+  `@if` o el host del componente en la plantilla del padre (Angular solo anima
+  la salida del nodo raíz eliminado, no de sus descendientes).
+- **Cambios de estado** (contenido que sustituye a otro): directiva `appEnter`
+  ([enter-motion.directive.ts](src/app/shared/enter-motion.directive.ts),
+  presets `swap`/`fade`/`reveal`/`pop`). No se ejecuta en la carga inicial ni si
+  un ancestro ya está entrando.
+- **Nunca** animes lo que cambia cada segundo (dígitos de timers) ni acciones de
+  teclado.
+- **Movimiento reducido:** la regla global de `styles.css` quita el movimiento
+  espacial; cada primitiva `tt-*` y `appEnter` conservan un fundido de opacidad.
+
 ## Comandos
 
 - `npm start` — servidor de desarrollo (`ng serve`).
