@@ -1,5 +1,22 @@
 [
   {
+    "version": "1.0.0",
+    "date": "2026-10-22",
+    "notes": [
+      "Version 1.0: the time tracker is out of alpha",
+      "Smoother motion throughout: modals, the What's new panel, banners and the mobile menu animate in and out, and the timer eases between its states",
+      "Reaching your daily goal is now marked with a small celebration, and the tenure milestone card pops in with its confetti",
+      "Animations are shorter and lighter, and respect your system's reduced-motion setting",
+      "Better accessibility: stronger contrast, larger touch targets, screen-reader labels and a minimum text size",
+      "Faster loading: fonts and styles are now bundled with the app instead of coming from external services",
+      "If your browser's storage is full, a change is never half-saved: the timer keeps running and a banner tells you it wasn't stored",
+      "Several cloud sync fixes so changes are never lost between tabs, after signing out, or when the server refuses an entry",
+      "Titles and descriptions are limited to 1000 and 10000 characters",
+      "Settings → Data shows when you last exported a backup and reminds you after 30 days",
+      "The app needs an internet connection; without it, an open tab keeps showing your data and tells you it is offline"
+    ]
+  },
+  {
     "version": "0.10.0-alpha",
     "date": "2026-10-22",
     "notes": [
