@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, HostListener, inject, OnInit, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SettingsDraftService } from '../../services/settings-draft.service';
+import { WriteAccessService } from '../../services/write-access.service';
 import { WorkdaySectionComponent } from './sections/workday-section';
 import { AutoroundSectionComponent } from './sections/autoround-section';
 import { LunchSectionComponent } from './sections/lunch-section';
@@ -143,6 +144,9 @@ interface Tab {
 
         <!-- Footer -->
         <div class="px-5 py-3 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0 bg-white/60 backdrop-blur-xl">
+          @if (!access.canWrite()) {
+            <p class="mr-auto text-xs text-amber-700">{{ 'lock.settingsReadOnly' | t }}</p>
+          }
           <button
             type="button"
             (click)="onCancel()"
@@ -151,7 +155,8 @@ interface Tab {
           <button
             type="button"
             (click)="onSave()"
-            class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-900 text-white hover:bg-slate-800 active:scale-95 transition-all"
+            [disabled]="!access.canWrite()"
+            class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-900 text-white hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-50"
           >{{ 'common.save' | t }}</button>
         </div>
       </div>
@@ -196,6 +201,7 @@ interface Tab {
 export class SettingsModalComponent implements OnInit {
   close = output<void>();
   draft = inject(SettingsDraftService);
+  protected access = inject(WriteAccessService);
   private translation = inject(TranslationService);
 
   active = signal<TabId>('general');
@@ -205,7 +211,8 @@ export class SettingsModalComponent implements OnInit {
   }
 
   onSave(): void {
-    this.draft.apply();
+    // Read-only instance: keep the modal open (the footer says why).
+    if (!this.draft.apply()) return;
     this.close.emit();
   }
 

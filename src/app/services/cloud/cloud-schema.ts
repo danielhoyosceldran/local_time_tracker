@@ -2,17 +2,19 @@
 import migration0001 from '../../../../supabase/migrations/0001_init.sql';
 import migration0002 from '../../../../supabase/migrations/0002_keep_closed_entries.sql';
 import migration0003 from '../../../../supabase/migrations/0003_row_checks.sql';
+import migration0004 from '../../../../supabase/migrations/0004_edit_lock.sql';
 
 /**
  * Schema version this build expects (`public.schema_version()`). Bump it with
  * every new file in supabase/migrations and register the file below.
  */
-export const CLOUD_SCHEMA_VERSION = 3;
+export const CLOUD_SCHEMA_VERSION = 4;
 
 export const CLOUD_MIGRATIONS: ReadonlyArray<{ version: number; sql: string }> = [
   { version: 1, sql: migration0001 },
   { version: 2, sql: migration0002 },
   { version: 3, sql: migration0003 },
+  { version: 4, sql: migration0004 },
 ];
 
 /** SQL needed to bring a database at `fromVersion` up to date (0 = fresh install). */

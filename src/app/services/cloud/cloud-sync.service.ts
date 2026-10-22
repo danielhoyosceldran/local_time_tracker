@@ -3,14 +3,13 @@ import { Injectable, effect, inject, signal, untracked } from '@angular/core';
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 import { CLOUD_SETTING_KEYS, STORAGE_KEY, TimeEntryService, parseBackup, parseImportedEntries } from '../time-entry';
 import { DataRefreshService } from '../data-refresh.service';
-import { RunningTimeEntry, TimeEntry } from '../../models/time-entry.model';
+import { StorageHealthService } from '../storage-health.service';
+import { WriteAccessService } from '../write-access.service';
+import { EntryOrigin, RunningTimeEntry, TimeEntry } from '../../models/time-entry.model';
+import { downloadBackup } from '../../utils/download';
 import { CloudAuthService, SchemaCheck } from './cloud-auth.service';
-import {
-  CLOUD_LAST_OWNER_KEY,
-  CLOUD_OWNER_KEY,
-  CLOUD_PARKED_KEY,
-  CloudOutboxService,
-} from './cloud-outbox.service';
+import { CLOUD_LAST_OWNER_KEY, CLOUD_OWNER_KEY, CloudOutboxService } from './cloud-outbox.service';
+import { ClaimResult, CloudLockService, LOCK_HEARTBEAT_MS, LOCK_LOST_CODE } from './cloud-lock.service';
 import { SupabaseClientService } from './supabase-client.service';
 import {
   EntryRow,
@@ -35,16 +34,20 @@ export type CloudSyncState =
   | 'error'
   | 'reauth';    // the local data belongs to an account but there is no session: changes queue until sign-in
 
-/** Decision needed the first time this device connects to an account. */
+/**
+ * Decision needed when a device with local data signs in to an account its
+ * cache is not bound to. The cloud is the source of truth once connected, so
+ * the two copies are never mixed: one of them replaces the other.
+ */
 export type FirstConnection =
-  | { kind: 'upload'; localCount: number }                     // cloud empty, local has data
-  | { kind: 'merge'; localCount: number; remoteCount: number } // both have data
-  | { kind: 'foreign' };                                       // local data belongs to another account
+  /** This instance holds the edit lock: copy in either direction. `foreign`: the local data is another account's. */
+  | { kind: 'choose'; localCount: number; remoteCount: number; foreign: boolean }
+  /** Another instance holds the lock: this one can only read, so the cloud replaces the local data. */
+  | { kind: 'reader'; localCount: number; holder: EntryOrigin | null };
 
 export type FirstConnectionChoice =
-  | { kind: 'upload' }
-  | { kind: 'merge'; settingsFrom: 'cloud' | 'local' }
-  | { kind: 'wipeLocal' }
+  | { kind: 'toCloud' }  // the local data replaces the cloud's
+  | { kind: 'toLocal' }  // the cloud's data replaces the local copy
   | { kind: 'cancel' };
 
 // Device-local sync bookkeeping (never exported, never synced).
@@ -53,10 +56,12 @@ const OWNER_KEY = CLOUD_OWNER_KEY;
 const ENTRIES_CURSOR_KEY = 'tt.cloud.cursor.entries';
 const SETTINGS_CURSOR_KEY = 'tt.cloud.cursor.settings';
 const SHADOW_KEY = 'tt.cloud.settingsShadow';
-/** Ops of a signed-out account, kept for its next login (see CLOUD_PARKED_KEY). */
-const PARKED_KEY = CLOUD_PARKED_KEY;
 /** Whose data stays on this device after a sign-out (see CLOUD_LAST_OWNER_KEY). */
 const LAST_OWNER_KEY = CLOUD_LAST_OWNER_KEY;
+/** Backup of local changes thrown away because another instance took the lock: `{ at, json }`. */
+const DISCARDED_KEY = 'tt.cloud.discarded';
+/** Ops parked at sign-out by older builds; the explicit copy direction replaced them. */
+const LEGACY_PARKED_KEY = 'tt.cloud.parked';
 
 const ENTRY_COLUMNS = 'id,title,description,start_time,end_time,duration,started_by,deleted,updated_at';
 const PAGE_SIZE = 1000;
@@ -65,30 +70,42 @@ const UPSERT_CHUNK = 500;
 const CURSOR_OVERLAP_MS = 10_000;
 const TICK_MS = 30_000;
 const MAX_RETRY_MS = 5 * 60_000;
+/** How long sign-out waits for the final pull. */
+const SIGN_OUT_PULL_MS = 5_000;
 
 /**
- * Local-first sync with Supabase. localStorage stays the cache the UI reads;
- * local mutations are queued in the outbox and pushed, remote changes are
- * pulled incrementally (triggered by Realtime) and merged by id.
+ * Sync with Supabase. Once a device is connected the cloud is the source of
+ * truth and localStorage is the copy the UI reads (it keeps working offline).
+ *
+ * Only the instance holding the edit lock (CloudLockService) writes: its
+ * mutations are queued in the outbox and pushed. Every other instance is
+ * read-only and just pulls. Remote changes are pulled incrementally
+ * (triggered by Realtime) and merged by id.
  */
 @Injectable({ providedIn: 'root' })
 export class CloudSyncService {
   private auth = inject(CloudAuthService);
   private clients = inject(SupabaseClientService);
   private outbox = inject(CloudOutboxService);
+  private lock = inject(CloudLockService);
+  private access = inject(WriteAccessService);
   private time = inject(TimeEntryService);
   private dataRefresh = inject(DataRefreshService);
+  private storage = inject(StorageHealthService);
 
   readonly state = signal<CloudSyncState>('disabled');
   readonly lastSyncAt = signal<number | null>(null);
   readonly schema = signal<SchemaCheck | null>(null);
   readonly firstConnection = signal<FirstConnection | null>(null);
+  /** When local changes were last discarded after losing the lock (a backup is kept). */
+  readonly discardedAt = signal<number | null>(readDiscarded()?.at ?? null);
 
   private userId: string | null = null;
   private active = false;
   private started = false;
   private channel: RealtimeChannel | null = null;
   private tickTimer: ReturnType<typeof setInterval> | null = null;
+  private lockTimer: ReturnType<typeof setInterval> | null = null;
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private pullTimer: ReturnType<typeof setTimeout> | null = null;
@@ -105,6 +122,12 @@ export class CloudSyncService {
   private flushRun: Promise<void> | null = null;
   private pulling = false;
   private pullAgain = false;
+  private pullRun: Promise<void> | null = null;
+  private claimRun: Promise<void> | null = null;
+  /** Counts behind the first-connection dialog, to switch it if the lock changes hands meanwhile. */
+  private setupCounts: { localCount: number; remoteCount: number; foreign: boolean } | null = null;
+  /** The discarded backup when localStorage had no room for it. */
+  private discardedInMemory: { at: number; json: string } | null = null;
   private tick = 0;
 
   constructor() {
@@ -139,9 +162,16 @@ export class CloudSyncService {
       if (this.userId) await this.connect(this.userId);
       return;
     }
+    await this.checkLock();
     this.scanSettings();
     await this.flush();
     await this.pull();
+  }
+
+  /** "Take control": take the lock from the instance using it now. That one turns read-only. */
+  async takeControl(): Promise<void> {
+    if (!this.userId) return;
+    await this.checkLock(true);
   }
 
   // --- Session lifecycle ---
@@ -159,6 +189,7 @@ export class CloudSyncService {
   /** State while there is no session: say so if changes are piling up for an account. */
   private settleIdle(): void {
     if (this.userId) return;
+    this.access.set({ kind: 'local' });
     this.state.set(this.outbox.isEnabled() && this.auth.status() === 'signedOut' ? 'reauth' : 'disabled');
   }
 
@@ -172,13 +203,15 @@ export class CloudSyncService {
 
     const owner = localStorage.getItem(OWNER_KEY);
     if (schema.kind === 'network') {
-      // Offline at startup: keep queueing locally if this cache is ours.
+      // Offline at startup: if this cache is ours, keep working on it (the
+      // lock is claimed once the server answers; see onClaim).
       if (owner === uid) this.activate(false);
       else this.state.set('offline');
       this.scheduleRetry();
       return;
     }
     if (schema.kind !== 'ok') {
+      this.access.set({ kind: 'local' });
       this.state.set('setup');
       return;
     }
@@ -187,15 +220,13 @@ export class CloudSyncService {
       this.activate();
       return;
     }
-    const { entries, running } = this.time.snapshot();
-    const localCount = entries.length + (running ? 1 : 0);
-    const lastOwner = localStorage.getItem(LAST_OWNER_KEY);
-    if (owner || (localCount > 0 && lastOwner && lastOwner !== uid)) {
-      this.firstConnection.set({ kind: 'foreign' });
-      this.state.set('setup');
-      return;
-    }
 
+    // Not bound yet: whether this instance may write decides what it can offer.
+    // The heartbeat keeps the lock while the dialog waits for an answer.
+    this.access.set({ kind: 'checking' });
+    this.startLockLoop();
+    const claim = await this.lock.claim();
+    if (stale()) return;
     const client = await this.clients.get();
     if (!client || stale()) return;
     const { count, error } = await client
@@ -203,136 +234,101 @@ export class CloudSyncService {
       .select('id', { count: 'exact', head: true })
       .eq('deleted', false);
     if (stale()) return;
-    if (error) {
+    if (error || claim.kind === 'network') {
+      this.stopLockLoop();
+      this.access.set({ kind: 'local' });
       this.state.set('offline');
       this.scheduleRetry();
       return;
     }
-    const remoteCount = count ?? 0;
 
+    const { entries, running } = this.time.snapshot();
+    const localCount = entries.length + (running ? 1 : 0);
     if (localCount === 0) {
       // Fresh device: everything comes from the cloud, settings included.
       this.bindOwner(uid);
       this.writeShadow(this.readSettings());
       this.activate();
-    } else if (remoteCount === 0) {
-      this.firstConnection.set({ kind: 'upload', localCount });
-      this.state.set('setup');
-    } else {
-      this.firstConnection.set({ kind: 'merge', localCount, remoteCount });
-      this.state.set('setup');
+      return;
     }
+    const lastOwner = localStorage.getItem(LAST_OWNER_KEY);
+    this.setupCounts = {
+      localCount,
+      remoteCount: count ?? 0,
+      foreign: !!owner || (!!lastOwner && lastOwner !== uid),
+    };
+    this.firstConnection.set(
+      claim.kind === 'held'
+        ? { kind: 'reader', localCount, holder: claim.holder }
+        : { kind: 'choose', ...this.setupCounts },
+    );
+    this.state.set('setup');
   }
 
   async resolveFirstConnection(choice: FirstConnectionChoice): Promise<void> {
     const uid = this.userId;
     if (!uid) return;
     const pending = this.firstConnection();
+    if (choice.kind === 'cancel') {
+      this.firstConnection.set(null);
+      await this.signOut({ wipeLocal: false });
+      return;
+    }
+    // Lost the lock while the dialog was open (it switched to 'reader').
+    if (choice.kind === 'toCloud' && pending?.kind !== 'choose') return;
+
     this.firstConnection.set(null);
-
-    switch (choice.kind) {
-      case 'cancel':
-        await this.signOut({ wipeLocal: false });
-        return;
-
-      case 'wipeLocal':
-        this.time.resetAll();
-        this.clearBookkeeping();
-        await this.dataRefresh.refreshAll();
-        await this.connect(uid);
-        return;
-
-      case 'upload': {
-        // Every local entry is uploaded, so parked ops add nothing.
+    this.state.set('syncing');
+    const epoch = this.epoch;
+    try {
+      const client = await this.clients.get();
+      if (!client) throw new Error('Supabase is not configured');
+      if (choice.kind === 'toLocal') {
+        if (!(await this.replaceLocalWithCloud(client, epoch))) return;
         this.bindOwner(uid);
-        this.enqueueAllLocal({ includeSettings: true });
-        this.activate();
-        return;
+      } else {
+        const rows = await this.fetchEntryRows(client, null);
+        if (epoch !== this.epoch) return;
+        this.bindOwner(uid);
+        // Ops queued for whoever owned this cache before do not apply here.
+        this.outbox.clear();
+        this.enqueueReplaceCloud(rows);
+        this.saveCursor(ENTRIES_CURSOR_KEY, rows);
       }
-
-      case 'merge': {
-        this.state.set('syncing');
-        const epoch = this.epoch;
-        const client = await this.clients.get();
-        if (!client || epoch !== this.epoch) return;
-        try {
-          const rows = await this.fetchEntryRows(client, null);
-          if (epoch !== this.epoch) return; // signed out while fetching
-          const remoteIds = new Set(rows.map(r => r.id));
-          const local = this.time.snapshot();
-          const localOnly = local.entries.filter(e => !remoteIds.has(e.id));
-          const localRunning = local.running && !remoteIds.has(local.running.id) ? local.running : null;
-          // Edits/deletes of shared ids that were still unpushed at sign-out.
-          const parked = this.parkedRowsFor(uid, local);
-
-          // Local-only and parked ids are treated as pending so the merge
-          // keeps the local version (including an unpushed running timer);
-          // the rest is the union.
-          const keep = new Set([
-            ...localOnly.map(e => e.id),
-            ...(localRunning ? [localRunning.id] : []),
-            ...parked.map(r => r.id),
-          ]);
-          const merged = mergeRemote(local, rows, keep);
-          if (merged.changed) this.time.applyRemoteState(merged.entries, merged.running);
-          this.saveCursor(ENTRIES_CURSOR_KEY, rows);
-
-          this.bindOwner(uid);
-          this.outbox.enqueueEntries([
-            ...localOnly.map(toRow),
-            ...(localRunning ? [toRow(localRunning)] : []),
-            ...parked,
-          ]);
-
-          if (choice.settingsFrom === 'local') {
-            this.outbox.enqueueSettings(this.readSettings());
-            this.writeShadow(this.readSettings());
-          } else {
-            // Remote settings win: the next pull starts from scratch for settings.
-            localStorage.removeItem(SETTINGS_CURSOR_KEY);
-            this.writeShadow(this.readSettings());
-          }
-          this.activate();
-        } catch {
-          // Nothing was written yet: ask again.
-          this.state.set('error');
-          this.firstConnection.set(pending);
-        }
-        return;
-      }
+      this.activate();
+    } catch {
+      if (epoch !== this.epoch) return;
+      // Nothing was written yet (or the copy can simply run again): ask again.
+      this.state.set('error');
+      this.firstConnection.set(pending);
     }
   }
 
   async signOut(opts: { wipeLocal: boolean }): Promise<void> {
-    const uid = this.userId;
     if (this.active) {
-      // Best effort (a failed push keeps its ops in the outbox, parked below).
-      // flush() hands back the run already in flight, and that run may chain
-      // one more pass for changes queued meanwhile: wait for those too.
-      await this.flush();
-      for (let i = 0; i < 3 && this.flushRun; i++) await this.flushRun;
+      const holder = this.access.state().kind === 'holder';
+      if (holder) {
+        // Best effort. flush() hands back the run already in flight, and that
+        // run may chain one more pass for changes queued meanwhile.
+        await this.flush();
+        for (let i = 0; i < 3 && this.flushRun; i++) await this.flushRun;
+      }
+      // Leave this device with the cloud's latest state as its local copy
+      // (pointless if it is about to be wiped). Bounded: a hung request must
+      // not keep the user from signing out.
+      if (!opts.wipeLocal) await Promise.race([this.pull(), delay(SIGN_OUT_PULL_MS)]);
     }
+    // Also when the first-connection dialog is cancelled (it may hold the
+    // lock). A no-op on the server unless this instance is the holder.
+    if (this.userId) await this.lock.release();
     this.deactivate();
     await this.auth.signOut();
     this.userId = null;
-    // Still unpushed (offline): park the entry ops so the first-connection
-    // merge of the next login re-applies them instead of letting the cloud
-    // version win. Wiping the local copy discards them (the dialog warns).
-    // Read after the await: a change made while it ran was still queued.
-    const pending = this.outbox.read().entries;
-    // Whose data stays on this device (not necessarily `uid`: signing out of
-    // the first-connection dialog leaves the previous owner's data in place).
+    // Whose data stays on this device (not necessarily the one signing out:
+    // cancelling the first-connection dialog leaves the previous owner's data).
     const dataOwner = localStorage.getItem(OWNER_KEY) ?? localStorage.getItem(LAST_OWNER_KEY);
-    // The outbox queues for the bound account, which is not `uid` when this
-    // is the "cancel" of a foreign-data dialog: park the ops under their owner.
-    const opsOwner = localStorage.getItem(OWNER_KEY) ?? uid;
-    if (opts.wipeLocal) {
-      localStorage.removeItem(PARKED_KEY);
-    } else if (opsOwner && Object.keys(pending).length) {
-      this.outbox.park(opsOwner, Object.values(pending));
-    }
-    // Forget the account binding: signing in again goes through the
-    // first-connection merge, so offline edits made meanwhile are not lost.
+    // Forget the account binding and anything still unpushed (offline): the
+    // data stays here, and the next sign-in asks which copy wins.
     this.clearBookkeeping();
     // The session-change effect may have run during the await above, while
     // the data was still bound, and left 'reauth' behind.
@@ -347,9 +343,10 @@ export class CloudSyncService {
 
   /**
    * Import a JSON backup while signed in: merge it into local + cloud by id.
-   * Never deletes rows that only exist in the cloud.
+   * Never deletes rows that only exist in the cloud. Only the lock holder may.
    */
   async importMerge(json: string): Promise<void> {
+    if (!this.access.guard()) throw new Error('Read-only: another instance holds the edit lock');
     // Validate everything before the first write (throws on a bad file).
     const updates = parseBackup(json, [...CLOUD_SETTING_KEYS, STORAGE_KEY]);
     const rawEntries = updates[STORAGE_KEY];
@@ -387,72 +384,231 @@ export class CloudSyncService {
   forgetLocalData(): void {
     if (this.userId) return;
     this.clearBookkeeping();
-    localStorage.removeItem(PARKED_KEY);
     this.settleIdle();
+  }
+
+  /** Save the backup taken when local changes were discarded. */
+  downloadDiscarded(): void {
+    const backup = this.discardedInMemory ?? readDiscarded();
+    if (backup) downloadBackup(backup.json, new Date(backup.at));
+  }
+
+  dismissDiscarded(): void {
+    this.discardedInMemory = null;
+    localStorage.removeItem(DISCARDED_KEY);
+    this.discardedAt.set(null);
   }
 
   private activate(online = true): void {
     if (!this.userId) return;
     this.active = true;
     this.state.set(online ? 'syncing' : 'offline');
+    // Offline: keep working on the bound copy until the server can answer.
+    this.access.set(online ? { kind: 'checking' } : { kind: 'holder' });
     void this.subscribeRealtime();
     document.addEventListener('visibilitychange', this.onVisibility);
     window.addEventListener('online', this.onOnline);
     window.addEventListener('pagehide', this.onPageHide);
+    window.addEventListener('pageshow', this.onPageShow);
     this.tickTimer = setInterval(() => this.onTick(), TICK_MS);
-    this.scanSettings();
-    void this.flush().then(() => this.pull());
+    this.startLockLoop();
+    // The lock's answer decides between pushing (holder) and only pulling (reader).
+    void this.checkLock();
   }
 
   private deactivate(): void {
     this.epoch++;
     this.active = false;
     this.firstConnection.set(null);
+    this.setupCounts = null;
     this.schema.set(null);
     this.state.set('disabled');
+    this.access.set({ kind: 'local' });
     document.removeEventListener('visibilitychange', this.onVisibility);
     window.removeEventListener('online', this.onOnline);
     window.removeEventListener('pagehide', this.onPageHide);
+    window.removeEventListener('pageshow', this.onPageShow);
     for (const t of [this.retryTimer, this.flushTimer, this.pullTimer]) if (t) clearTimeout(t);
     if (this.tickTimer) clearInterval(this.tickTimer);
     this.tickTimer = this.retryTimer = this.flushTimer = this.pullTimer = null;
+    this.stopLockLoop();
+    this.claimRun = null;
     const channel = this.channel;
     this.channel = null;
     if (channel) void this.clients.get().then(c => c?.removeChannel(channel));
   }
 
-  /** This device's cache now belongs to `uid`; parked ops were consumed or are moot. */
+  /** This device's cache now belongs to `uid`. */
   private bindOwner(uid: string): void {
     localStorage.setItem(OWNER_KEY, uid);
-    localStorage.removeItem(PARKED_KEY);
     localStorage.removeItem(LAST_OWNER_KEY);
   }
 
-  /**
-   * Parked ops for `uid`, re-derived from the CURRENT local state: the entry
-   * may have changed again while signed out, and that is what the user sees.
-   * Gone locally means deleted.
-   */
-  private parkedRowsFor(uid: string, local: { entries: TimeEntry[]; running: RunningTimeEntry | null }): EntryRowPayload[] {
-    const byId = new Map<string, TimeEntry | RunningTimeEntry>(local.entries.map(e => [e.id, e]));
-    if (local.running) byId.set(local.running.id, local.running);
-    return Object.entries(this.outbox.readParked(uid)).map(([id, row]) => {
-      const current = byId.get(id);
-      return current ? toRow(current) : { ...row, deleted: true };
-    });
-  }
-
   private clearBookkeeping(): void {
-    for (const key of [OWNER_KEY, LAST_OWNER_KEY, ENTRIES_CURSOR_KEY, SETTINGS_CURSOR_KEY, SHADOW_KEY]) {
+    for (const key of [OWNER_KEY, LAST_OWNER_KEY, ENTRIES_CURSOR_KEY, SETTINGS_CURSOR_KEY, SHADOW_KEY, LEGACY_PARKED_KEY]) {
       localStorage.removeItem(key);
     }
     this.outbox.clear();
+  }
+
+  // --- Edit lock ---
+
+  private startLockLoop(): void {
+    this.stopLockLoop();
+    this.lockTimer = setInterval(() => void this.checkLock(), LOCK_HEARTBEAT_MS);
+  }
+
+  private stopLockLoop(): void {
+    if (this.lockTimer) clearInterval(this.lockTimer);
+    this.lockTimer = null;
+  }
+
+  /**
+   * Claim the lock (the holder's heartbeat; for the others, an attempt to
+   * take it if it went stale) and act on the answer. One claim at a time,
+   * except a forced one ("take control").
+   */
+  private checkLock(force = false): Promise<void> {
+    if (!this.userId) return Promise.resolve();
+    if (this.claimRun && !force) return this.claimRun;
+    const run: Promise<void> = this.runClaim(force).finally(() => {
+      if (this.claimRun === run) this.claimRun = null;
+    });
+    this.claimRun = run;
+    return run;
+  }
+
+  private async runClaim(force: boolean): Promise<void> {
+    const epoch = this.epoch;
+    const result = await this.lock.claim(force);
+    if (epoch !== this.epoch) return;
+    if (this.active) await this.onClaim(result, epoch);
+    else this.onSetupClaim(result);
+  }
+
+  private async onClaim(result: ClaimResult, epoch: number): Promise<void> {
+    const prev = this.access.state().kind;
+
+    if (result.kind === 'network') {
+      // No answer at all: keep working on the local copy. If another instance
+      // took the lock meanwhile, the server refuses our writes later and
+      // the 'held' branch below throws them away (with a backup).
+      if (prev === 'checking') this.access.set({ kind: 'holder' });
+      return;
+    }
+
+    if (result.kind === 'held') {
+      this.access.set({ kind: 'reader', holder: result.holder });
+      if (prev === 'reader') return;
+      if (this.outbox.size()) {
+        // Lost the lock with changes still unpushed (offline, frozen tab, or
+        // taken by force): the cloud wins. Keep a backup, then adopt it.
+        this.discardLocalChanges();
+        await this.resyncFromCloud(epoch);
+      } else {
+        this.schedulePull();
+      }
+      return;
+    }
+
+    // Acquired.
+    if (prev === 'holder') {
+      if (this.outbox.size()) this.scheduleFlush();
+      return;
+    }
+    if (prev === 'reader') {
+      // Taking over: start from the cloud's exact state, so nothing this
+      // instance shows (a missed pull, a setting tweaked while read-only) is
+      // pushed as if it were a change.
+      this.access.set({ kind: 'checking' });
+      await this.resyncFromCloud(epoch);
+      if (epoch !== this.epoch) return;
+    }
+    this.access.set({ kind: 'holder' });
+    this.scanSettings();
+    void this.flush().then(() => this.pull());
+  }
+
+  /** While the first-connection dialog is open: offer only what the lock allows. */
+  private onSetupClaim(result: ClaimResult): void {
+    const fc = this.firstConnection();
+    if (!fc || !this.setupCounts) return;
+    if (result.kind === 'held' && fc.kind === 'choose') {
+      this.firstConnection.set({ kind: 'reader', localCount: fc.localCount, holder: result.holder });
+    } else if (result.kind === 'acquired' && fc.kind === 'reader') {
+      this.firstConnection.set({ kind: 'choose', ...this.setupCounts });
+    }
+  }
+
+  /** Throw away the unpushed changes, keeping a full backup the user can download. */
+  private discardLocalChanges(): void {
+    const backup = { at: Date.now(), json: this.time.exportAll() };
+    this.discardedInMemory = this.storage.setItem(DISCARDED_KEY, JSON.stringify(backup)) ? null : backup;
+    this.discardedAt.set(backup.at);
+    console.warn('Another instance holds the edit lock: unpushed local changes were discarded (a backup was kept).');
+    this.outbox.clear();
+  }
+
+  private async resyncFromCloud(epoch: number): Promise<void> {
+    try {
+      const client = await this.clients.get();
+      if (!client || epoch !== this.epoch) return;
+      await this.replaceLocalWithCloud(client, epoch);
+    } catch (err) {
+      if (epoch !== this.epoch) return;
+      console.warn('Could not reload the cloud copy; will retry.', err);
+      this.state.set(navigator.onLine ? 'error' : 'offline');
+      this.scheduleRetry();
+    }
+  }
+
+  /**
+   * Make the local copy exactly the cloud's: entries, running timer and
+   * settings (a key without a row goes back to its default). Queues nothing.
+   * Returns false if the session changed meanwhile (nothing was written).
+   */
+  private async replaceLocalWithCloud(client: SupabaseClient, epoch: number): Promise<boolean> {
+    const rows = await this.fetchEntryRows(client, null);
+    const settingRows = await this.fetchSettingRows(client, null);
+    if (epoch !== this.epoch) return false;
+
+    const live = rows.filter(r => !r.deleted).map(fromRow);
+    const running = (live.find(e => e.endTime === null) as RunningTimeEntry | undefined) ?? null;
+    const entries = (live.filter(e => e.endTime !== null) as TimeEntry[]).sort((a, b) => b.startTime - a.startTime);
+    this.time.applyRemoteState(entries, running);
+
+    const remote = new Map(settingRows.map(r => [r.key, r.value]));
+    for (const key of CLOUD_SETTING_KEYS) {
+      const value = remote.get(key) ?? null;
+      if (value === null) localStorage.removeItem(key);
+      else localStorage.setItem(key, value);
+    }
+    this.outbox.clear();
+    this.saveCursor(ENTRIES_CURSOR_KEY, rows);
+    this.saveCursor(SETTINGS_CURSOR_KEY, settingRows);
+    this.writeShadow(this.readSettings());
+    await this.dataRefresh.refreshAll();
+    return epoch === this.epoch;
+  }
+
+  /** Queue what makes the cloud equal to the local copy: every local entry, a tombstone for the rest. */
+  private enqueueReplaceCloud(remote: EntryRow[]): void {
+    const { entries, running } = this.time.snapshot();
+    const localIds = new Set([...entries.map(e => e.id), ...(running ? [running.id] : [])]);
+    const gone = remote
+      .filter(r => !r.deleted && !localIds.has(r.id))
+      .map(r => ({ ...toRow(fromRow(r)), deleted: true }));
+    this.outbox.enqueueEntries([...gone, ...entries.map(toRow), ...(running ? [toRow(running)] : [])]);
+    this.outbox.enqueueSettings(this.readSettings());
+    this.writeShadow(this.readSettings());
   }
 
   // --- Triggers ---
 
   private onVisibility = (): void => {
     if (document.visibilityState === 'visible') {
+      // Background tabs may have missed heartbeats: find out where we stand first.
+      void this.checkLock();
       this.schedulePull();
       this.scheduleFlush();
     } else {
@@ -463,12 +619,22 @@ export class CloudSyncService {
 
   private onOnline = (): void => {
     this.retryDelay = 5_000;
-    void this.flush().then(() => this.pull());
+    void this.checkLock().then(() => this.flush()).then(() => this.pull());
   };
 
   private onPageHide = (): void => {
     this.scanSettings();
-    void this.flush();
+    if (this.access.state().kind !== 'holder') return;
+    // Release now so the next instance does not wait 2 minutes, unless there
+    // is still something to push: then keep the lock (it goes stale on its
+    // own) so this device can push it the next time it opens.
+    if (this.outbox.size()) void this.flush();
+    else this.lock.releaseOnClose();
+  };
+
+  /** Back from the back/forward cache: the lock may have been released at pagehide. */
+  private onPageShow = (event: PageTransitionEvent): void => {
+    if (event.persisted) void this.checkLock();
   };
 
   private onTick(): void {
@@ -479,7 +645,7 @@ export class CloudSyncService {
   }
 
   private scheduleFlush(): void {
-    if (!this.active) return;
+    if (!this.active || this.access.state().kind !== 'holder') return;
     if (this.state() === 'synced') this.state.set('pending');
     if (this.flushTimer) clearTimeout(this.flushTimer);
     this.flushTimer = setTimeout(() => {
@@ -503,7 +669,7 @@ export class CloudSyncService {
     this.retryDelay = Math.min(this.retryDelay * 2, MAX_RETRY_MS);
     this.retryTimer = setTimeout(() => {
       this.retryTimer = null;
-      if (this.active) void this.flush().then(() => this.pull());
+      if (this.active) void this.checkLock().then(() => this.flush()).then(() => this.pull());
       else if (this.userId) void this.connect(this.userId);
     }, delay);
   }
@@ -529,9 +695,9 @@ export class CloudSyncService {
 
   // --- Push ---
 
-  /** Push the outbox. While a run is in flight, returns that run (and queues one more pass). */
+  /** Push the outbox (lock holder only). While a run is in flight, returns that run (and queues one more pass). */
   private flush(): Promise<void> {
-    if (!this.active || !this.userId) return Promise.resolve();
+    if (!this.active || !this.userId || this.access.state().kind !== 'holder') return Promise.resolve();
     if (this.flushing) {
       this.flushAgain = true;
       return this.flushRun ?? Promise.resolve();
@@ -543,16 +709,20 @@ export class CloudSyncService {
 
   private async runFlush(epoch: number, uid: string): Promise<void> {
     const stale = () => epoch !== this.epoch;
+    // Every row says which instance wrote it: the server refuses it unless
+    // that instance holds the lock (tt_require_lock, migration 0004).
+    const writer = this.lock.instanceId;
     try {
       const client = await this.clients.get();
       if (!client || stale()) return;
       for (let attempt = 0; attempt < 5; attempt++) {
         const sent = this.outbox.read();
-        const rows = Object.values(sent.entries).map(r => ({ ...r, user_id: uid }));
+        const rows = Object.values(sent.entries).map(r => ({ ...r, user_id: uid, writer_instance: writer }));
         const settings = Object.entries(sent.settings).map(([key, value]) => ({
           user_id: uid,
           key,
           value,
+          writer_instance: writer,
         }));
         if (!rows.length && !settings.length) break;
         this.state.set('syncing');
@@ -616,6 +786,12 @@ export class CloudSyncService {
       }
     } catch (err) {
       if (stale()) return;
+      if ((err as { code?: string } | null)?.code === LOCK_LOST_CODE) {
+        // Another instance took the lock: ask the server who has it now (if
+        // it went stale meanwhile, we get it back and push again).
+        void this.checkLock();
+        return;
+      }
       console.warn('Cloud push failed; will retry.', err);
       this.state.set(navigator.onLine ? 'error' : 'offline');
       this.scheduleRetry();
@@ -653,14 +829,19 @@ export class CloudSyncService {
 
   // --- Pull ---
 
-  private async pull(): Promise<void> {
-    if (!this.active) return;
+  /** Pull remote changes. While a run is in flight, returns that run (and queues one more pass). */
+  private pull(): Promise<void> {
+    if (!this.active) return Promise.resolve();
     if (this.pulling) {
       this.pullAgain = true;
-      return;
+      return this.pullRun ?? Promise.resolve();
     }
     this.pulling = true;
-    const epoch = this.epoch;
+    this.pullRun = this.runPull(this.epoch);
+    return this.pullRun;
+  }
+
+  private async runPull(epoch: number): Promise<void> {
     const stale = () => epoch !== this.epoch;
     try {
       const client = await this.clients.get();
@@ -694,6 +875,7 @@ export class CloudSyncService {
       this.scheduleRetry();
     } finally {
       this.pulling = false;
+      this.pullRun = null;
       if (this.pullAgain) {
         this.pullAgain = false;
         void this.pull();
@@ -766,21 +948,18 @@ export class CloudSyncService {
 
   // --- Settings ---
 
-  /** Queue preferences that changed since the last sync (diff against the shadow). */
+  /**
+   * Queue preferences that changed since the last sync (diff against the
+   * shadow). Lock holder only: what a read-only instance tweaks stays on it
+   * and is replaced by the cloud's values when it takes over.
+   */
   private scanSettings(): void {
-    if (!this.active) return;
+    if (!this.active || this.access.state().kind !== 'holder') return;
     const current = this.readSettings();
     const changes = diffSettings(current, this.readShadow());
     if (!Object.keys(changes).length) return;
     this.outbox.enqueueSettings(changes);
     this.writeShadow(current);
-  }
-
-  private enqueueAllLocal(opts: { includeSettings: boolean }): void {
-    const { entries, running } = this.time.snapshot();
-    this.outbox.enqueueEntries([...entries.map(toRow), ...(running ? [toRow(running)] : [])]);
-    if (opts.includeSettings) this.outbox.enqueueSettings(this.readSettings());
-    this.writeShadow(this.readSettings());
   }
 
   private readSettings(): Record<string, string | null> {
@@ -805,4 +984,17 @@ export class CloudSyncService {
 function withOverlap(cursor: string): string {
   const t = Date.parse(cursor);
   return Number.isNaN(t) ? cursor : new Date(t - CURSOR_OVERLAP_MS).toISOString();
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function readDiscarded(): { at: number; json: string } | null {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(DISCARDED_KEY) ?? 'null');
+    return parsed && typeof parsed.at === 'number' && typeof parsed.json === 'string' ? parsed : null;
+  } catch {
+    return null;
+  }
 }

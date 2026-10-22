@@ -1,6 +1,7 @@
 // src/app/services/calendar-settings.service.ts
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import { WriteAccessService } from './write-access.service';
 
 /**
  * The calendar URL ends up in an iframe `src` with Angular's sanitizer
@@ -20,6 +21,7 @@ export function isSafeCalendarUrl(url: string): boolean {
 })
 export class CalendarSettingsService {
   private readonly STORAGE_KEY = 'timeTrackerCalendarUrl';
+  private access = inject(WriteAccessService);
 
   private _calendarUrl$$ = new BehaviorSubject<string>(this.load());
   public readonly calendarUrl$ = this._calendarUrl$$.asObservable();
@@ -33,6 +35,7 @@ export class CalendarSettingsService {
   save(url: string): boolean {
     const trimmed = url.trim();
     if (trimmed && !isSafeCalendarUrl(trimmed)) return false;
+    if (!this.access.guard()) return false;
     localStorage.setItem(this.STORAGE_KEY, trimmed);
     this._calendarUrl$$.next(trimmed);
     return true;

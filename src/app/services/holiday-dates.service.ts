@@ -1,7 +1,8 @@
 // src/app/services/holiday-dates.service.ts
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { PUBLIC_HOLIDAYS } from '../data/public-holidays';
+import { WriteAccessService } from './write-access.service';
 
 const STORAGE_KEY = 'timeTrackerHolidayDates';
 
@@ -22,6 +23,7 @@ export interface PresetOption {
   providedIn: 'root'
 })
 export class HolidayDatesService {
+  private access = inject(WriteAccessService);
   private _store$$ = new BehaviorSubject<HolidayStore>(this.loadStore());
 
   // Combined union (back-compat) — anything in here counts as a holiday day.
@@ -54,9 +56,12 @@ export class HolidayDatesService {
     return { personal: [], public: [] };
   }
 
-  private saveStore(store: HolidayStore): void {
+  /** Returns false (and saves nothing) on a read-only instance. */
+  private saveStore(store: HolidayStore): boolean {
+    if (!this.access.guard()) return false;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
     this._store$$.next(store);
+    return true;
   }
 
   private union(store: HolidayStore): string[] {
@@ -81,8 +86,7 @@ export class HolidayDatesService {
       personal: type === 'personal' ? [...store.personal, date].sort() : store.personal,
       public: type === 'public' ? [...store.public, date].sort() : store.public,
     };
-    this.saveStore(next);
-    return true;
+    return this.saveStore(next);
   }
 
   removeHolidayDate(date: string): boolean {
@@ -90,11 +94,10 @@ export class HolidayDatesService {
     const inP = store.personal.includes(date);
     const inU = store.public.includes(date);
     if (!inP && !inU) return false;
-    this.saveStore({
+    return this.saveStore({
       personal: inP ? store.personal.filter(d => d !== date) : store.personal,
       public: inU ? store.public.filter(d => d !== date) : store.public,
     });
-    return true;
   }
 
   isHolidayDate(date: string): boolean {
@@ -175,7 +178,6 @@ export class HolidayDatesService {
       personal: store.personal,
       public: [...store.public, ...toAdd].sort(),
     };
-    this.saveStore(next);
-    return toAdd.length;
+    return this.saveStore(next) ? toAdd.length : 0;
   }
 }

@@ -1,6 +1,7 @@
 // src/app/services/holiday.service.ts
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import { WriteAccessService } from './write-access.service';
 
 export interface HolidayData {
   total: number;
@@ -11,6 +12,7 @@ export interface HolidayData {
 })
 export class HolidayService {
   private readonly STORAGE_KEY = 'timeTrackerHolidays';
+  private access = inject(WriteAccessService);
 
   private _holidays$$ = new BehaviorSubject<HolidayData>(this.load());
   public readonly holidays$ = this._holidays$$.asObservable();
@@ -32,6 +34,7 @@ export class HolidayService {
   }
 
   private save(data: HolidayData): void {
+    if (!this.access.guard()) return;
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
     this._holidays$$.next(data);
   }

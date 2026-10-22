@@ -41,8 +41,8 @@ del gráfico (`monthlyChart.period`), el seguimiento de release notes
 
 **Claves locales del dispositivo (nunca en backup ni en la nube):** `tt.deviceId`,
 `tt.lastExportAt` (fecha del último export, para el aviso de backup) y todo
-`tt.cloud.*` (config del proyecto, sesión, outbox, filas rechazadas, operaciones
-aparcadas al cerrar sesión, cursores, sombra y dueño de la caché). `timeTrackerPomodoroState` sí va en el backup, pero no a la
+`tt.cloud.*` (config del proyecto, sesión, outbox, filas rechazadas, backup de
+cambios descartados al perder el mutex, cursores, sombra y dueño de la caché). `timeTrackerPomodoroState` sí va en el backup, pero no a la
 nube (es estado en ejecución).
 
 ## Sync con Supabase
@@ -50,34 +50,55 @@ nube (es estado en ejecución).
 Código en [src/app/services/cloud/](src/app/services/cloud/); SQL y guía de
 administración en [supabase/](supabase/README.md).
 
-- **Local-first:** la UI lee siempre de `localStorage`. Las mutaciones pasan por
+- **Con sesión, la nube es la verdad;** `localStorage` es la copia que lee la UI
+  (sigue funcionando sin conexión). Las mutaciones pasan por
   `saveEntries`/`saveRunningEntry` de `TimeEntryService`, que calculan el diff y lo
   encolan en `CloudOutboxService` (`tt.cloud.outbox`, persistente, coalescido por
   `id`/clave). `CloudSyncService` lo sube (upsert; borrados = tombstone
   `deleted = true`) y trae cambios incrementales por `updated_at` (cursor),
   disparados por Realtime, foco, `online` y un tick de 30 s.
-- **Merge por `id`**, nunca reemplazo: lógica pura y testeada en
+- **Mutex de edición (migración 0004):** solo UNA instancia (pestaña) por cuenta
+  escribe. Cada pestaña tiene un id aleatorio (`CloudLockService.instanceId`) y
+  llama a `claim_lock()` cada minuto: quien lo tiene renueva `heartbeat_at`; el
+  resto solo lo coge si lleva 2 min sin renovarse. Es un único
+  `INSERT … ON CONFLICT DO UPDATE … WHERE` con el `now()` del servidor: sin
+  carreras ni dependencia del reloj del dispositivo. Al cerrar (`pagehide`, si
+  no queda nada por subir) se libera con un `fetch` `keepalive`. "Tomar el
+  control" lo fuerza. **Fencing:** cada fila subida lleva `writer_instance` y el
+  trigger `tt_require_lock` la rechaza (`TT409`) si esa instancia no es la
+  dueña, así una pestaña congelada que despierta no pisa nada.
+- **Solo lectura:** `WriteAccessService` (sin dependencias) dice si se puede
+  escribir: `local` (sin cuenta), `checking`, `holder` o `reader`. **Todo servicio
+  que escriba datos debe llamar a `access.guard()` antes** (ya lo hacen
+  `TimeEntryService`, festivos, calendario, `SettingsDraftService.apply()` y
+  `setCompanyStartDate`). El lector no sube ajustes; lo que retoque en local
+  (tema, idioma…) se sustituye por lo de la nube cuando toma el mutex.
+- **Sin conexión, el dueño sigue editando** (y un arranque sin respuesta del
+  servidor cuenta como dueño). Si al reconectar otro tiene el mutex, gana la
+  nube: los cambios sin subir se descartan, antes se guarda un export completo
+  en `tt.cloud.discarded` (aviso con botón de descarga) y la copia local se
+  reemplaza por la de la nube (`replaceLocalWithCloud`).
+- **Merge por `id`** en el pull incremental: lógica pura y testeada en
   [cloud-sync.logic.ts](src/app/services/cloud/cloud-sync.logic.ts). Una operación
   local pendiente gana a la remota; si no, gana la remota.
 - **Encolar ≠ empujar:** la outbox encola siempre que la caché esté vinculada a
   una cuenta (`tt.cloud.ownerUserId`), haya sesión o no (sesión caducada, esquema
   pendiente de migración, arranque antes de restaurar la sesión). Solo el
-  *push* depende de que el sync esté activo. Sin sesión y con datos vinculados,
-  el estado es `reauth` (aviso en el indicador y en Ajustes → Nube).
+  *push* depende de que el sync esté activo y de tener el mutex. Sin sesión y con
+  datos vinculados, el estado es `reauth` (aviso en el indicador y en Ajustes → Nube).
 - **Aplicar datos remotos no re-encola:** usa `TimeEntryService.applyRemoteState()`
   o escribe `localStorage` + `DataRefreshService.refreshAll()`. No llames a
   `saveEntries` con datos que vienen de la nube.
 - **Timer compartido:** una fila con `end_time is null`, única por usuario (índice
-  parcial). Cualquier dispositivo puede pararlo. Si dos arrancan sin conexión, el
-  más antiguo se cierra cuando empezó el otro (`resolveRunningConflict`).
-- **Primera conexión** de un dispositivo con datos: subir, fusionar o (si son de
-  otra cuenta: `tt.cloud.ownerUserId`, o tras un logout
-  `tt.cloud.lastOwnerUserId`) borrar. Logout limpia la vinculación, así
-  que volver a entrar pasa otra vez por la fusión. Lo que quedaba sin subir al
-  cerrar sesión, y todo fichaje que cambie después en local mientras
-  `tt.cloud.lastOwnerUserId` siga puesto, se aparca en `tt.cloud.parked` (por
-  usuario; solo importan los `id`) y la fusión del siguiente login de ese
-  usuario lo reaplica con la versión local actual (ausente = borrado).
+  parcial). Lo para quien tenga el mutex, sea cual sea el dispositivo que lo
+  arrancó (`started_by` es informativo).
+- **Primera conexión** de un dispositivo con datos que no están vinculados a esa
+  cuenta: nunca se mezclan, el usuario elige **nube → local** o **local → nube**
+  (este último borra en la nube lo que no esté en local). Si otro tiene el
+  mutex, solo se ofrece nube → local. Si los datos son de otra cuenta
+  (`tt.cloud.ownerUserId`, o tras un logout `tt.cloud.lastOwnerUserId`) se avisa.
+  Logout hace un último pull (la copia local queda igual que la nube), libera el
+  mutex y limpia la vinculación, así que volver a entrar pregunta otra vez.
 - **Filas inválidas:** si Postgres rechaza una fila por sus datos o porque su `id`
   es de otra cuenta (RLS, `isRowRejection`), sale de la cola a `tt.cloud.rejected`
   en vez de bloquear el resto. Un 42501 "permission denied" (sin sesión) NO.
@@ -92,10 +113,8 @@ administración en [supabase/](supabase/README.md).
 - **CSP:** `vercel.json` solo permite `*.supabase.co` en `connect-src` y scripts
   de `'self'` (nada de `<script>` inline ni `onload=` en `index.html`).
 - Con sesión: **reset deshabilitado**. **Import = merge** hacia la cuenta con
-  sesión o con la caché vinculada. Un reset sin sesión llama a
-  `CloudSyncService.forgetLocalData()` (desvincula y descarta outbox y operaciones
-  aparcadas: si no, una edición aparcada se convertiría en un borrado en la nube
-  en la siguiente fusión).
+  sesión o con la caché vinculada (solo con el mutex). Un reset sin sesión llama a
+  `CloudSyncService.forgetLocalData()` (desvincula y descarta la outbox).
 - **Migraciones:** cada cambio de esquema es un nuevo `supabase/migrations/000N_*.sql`
   que sube `public.schema_version()`; registra el fichero en
   [cloud-schema.ts](src/app/services/cloud/cloud-schema.ts) y sube
@@ -160,7 +179,7 @@ la columna **Solucionado** y referencia el commit/PR.
 | 3 | Heurística por **conteo** ciega a ediciones/borrados y a conjuntos divergentes del mismo tamaño → divergencia silenciosa y pisado | Comparar por **unión de `id`** (no por número) y **merge por `id`** en vez de reemplazo | 55% | ✅ Sí (Supabase: pull incremental + merge por `id`) |
 | 6 | **Borrar/editar no disparan push** → la nube queda con datos viejos; otro dispositivo los "trae" y resucita lo borrado | ~~Disparar `syncToCloud()` en cada mutación~~ → **Resuelto:** el sync se centralizó en la capa de persistencia (`saveEntries`/`saveRunningEntry`), por la que pasan TODAS las mutaciones; las llamadas se agrupan en un microtask (un push por operación, con el estado final). Import/reload no pasan por ahí, así que traer de la nube no rebota. | 50% | ✅ Sí |
 | 2 | **Pull/import/"traer del cloud" = reemplazo total**, no merge → entries locales únicas se pierden | **Merge por `id`** (conservar la versión más reciente por `endTime`/edición) en lugar de sobreescribir | 45% | ✅ Sí (merge por `id`; import con sesión = merge) |
-| 1 | Play en dispositivo vacío/reseteado **sube snapshot pobre y borra la nube entera** (last-writer-wins) | **Pull-then-merge antes del primer push** de la sesión; bloquear push que reduzca drásticamente el nº de entries sin confirmación | 40% | ✅ Sí (diálogo de primera conexión: subir/fusionar; nunca reemplazo) |
+| 1 | Play en dispositivo vacío/reseteado **sube snapshot pobre y borra la nube entera** (last-writer-wins) | **Pull-then-merge antes del primer push** de la sesión; bloquear push que reduzca drásticamente el nº de entries sin confirmación | 40% | ✅ Sí (un dispositivo vacío descarga sin preguntar; con datos, diálogo explícito nube → local / local → nube con sus consecuencias; mutex de edición) |
 | 4 | **Multi-pestaña** mismo navegador: la 2ª pestaña pisa el running entry de la 1ª (sesión en curso perdida) | Escuchar evento `window.storage` y recargar signals con `reloadFromStorage()` | 35% | ✅ Sí (evento `storage` en `TimeEntryService`) |
 | 5 | **Running entry compartido** (feature de identidad de dispositivo) bloquea al otro: no puede pararlo ni arrancar el suyo; si el dueño desaparece, queda irrecuperable | Permitir **"forzar parada / tomar control"** de un timer ajeno; no bloquear el inicio de uno nuevo si el running entry es de otro dispositivo | 30% | ✅ Sí (sin bloqueo por dispositivo; conflicto offline resuelto) |
 | 8 | Sin gist configurado, el navegador **vacía `localStorage`** (incógnito, "borrar al cerrar", presión de almacenamiento) → pérdida total | Backup opt-in más visible / aviso de respaldo; export automático periódico | 25% | 🟡 Mitigado (con sesión los datos están en la nube) |

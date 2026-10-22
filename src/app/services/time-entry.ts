@@ -13,6 +13,7 @@ import { DeviceIdentityService } from './device-identity.service';
 import { CloudOutboxService } from './cloud/cloud-outbox.service';
 import { diffEntries, toRow, tombstone } from './cloud/cloud-sync.logic';
 import { StorageHealthService } from './storage-health.service';
+import { WriteAccessService } from './write-access.service';
 
 export const STORAGE_KEY = 'timeTrackerEntries';
 export const RUNNING_KEY = 'timeTrackerRunningEntry';
@@ -71,6 +72,7 @@ export class TimeEntryService implements OnDestroy {
   private outbox = inject(CloudOutboxService);
   private device = inject(DeviceIdentityService);
   private storage = inject(StorageHealthService);
+  private access = inject(WriteAccessService);
   // Single Source of Truth for the history
   private _entries$$ = new BehaviorSubject<TimeEntry[]>(this.loadEntries());
   public readonly entries$: Observable<TimeEntry[]> = this._entries$$.asObservable();
@@ -151,7 +153,8 @@ export class TimeEntryService implements OnDestroy {
   constructor() {
     // Basic cleanup check for running entry on startup
     const running = this._runningEntry$$.getValue();
-    if (running && running.startTime > Date.now()) {
+    // Not on a read-only instance: the timer belongs to the lock holder.
+    if (running && running.startTime > Date.now() && this.access.canWrite()) {
       console.warn("Detected invalid running entry (startTime in future). Stopping it.");
       this.stopTracking();
     }
@@ -239,13 +242,15 @@ export class TimeEntryService implements OnDestroy {
    * an operation never ends half-applied.
    */
   private saveEntries(entries: TimeEntry[]): boolean {
+    // Read-only instance (another one holds the edit lock): refuse every change.
+    if (!this.access.guard()) return false;
     const prev = this._entries$$.getValue();
     if (!this.storage.setItem(STORAGE_KEY, JSON.stringify(entries))) return false;
     this._entries$$.next(entries);
     // Every mutation (add/update/delete/stop) lands here, so this is the one
     // place that queues cloud changes. Remote/import/reload paths write the
     // subjects directly and never echo back.
-    if (this.outbox.isTracking()) {
+    if (this.outbox.isEnabled()) {
       const { upserts, deletes } = diffEntries(prev, entries);
       this.outbox.enqueueEntries([...upserts.map(toRow), ...deletes.map(e => tombstone(e.id, e))]);
     }
@@ -264,6 +269,7 @@ export class TimeEntryService implements OnDestroy {
 
   /** Persist the running timer. Returns false (and changes nothing) if the write was refused. */
   private saveRunningEntry(entry: RunningTimeEntry | null): boolean {
+    if (!this.access.guard()) return false;
     const prev = this._runningEntry$$.getValue();
     if (entry) {
       if (!this.storage.setItem(RUNNING_KEY, JSON.stringify(entry))) return false;
@@ -461,6 +467,7 @@ export class TimeEntryService implements OnDestroy {
   );
 
   startLunchBreak(): void {
+    if (!this.access.guard()) return;
     const running = this._runningEntry$$.getValue();
     const prevTitle = running?.title ?? null;
     // The timer could not be stopped (storage full): do not start the break.
@@ -477,6 +484,7 @@ export class TimeEntryService implements OnDestroy {
   }
 
   resumeFromLunchBreak(): void {
+    if (!this.access.guard()) return;
     const prevTitle = localStorage.getItem(LUNCH_BREAK_PREV_TITLE_KEY) ?? null;
     localStorage.removeItem(LUNCH_BREAK_ACTIVE_KEY);
     localStorage.removeItem(LUNCH_BREAK_START_KEY);

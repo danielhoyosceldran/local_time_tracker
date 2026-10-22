@@ -3,8 +3,10 @@ import { signal } from '@angular/core';
 import { CloudSyncService } from './cloud-sync.service';
 import { CloudAuthService } from './cloud-auth.service';
 import { CloudOutboxService } from './cloud-outbox.service';
+import { CloudLockService } from './cloud-lock.service';
 import { SupabaseClientService } from './supabase-client.service';
 import { DataRefreshService } from '../data-refresh.service';
+import { WriteAccessService } from '../write-access.service';
 import { STORAGE_KEY, TimeEntryService } from '../time-entry';
 import { EntryRow, EntryRowPayload } from './cloud-sync.logic';
 import { SchemaCheck } from './cloud-auth.service';
@@ -28,17 +30,27 @@ class FakeQuery {
   }
 }
 
+const OTHER_DEVICE = { deviceId: 'other-device', deviceName: 'Equipo-OTRO', browser: 'Firefox' };
+
 class FakeClient {
   /** Answers SELECTs, per table. */
   select: (table: string) => Promise<Result> = async () => ({ data: [], error: null });
   /** Answers upserts; `rows` is an array for a batch, an object for a single row. */
   upsert: (table: string, rows: unknown) => Promise<Result> = async () => ({ error: null });
+  /** Answers claim_lock: this instance gets the lock unless a test says otherwise. */
+  claim: (force: boolean) => { acquired: boolean; device: unknown } = () => ({ acquired: true, device: null });
+  released = 0;
 
   from(table: string) {
     return {
       select: () => new FakeQuery(() => this.select(table)),
       upsert: (rows: unknown) => new FakeQuery(() => this.upsert(table, rows)),
     };
+  }
+  async rpc(name: string, args: { p_force?: boolean }): Promise<Result> {
+    if (name === 'claim_lock') return { data: this.claim(!!args.p_force), error: null };
+    if (name === 'release_lock') this.released++;
+    return { data: null, error: null };
   }
   channel() {
     const ch = { on: () => ch, subscribe: () => ch };
@@ -53,14 +65,17 @@ const UID = 'u1';
 const OWNER_KEY = 'tt.cloud.ownerUserId';
 const ENTRIES_CURSOR_KEY = 'tt.cloud.cursor.entries';
 const LAST_OWNER_KEY = 'tt.cloud.lastOwnerUserId';
-const PARKED_KEY = 'tt.cloud.parked';
 
 function closedRow(id: string): EntryRowPayload {
   return { id, title: id, description: null, start_time: 1000, end_time: 2000, duration: 1000, started_by: null, deleted: false };
 }
 
+function entry(id: string, title: string = id) {
+  return { id, title, description: null, startTime: 1000, endTime: 2000, duration: 1000 };
+}
+
 async function settle(): Promise<void> {
-  for (let i = 0; i < 10; i++) await new Promise(r => setTimeout(r, 0));
+  for (let i = 0; i < 20; i++) await new Promise(r => setTimeout(r, 0));
 }
 
 describe('CloudSyncService', () => {
@@ -68,6 +83,8 @@ describe('CloudSyncService', () => {
   let userId: ReturnType<typeof signal<string | null>>;
   let service: CloudSyncService;
   let outbox: CloudOutboxService;
+  let access: WriteAccessService;
+  let time: TimeEntryService;
   let schema: SchemaCheck;
 
   beforeEach(() => {
@@ -80,11 +97,12 @@ describe('CloudSyncService', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: SupabaseClientService, useValue: { get: async () => client, reset: () => {} } },
-        { provide: DataRefreshService, useValue: { refreshAll: async () => {} } },
+        { provide: DataRefreshService, useValue: { refreshAll: async () => TestBed.inject(TimeEntryService).reloadFromStorage() } },
         {
           provide: CloudAuthService,
           useValue: {
             userId,
+            accessToken: () => null,
             status: () => (userId() ? 'signedIn' : 'signedOut'),
             init: async () => {},
             signOut: async () => userId.set(null),
@@ -95,6 +113,8 @@ describe('CloudSyncService', () => {
     });
     service = TestBed.inject(CloudSyncService);
     outbox = TestBed.inject(CloudOutboxService);
+    access = TestBed.inject(WriteAccessService);
+    time = TestBed.inject(TimeEntryService);
   });
 
   afterEach(async () => {
@@ -106,6 +126,27 @@ describe('CloudSyncService', () => {
     userId.set(UID);
     TestBed.tick();
     await settle();
+  }
+
+  /** In-memory stand-in for the account's rows: upserts land in it, selects read it. */
+  function fakeRemote(...ids: string[]): Map<string, EntryRow> {
+    const remote = new Map<string, EntryRow>();
+    let version = 0;
+    const put = (row: EntryRowPayload) =>
+      remote.set(row.id, { ...row, updated_at: `2026-10-01T10:00:${String(++version).padStart(2, '0')}.000000+00:00` });
+    ids.forEach(id => put(closedRow(id)));
+    client.upsert = async (_table, rows) => {
+      (Array.isArray(rows) ? rows : [rows]).forEach(r => {
+        if ((r as { id?: string }).id) put(r as EntryRowPayload);
+      });
+      return { error: null };
+    };
+    client.select = async table => {
+      if (table !== 'time_entries') return { data: [], error: null };
+      const rows = [...remote.values()];
+      return { data: rows, count: rows.filter(r => !r.deleted).length, error: null };
+    };
+    return remote;
   }
 
   describe('rows refused by RLS (id owned by another account)', () => {
@@ -140,15 +181,90 @@ describe('CloudSyncService', () => {
     });
   });
 
-  describe('local data left by another account', () => {
+  describe('edit lock', () => {
+    it('makes this instance read-only while another one holds the lock', async () => {
+      const pushed: unknown[] = [];
+      client.upsert = async (_t, rows) => (pushed.push(rows), { error: null });
+      client.claim = () => ({ acquired: false, device: OTHER_DEVICE });
 
-    function seedLocalEntry(): void {
-      TestBed.inject(TimeEntryService).applyRemoteState(
-        [{ id: 'e1', title: 'x', description: null, startTime: 1000, endTime: 2000, duration: 1000 }],
-        null,
-      );
-    }
+      await signIn();
 
+      expect(access.state()).toEqual({ kind: 'reader', holder: OTHER_DEVICE });
+      expect(time.addEntry(entry('nope'))).toBeFalse();
+      expect(time.snapshot().entries).toEqual([]);
+      expect(outbox.size()).toBe(0);
+      expect(pushed).toEqual([]);
+    });
+
+    it('stamps every pushed row with this instance id (the server fences on it)', async () => {
+      const writers: unknown[] = [];
+      client.upsert = async (_t, rows) => {
+        (Array.isArray(rows) ? rows : [rows]).forEach(r => writers.push((r as { writer_instance: string }).writer_instance));
+        return { error: null };
+      };
+      await signIn();
+
+      time.addEntry(entry('e1'));
+      await new Promise(r => setTimeout(r, 250));
+      await settle();
+
+      expect(writers.length).toBeGreaterThan(0);
+      expect(new Set(writers)).toEqual(new Set([TestBed.inject(CloudLockService).instanceId]));
+    });
+
+    it('discards unpushed changes (keeping a backup) when another instance took over meanwhile', async () => {
+      fakeRemote('r1');
+      outbox.enqueueEntries([closedRow('offline-edit')]);
+      time.applyRemoteState([entry('offline-edit')], null);
+      client.claim = () => ({ acquired: false, device: OTHER_DEVICE });
+
+      await signIn();
+
+      expect(access.state().kind).toBe('reader');
+      expect(outbox.size()).toBe(0);
+      expect(time.snapshot().entries.map(e => e.id)).toEqual(['r1']);
+      expect(service.discardedAt()).not.toBeNull();
+      expect(localStorage.getItem('tt.cloud.discarded')).toContain('offline-edit');
+    });
+
+    it('turns read-only when the server refuses a write because the lock moved', async () => {
+      await signIn();
+      expect(access.state().kind).toBe('holder');
+
+      client.claim = () => ({ acquired: false, device: OTHER_DEVICE });
+      client.upsert = async () => ({ error: { code: 'TT409', message: 'This app instance does not hold the edit lock' } });
+      time.addEntry(entry('late'));
+      await new Promise(r => setTimeout(r, 250));
+      await settle();
+
+      expect(access.state().kind).toBe('reader');
+      expect(outbox.size()).toBe(0);
+    });
+
+    it('takes control by force and starts from the cloud copy', async () => {
+      fakeRemote('r1');
+      client.claim = force => (force ? { acquired: true, device: null } : { acquired: false, device: OTHER_DEVICE });
+      await signIn();
+      expect(access.state().kind).toBe('reader');
+
+      await service.takeControl();
+      await settle();
+
+      expect(access.state().kind).toBe('holder');
+      expect(time.snapshot().entries.map(e => e.id)).toEqual(['r1']);
+      expect(time.addEntry(entry('mine'))).toBeTrue();
+    });
+
+    it('releases the lock when signing out', async () => {
+      await signIn();
+      await service.signOut({ wipeLocal: false });
+
+      expect(client.released).toBe(1);
+      expect(access.state().kind).toBe('local');
+    });
+  });
+
+  describe('local data that is not bound to the account', () => {
     it('remembers whose data it was when signing out without wiping', async () => {
       await signIn();
       await service.signOut({ wipeLocal: false });
@@ -158,43 +274,102 @@ describe('CloudSyncService', () => {
       expect(service.state()).toBe('disabled');
     });
 
-    it('parks the bound account\'s queued ops under that account when its dialog is cancelled', async () => {
+    it('keeps the previous owner\'s data and name when its dialog is cancelled', async () => {
       localStorage.setItem(OWNER_KEY, 'someone-else');
+      time.applyRemoteState([entry('theirs')], null);
       outbox.enqueueEntries([closedRow('theirs')]);
 
       await signIn();
-      expect(service.firstConnection()?.kind).toBe('foreign');
+      expect(service.firstConnection()).toEqual(jasmine.objectContaining({ kind: 'choose', foreign: true }));
       await service.resolveFirstConnection({ kind: 'cancel' });
 
-      const parked = JSON.parse(localStorage.getItem(PARKED_KEY) ?? 'null');
-      expect(parked?.userId).toBe('someone-else');
-      expect(Object.keys(parked?.entries ?? {})).toEqual(['theirs']);
+      expect(time.snapshot().entries.map(e => e.id)).toEqual(['theirs']);
       expect(localStorage.getItem(LAST_OWNER_KEY)).toBe('someone-else');
+      expect(outbox.size()).toBe(0);
     });
 
-    it('asks before mixing it into a different account', async () => {
+    it('warns when the data belongs to a different account', async () => {
       localStorage.removeItem(OWNER_KEY);
       localStorage.setItem(LAST_OWNER_KEY, 'someone-else');
-      seedLocalEntry();
+      time.applyRemoteState([entry('e1')], null);
 
       await signIn();
 
-      expect(service.firstConnection()?.kind).toBe('foreign');
+      expect(service.firstConnection()).toEqual(jasmine.objectContaining({ kind: 'choose', foreign: true }));
     });
 
-    it('offers the normal merge when the same account signs in again', async () => {
+    it('asks which copy wins when the same account signs in again', async () => {
       localStorage.removeItem(OWNER_KEY);
       localStorage.setItem(LAST_OWNER_KEY, UID);
-      seedLocalEntry();
+      time.applyRemoteState([entry('e1')], null);
 
       await signIn();
 
-      expect(service.firstConnection()?.kind).toBe('upload');
+      expect(service.firstConnection()).toEqual(jasmine.objectContaining({ kind: 'choose', foreign: false }));
+    });
+
+    it('only offers to load the cloud when another instance holds the lock', async () => {
+      localStorage.removeItem(OWNER_KEY);
+      time.applyRemoteState([entry('e1')], null);
+      client.claim = () => ({ acquired: false, device: OTHER_DEVICE });
+
+      await signIn();
+
+      expect(service.firstConnection()).toEqual({ kind: 'reader', localCount: 1, holder: OTHER_DEVICE });
+      await service.resolveFirstConnection({ kind: 'toCloud' });
+      expect(service.firstConnection()?.kind).withContext('toCloud is refused').toBe('reader');
+    });
+
+    it('downloads a fresh device without asking', async () => {
+      localStorage.removeItem(OWNER_KEY);
+      fakeRemote('r1');
+
+      await signIn();
+
+      expect(service.firstConnection()).toBeNull();
+      expect(localStorage.getItem(OWNER_KEY)).toBe(UID);
+      expect(time.snapshot().entries.map(e => e.id)).toEqual(['r1']);
+    });
+  });
+
+  describe('copy direction after an explicit sign-out', () => {
+    let remote: Map<string, EntryRow>;
+
+    beforeEach(async () => {
+      remote = fakeRemote('a', 'b');
+      await signIn();
+      expect(time.snapshot().entries.map(e => e.id).sort()).toEqual(['a', 'b']);
+      await service.signOut({ wipeLocal: false });
+
+      time.updateEntry('a', 'edited offline', null);
+      time.deleteEntry('b');
+      time.addEntry(entry('c'));
+      await signIn();
+      expect(service.firstConnection()?.kind).toBe('choose');
+    });
+
+    it('local → cloud makes the cloud equal to this device', async () => {
+      await service.resolveFirstConnection({ kind: 'toCloud' });
+      await settle();
+
+      expect(remote.get('a')?.title).toBe('edited offline');
+      expect(remote.get('b')?.deleted).toBeTrue();
+      expect(remote.get('c')?.deleted).toBeFalse();
+      expect(time.snapshot().entries.map(e => e.id).sort()).toEqual(['a', 'c']);
+      expect(outbox.size()).toBe(0);
+    });
+
+    it('cloud → local makes this device equal to the cloud', async () => {
+      await service.resolveFirstConnection({ kind: 'toLocal' });
+      await settle();
+
+      expect(time.snapshot().entries.map(e => [e.id, e.title]).sort()).toEqual([['a', 'a'], ['b', 'b']]);
+      expect(remote.has('c')).toBeFalse();
+      expect(localStorage.getItem(OWNER_KEY)).toBe(UID);
     });
   });
 
   describe('changes made while the data is bound but nothing can be pushed', () => {
-    const entry = { id: 'offline-1', title: 'x', description: null, startTime: 1000, endTime: 2000, duration: 1000 };
     let pushed: string[];
 
     beforeEach(() => {
@@ -206,7 +381,7 @@ describe('CloudSyncService', () => {
     });
 
     it('queues them before the session is restored (right after a reload)', () => {
-      TestBed.inject(TimeEntryService).addEntry(entry);
+      time.addEntry(entry('offline-1'));
 
       expect(outbox.pendingEntryIds().has('offline-1')).toBeTrue();
     });
@@ -218,7 +393,7 @@ describe('CloudSyncService', () => {
       await settle();
       expect(service.state()).toBe('reauth');
 
-      TestBed.inject(TimeEntryService).addEntry(entry);
+      time.addEntry(entry('offline-1'));
       expect(outbox.pendingEntryIds().has('offline-1')).toBeTrue();
       expect(pushed).toEqual([]);
 
@@ -234,7 +409,7 @@ describe('CloudSyncService', () => {
       await signIn();
       expect(service.state()).toBe('setup');
 
-      TestBed.inject(TimeEntryService).addEntry(entry);
+      time.addEntry(entry('offline-1'));
 
       expect(outbox.pendingEntryIds().has('offline-1')).toBeTrue();
       expect(pushed).toEqual([]);
@@ -242,69 +417,22 @@ describe('CloudSyncService', () => {
 
     it('stops queueing once the local data is wiped and forgotten', () => {
       outbox.enqueueEntries([closedRow('old')]);
-      localStorage.setItem(PARKED_KEY, JSON.stringify({ userId: UID, entries: { p: closedRow('p') } }));
       localStorage.setItem(LAST_OWNER_KEY, UID);
 
       service.forgetLocalData();
-      TestBed.inject(TimeEntryService).addEntry(entry);
+      time.addEntry(entry('offline-1'));
 
       expect(outbox.size()).toBe(0);
       expect(localStorage.getItem(OWNER_KEY)).toBeNull();
       expect(localStorage.getItem(LAST_OWNER_KEY)).toBeNull();
-      expect(localStorage.getItem(PARKED_KEY)).toBeNull();
       expect(service.state()).toBe('disabled');
     });
-  });
 
-  describe('changes made after an explicit sign-out (data kept on the device)', () => {
-    /** In-memory stand-in for the account's rows: upserts land in it, selects read it. */
-    let remote: Map<string, EntryRow>;
-    let version: number;
-
-    beforeEach(() => {
-      remote = new Map();
-      version = 0;
-      const put = (row: EntryRowPayload) =>
-        remote.set(row.id, { ...row, updated_at: `2026-10-01T10:00:${String(++version).padStart(2, '0')}.000000+00:00` });
-      put(closedRow('a'));
-      put(closedRow('b'));
-      client.upsert = async (_table, rows) => {
-        (Array.isArray(rows) ? rows : [rows]).forEach(r => put(r as EntryRowPayload));
-        return { error: null };
-      };
-      client.select = async table => {
-        if (table !== 'time_entries') return { data: [], error: null };
-        const rows = [...remote.values()];
-        return { data: rows, count: rows.filter(r => !r.deleted).length, error: null };
-      };
-    });
-
-    it('survive the merge of the next sign-in instead of being undone by the cloud', async () => {
-      const time = TestBed.inject(TimeEntryService);
-      await signIn();
-      expect(time.snapshot().entries.map(e => e.id).sort()).toEqual(['a', 'b']);
-      await service.signOut({ wipeLocal: false });
-
-      time.updateEntry('a', 'edited offline', null);
-      time.deleteEntry('b');
-
-      await signIn();
-      expect(service.firstConnection()?.kind).toBe('merge');
-      await service.resolveFirstConnection({ kind: 'merge', settingsFrom: 'cloud' });
-      await settle();
-
-      expect(time.snapshot().entries.map(e => [e.id, e.title])).toEqual([['a', 'edited offline']]);
-      expect(remote.get('a')?.title).toBe('edited offline');
-      expect(remote.get('b')?.deleted).toBeTrue();
-      expect(localStorage.getItem(PARKED_KEY)).toBeNull();
-    });
-
-    it('are not tracked for data that never belonged to an account', () => {
+    it('does not track data that never belonged to an account', () => {
       localStorage.removeItem(OWNER_KEY);
 
-      TestBed.inject(TimeEntryService).addEntry({ id: 'local', title: 'x', description: null, startTime: 1000, endTime: 2000, duration: 1000 });
+      time.addEntry(entry('local'));
 
-      expect(localStorage.getItem(PARKED_KEY)).toBeNull();
       expect(outbox.size()).toBe(0);
     });
   });

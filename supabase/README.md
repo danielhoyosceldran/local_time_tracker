@@ -14,7 +14,7 @@ varias personas. Cada una solo ve sus propios datos (Row Level Security).
 1. Crea una cuenta en <https://supabase.com> y un proyecto nuevo. El plan
    gratuito es suficiente; elige una región cercana (p. ej. UE).
 2. Abre **SQL Editor → New query** y pega y ejecuta, en orden, los ficheros de
-   [`migrations/`](migrations/) (`0001_init.sql`, `0002_…`, `0003_…`).
+   [`migrations/`](migrations/) (`0001_init.sql`, `0002_…`, `0003_…`, `0004_…`).
    - El mismo SQL se puede copiar desde la app: *Ajustes → Nube → Copiar SQL
      de instalación*.
    - Con la Supabase CLI también vale `supabase db push`.
@@ -42,9 +42,35 @@ En la app, abre **Ajustes → Nube**:
 
 1. Pega la Project URL y la publishable key y guarda.
 2. Inicia sesión con tu email y contraseña.
-3. La primera vez, si este dispositivo ya tenía datos, la app te ofrece subirlos
-   o fusionarlos con lo que haya en la nube. Nunca se pierde nada: los fichajes
-   se unen por `id`.
+3. Si este dispositivo ya tenía datos, la app te pregunta qué copia conservar:
+   **nube → local** (este dispositivo queda igual que la nube) o **local → nube**
+   (la nube queda igual que este dispositivo y se borra lo que solo estuviera
+   allí). Las dos copias nunca se mezclan. Antes puedes descargar un backup.
+   Un dispositivo sin datos descarga la nube sin preguntar.
+
+### Un solo dispositivo editando a la vez (mutex)
+
+Con sesión iniciada, solo **una** pestaña o dispositivo puede modificar datos;
+el resto queda en **solo lectura** y muestra quién tiene el control.
+
+- El primero que abre la app coge el mutex y lo renueva cada minuto.
+- Al cerrar la app se libera. Si se cierra de golpe (sin conexión, batería),
+  el resto lo puede coger cuando lleve **2 minutos** sin renovarse.
+- **Tomar el control** lo quita al otro dispositivo al momento.
+- Si el dispositivo con el mutex se queda sin conexión, sigue funcionando. Si al
+  volver otro ha cogido el mutex, gana la nube: sus cambios sin subir se
+  descartan, pero antes se guarda un backup que puedes descargar desde el aviso.
+- El servidor lo garantiza (migración 0004): rechaza cualquier escritura de una
+  instancia que no tenga el mutex.
+
+Para editar datos a mano desde el SQL Editor, desactiva antes el trigger y
+vuelve a activarlo después:
+
+```sql
+alter table public.time_entries disable trigger time_entries_require_lock;
+-- … tus cambios …
+alter table public.time_entries enable trigger time_entries_require_lock;
+```
 
 ### Dar acceso a otra persona
 

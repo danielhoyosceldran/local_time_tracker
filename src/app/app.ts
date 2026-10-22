@@ -11,17 +11,19 @@ import { ThemeService } from './services/theme.service';
 import { CloudSyncService } from './services/cloud/cloud-sync.service';
 import { CloudFirstConnectionComponent } from './components/cloud-first-connection/cloud-first-connection';
 import { StorageFullBannerComponent } from './components/storage-full-banner/storage-full-banner';
+import { EditLockBannerComponent } from './components/edit-lock-banner/edit-lock-banner';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, SoundPickerHostComponent, CloudFirstConnectionComponent, StorageFullBannerComponent],
+  imports: [RouterOutlet, SoundPickerHostComponent, CloudFirstConnectionComponent, StorageFullBannerComponent, EditLockBannerComponent],
   template: `
     <router-outlet />
     <app-sound-picker-host />
     <app-cloud-first-connection />
     <app-storage-full-banner />
+    <app-edit-lock-banner />
   `,
 })
 export class AppComponent implements OnInit {

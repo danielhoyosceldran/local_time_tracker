@@ -34,6 +34,8 @@ export class CloudAuthService {
 
   readonly userId = computed(() => this._session()?.user.id ?? null);
   readonly email = computed(() => this._session()?.user.email ?? null);
+  /** Current JWT, for the one request that cannot go through supabase-js (release on page close). */
+  readonly accessToken = computed(() => this._session()?.access_token ?? null);
   readonly status = computed<CloudAuthStatus>(() => {
     if (!this.configService.config()) return 'unconfigured';
     return this._session() ? 'signedIn' : 'signedOut';

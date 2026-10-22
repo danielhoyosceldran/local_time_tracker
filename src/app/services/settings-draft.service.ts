@@ -7,6 +7,7 @@ import { SoundId } from '../shared/sounds';
 import { TranslationService, Language } from '../i18n';
 import { ThemeService, ThemeMode } from './theme.service';
 import { CloudOutboxService } from './cloud/cloud-outbox.service';
+import { WriteAccessService } from './write-access.service';
 
 /**
  * Staging layer for the settings modal. Sections write to this draft; nothing
@@ -20,6 +21,7 @@ export class SettingsDraftService {
   private translation = inject(TranslationService);
   private themeService = inject(ThemeService);
   private cloudOutbox = inject(CloudOutboxService);
+  private access = inject(WriteAccessService);
 
   // General
   readonly language = signal<Language>('en');
@@ -81,7 +83,9 @@ export class SettingsDraftService {
     this.pomoBreakSound.set(this.pomodoro.breakSound());
   }
 
-  apply(): void {
+  /** Persist the draft. Returns false (and saves nothing) on a read-only instance. */
+  apply(): boolean {
+    if (!this.access.guard()) return false;
     this.translation.setLanguage(this.language());
     this.themeService.setMode(this.theme());
     this.settings.setWorkdayHours(this.workdayHours());
@@ -112,6 +116,7 @@ export class SettingsDraftService {
     this.timeEntry.recomputeAll();
     // Queue whatever changed for the cloud right away (no-op when signed out).
     this.cloudOutbox.requestSettingsScan();
+    return true;
   }
 
   toggleWorkday(day: DayOfWeek): void {
