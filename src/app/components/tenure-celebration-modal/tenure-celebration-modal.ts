@@ -108,6 +108,7 @@ export class TenureCelebrationModalComponent implements AfterViewInit, OnDestroy
   private timers: ReturnType<typeof setTimeout>[] = [];
   private viewW = 0;
   private viewH = 0;
+  private lastFrame = 0;
 
   @HostListener('document:keydown.escape')
   onEsc(): void {
@@ -170,19 +171,25 @@ export class TenureCelebrationModalComponent implements AfterViewInit, OnDestroy
     }
   }
 
-  private readonly tick = (): void => {
+  private readonly tick = (now: number): void => {
     const ctx = this.ctx;
     if (!ctx) return;
+
+    // Physics constants are tuned per 60 Hz frame; scale them by the real frame
+    // time so the confetti falls at the same speed on 120/144 Hz screens.
+    // Capped so a backgrounded tab doesn't teleport particles on return.
+    const dt = this.lastFrame ? Math.min(now - this.lastFrame, 50) / (1000 / 60) : 1;
+    this.lastFrame = now;
 
     ctx.clearRect(0, 0, this.viewW, this.viewH);
 
     for (const p of this.particles) {
-      p.vy += 0.18; // gravity
-      p.vx *= 0.99; // air drag
-      p.x += p.vx;
-      p.y += p.vy;
-      p.rot += p.vr;
-      p.life++;
+      p.vy += 0.18 * dt; // gravity
+      p.vx *= Math.pow(0.99, dt); // air drag
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.rot += p.vr * dt;
+      p.life += dt;
 
       ctx.save();
       ctx.translate(p.x, p.y);
