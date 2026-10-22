@@ -177,19 +177,25 @@ html, body {
 @keyframes tt-fade-out { to { opacity: 0; } }
 @keyframes tt-modal-in { from { opacity: 0; transform: scale(0.96); } }
 @keyframes tt-shrink-out { to { transform: scale(0.96); } }
+@keyframes tt-popover-in { from { opacity: 0; transform: scale(0.95); } }
+@keyframes tt-popover-out { to { transform: scale(0.95); } }
 
 /* Modals: centred, so they scale from the centre. */
 .tt-backdrop { animation: tt-fade-in 150ms var(--ease-out); }
 .tt-modal { animation: tt-modal-in 200ms var(--ease-out); }
 
+/* Popovers grow out of their trigger: set transform-origin to its side. */
+.tt-popover { animation: tt-popover-in 150ms var(--ease-out); }
+
 .tt-leave { animation: tt-fade-out 150ms var(--ease-out) forwards; pointer-events: none; }
 .tt-leave .tt-modal { animation: tt-shrink-out 150ms var(--ease-out) forwards; }
+.tt-leave .tt-popover { animation: tt-popover-out 150ms var(--ease-out) forwards; }
 
 /* Reduced motion: opacity only, no scaling. */
 @media (prefers-reduced-motion: reduce) {
-  .tt-backdrop, .tt-modal { animation: tt-fade-in 150ms ease-out !important; }
+  .tt-backdrop, .tt-modal, .tt-popover { animation: tt-fade-in 150ms ease-out !important; }
   .tt-leave { animation-duration: 150ms !important; }
-  .tt-leave .tt-modal { animation: none !important; }
+  .tt-leave .tt-modal, .tt-leave .tt-popover { animation: none !important; }
 }
 
 /* Discrete scrollbars */

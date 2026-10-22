@@ -8,7 +8,7 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
   standalone: true,
   imports: [TranslatePipe],
   template: `
-    <div class="fixed top-12 right-4 w-80 bg-white/95 backdrop-blur-xl rounded-2xl shadow-lg border border-slate-200/60 z-50 flex flex-col" style="max-height: 22rem;">
+    <div class="tt-popover origin-top-right fixed top-12 right-4 w-80 bg-white/95 backdrop-blur-xl rounded-2xl shadow-lg border border-slate-200/60 z-50 flex flex-col" style="max-height: 22rem;">
       <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between shrink-0">
         <span class="text-sm font-semibold text-slate-700">{{ 'nav.whatsNew' | t }}</span>
         <button [attr.aria-label]="'common.close' | t" (click)="close.emit()" class="hit-area text-slate-500 hover:text-slate-600 transition-colors">

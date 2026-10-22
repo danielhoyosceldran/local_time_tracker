@@ -92,7 +92,7 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
 
     @if (panelOpen()) {
       @defer (on immediate) {
-        <app-release-notes-panel [releases]="svc.releases()" (close)="closePanel()" />
+        <app-release-notes-panel animate.leave="tt-leave" [releases]="svc.releases()" (close)="closePanel()" />
       }
     }
     @if (modalOpen()) {
