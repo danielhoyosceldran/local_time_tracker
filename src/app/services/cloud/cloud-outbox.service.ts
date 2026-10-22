@@ -14,6 +14,11 @@ import {
 
 const OUTBOX_KEY = 'tt.cloud.outbox';
 /**
+ * Counter bumped on every outbox change (enqueue, ack, reject, clear), in any
+ * tab. Never reset, so equal values mean "nothing changed in between".
+ */
+const OUTBOX_REV_KEY = 'tt.cloud.outboxRev';
+/**
  * Account this device's local data belongs to (set by CloudSyncService when
  * the cache is bound to an account, cleared on sign-out). While it is set,
  * every local change is queued, with or without a live session.
@@ -163,11 +168,35 @@ export class CloudOutboxService {
   clear(): void {
     this.unsaved = null;
     localStorage.removeItem(OUTBOX_KEY);
+    this.bumpRevision();
     this._size.set(0);
     this.clearRejected();
   }
 
+  /**
+   * Changes whenever the outbox changes, here or in another tab. A pull
+   * compares it before and after its request: rows fetched while an op was
+   * queued or acknowledged may predate that op, so they must not be merged.
+   */
+  revision(): string {
+    return `${localStorage.getItem(OUTBOX_REV_KEY) ?? 0}:${this.localRevision}`;
+  }
+
+  /** Per-tab part of revision(), for when storage refuses the shared counter. */
+  private localRevision = 0;
+
+  private bumpRevision(): void {
+    this.localRevision++;
+    const next = (Number(localStorage.getItem(OUTBOX_REV_KEY)) || 0) + 1;
+    try {
+      localStorage.setItem(OUTBOX_REV_KEY, String(next));
+    } catch {
+      // Quota: the per-tab counter still covers this tab's own changes.
+    }
+  }
+
   private write(outbox: Outbox, notify = true): void {
+    this.bumpRevision();
     this.unsaved = this.storage.setItem(OUTBOX_KEY, JSON.stringify(outbox)) ? null : outbox;
     this._size.set(outboxSize(outbox));
     if (notify) this.changed$.next();

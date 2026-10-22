@@ -87,7 +87,10 @@ administración en [supabase/](supabase/README.md).
   reemplaza por la de la nube (`replaceLocalWithCloud`).
 - **Merge por `id`** en el pull incremental: lógica pura y testeada en
   [cloud-sync.logic.ts](src/app/services/cloud/cloud-sync.logic.ts). Una operación
-  local pendiente gana a la remota; si no, gana la remota.
+  local pendiente gana a la remota; si no, gana la remota. Si la outbox cambia
+  mientras un pull espera respuesta (`CloudOutboxService.revision()`, contador
+  `tt.cloud.outboxRev` compartido entre pestañas), la respuesta se descarta y se
+  repite el pull: podría ser anterior a un push ya confirmado.
 - **Encolar ≠ empujar:** la outbox encola siempre que la caché esté vinculada a
   una cuenta (`tt.cloud.ownerUserId`), haya sesión o no (sesión caducada, esquema
   pendiente de migración, arranque antes de restaurar la sesión). Solo el

@@ -489,6 +489,43 @@ describe('CloudSyncService', () => {
     });
   });
 
+  describe('a pull that overlaps a push', () => {
+    it('does not apply rows read before a change was pushed', async () => {
+      const remote = fakeRemote('a');
+      await signIn();
+      expect(time.snapshot().entries.map(e => e.title)).toEqual(['a']);
+
+      // The next entries pull reads the cloud now but answers only when told.
+      const realSelect = client.select;
+      let answer: (() => void) | null = null;
+      client.select = table => {
+        if (table !== 'time_entries' || answer) return realSelect(table);
+        const snapshot = realSelect(table);
+        return new Promise<Result>(r => (answer = () => void snapshot.then(r)));
+      };
+      const sync = service.syncNow();
+      await settle();
+      expect(answer).withContext('the pull should be waiting for its response').not.toBeNull();
+
+      // Edited and pushed (and acknowledged) while that response is out.
+      time.updateEntry('a', 'edited', null);
+      await new Promise(r => setTimeout(r, 250));
+      await settle();
+      expect(remote.get('a')?.title).toBe('edited');
+      expect(outbox.size()).toBe(0);
+
+      answer!();
+      await sync;
+      await settle();
+      expect(time.snapshot().entries.map(e => e.title)).withContext('stale row not applied').toEqual(['edited']);
+
+      // It asks again and then gets the pushed version.
+      await new Promise(r => setTimeout(r, 350));
+      await settle();
+      expect(time.snapshot().entries.map(e => e.title)).toEqual(['edited']);
+    });
+  });
+
   describe('sign-out while a pull is in flight', () => {
     it('does not write the late response into the wiped cache', async () => {
       let answer!: (r: Result) => void;

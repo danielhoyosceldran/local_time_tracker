@@ -859,16 +859,30 @@ export class CloudSyncService {
       const client = await this.clients.get();
       if (!client || stale()) return;
 
+      // A push acknowledged while the request was out drops its ids from the
+      // outbox, so the merge would no longer protect them, yet the rows may
+      // have been read before that push landed: applying them would revert
+      // the change (a stopped timer running again). Any outbox change in
+      // between, in any tab, throws the response away (the cursor stays put)
+      // and asks again shortly.
+      const changedMeanwhile = (rev: string) => {
+        if (this.outbox.revision() === rev) return false;
+        this.schedulePull();
+        return true;
+      };
+
+      let rev = this.outbox.revision();
       const rows = await this.fetchEntryRows(client, localStorage.getItem(ENTRIES_CURSOR_KEY));
-      if (stale()) return;
+      if (stale() || changedMeanwhile(rev)) return;
       if (rows.length) {
         const merged = mergeRemote(this.time.snapshot(), rows, this.outbox.pendingEntryIds());
         if (merged.changed) this.time.applyRemoteState(merged.entries, merged.running);
         this.saveCursor(ENTRIES_CURSOR_KEY, rows);
       }
 
+      rev = this.outbox.revision();
       const settingRows = await this.fetchSettingRows(client, localStorage.getItem(SETTINGS_CURSOR_KEY));
-      if (stale()) return;
+      if (stale() || changedMeanwhile(rev)) return;
       if (settingRows.length) {
         // Cursor before the refresh: the refresh awaits, and nothing after it
         // may write once the session is gone.
