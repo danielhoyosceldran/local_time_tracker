@@ -66,6 +66,20 @@ export class CloudOutboxService {
   /** Emits when settings may have changed and should be diffed against the shadow. */
   readonly settingsScan$ = new Subject<void>();
 
+  constructor() {
+    // Another tab of this browser queued or pushed: keep the count true here too.
+    window.addEventListener('storage', event => {
+      if (event.key === OUTBOX_KEY || event.key === null) this.pendingCount();
+    });
+  }
+
+  /** Ops queued right now, read from storage (the size signal can lag behind other tabs). */
+  pendingCount(): number {
+    const n = outboxSize(this.read());
+    this._size.set(n);
+    return n;
+  }
+
   /**
    * Whether local changes are queued: while the local data belongs to an
    * account, not only while a session is live. An expired session, a schema

@@ -15,8 +15,12 @@ export const LOCK_LOST_CODE = 'TT409';
 
 export type ClaimResult =
   | { kind: 'acquired' }
-  | { kind: 'held'; holder: EntryOrigin | null }
+  /** `instance`: the holder's instance id (see isOpenHere). */
+  | { kind: 'held'; holder: EntryOrigin | null; instance: string | null }
   | { kind: 'network' };
+
+/** Web Lock every instance holds while its page is open, so the other tabs can tell it is alive. */
+const INSTANCE_LOCK_PREFIX = 'tt.instance.';
 
 /**
  * Client side of the edit lock (supabase/migrations/0004_edit_lock.sql). The
@@ -35,6 +39,30 @@ export class CloudLockService {
   /** This tab's id. New on every page load: a reload is a new instance. */
   readonly instanceId = uuidv4();
 
+  constructor() {
+    // Held until the page goes away (the browser drops it then, even on a crash).
+    try {
+      void navigator.locks?.request(INSTANCE_LOCK_PREFIX + this.instanceId, () => new Promise<void>(() => {}));
+    } catch {
+      // No Web Locks: isOpenHere() always answers false.
+    }
+  }
+
+  /**
+   * Whether `instance` is a tab of this same browser that is still open. Such a
+   * tab shares this localStorage, outbox included: its queued changes are not
+   * this instance's to throw away.
+   */
+  async isOpenHere(instance: string | null): Promise<boolean> {
+    if (!instance || instance === this.instanceId || !navigator.locks) return false;
+    try {
+      const { held } = await navigator.locks.query();
+      return !!held?.some(l => l.name === INSTANCE_LOCK_PREFIX + instance);
+    } catch {
+      return false;
+    }
+  }
+
   /** Take or refresh the lock. `force` takes it even from a live holder. */
   async claim(force = false): Promise<ClaimResult> {
     try {
@@ -46,8 +74,10 @@ export class CloudLockService {
         p_force: force,
       });
       if (error || !data) return { kind: 'network' };
-      const answer = data as { acquired: boolean; device: EntryOrigin | null };
-      return answer.acquired ? { kind: 'acquired' } : { kind: 'held', holder: answer.device ?? null };
+      const answer = data as { acquired: boolean; holder?: string | null; device: EntryOrigin | null };
+      return answer.acquired
+        ? { kind: 'acquired' }
+        : { kind: 'held', holder: answer.device ?? null, instance: answer.holder ?? null };
     } catch {
       return { kind: 'network' };
     }

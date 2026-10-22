@@ -68,6 +68,12 @@ administración en [supabase/](supabase/README.md).
   control" lo fuerza. **Fencing:** cada fila subida lleva `writer_instance` y el
   trigger `tt_require_lock` la rechaza (`TT409`) si esa instancia no es la
   dueña, así una pestaña congelada que despierta no pisa nada.
+  **Pestañas del mismo navegador** comparten `localStorage` (y la outbox): cada
+  instancia mantiene un Web Lock `tt.instance.<id>` mientras está abierta, y si
+  el dueño del mutex es otra pestaña abierta aquí (`CloudLockService.isOpenHere`)
+  la lectora no descarta la cola ni recarga desde la nube. Al tomar el mutex
+  desde lector, lo que quede en la cola se guarda en `tt.cloud.discarded` antes
+  de recargar.
 - **Solo lectura:** `WriteAccessService` (sin dependencias) dice si se puede
   escribir: `local` (sin cuenta), `checking`, `holder` o `reader`. **Todo servicio
   que escriba datos debe llamar a `access.guard()` antes** (ya lo hacen

@@ -500,7 +500,15 @@ export class CloudSyncService {
     if (result.kind === 'held') {
       this.access.set({ kind: 'reader', holder: result.holder });
       if (prev === 'reader') return;
-      if (this.outbox.size()) {
+      if (await this.lock.isOpenHere(result.instance)) {
+        // Another open tab of this browser holds it: the shared localStorage
+        // (outbox included) is its working copy and it pushes it itself.
+        // Discarding or reloading it from the cloud would lose its changes.
+        if (epoch === this.epoch) this.schedulePull();
+        return;
+      }
+      if (epoch !== this.epoch) return;
+      if (this.outbox.pendingCount()) {
         // Lost the lock with changes still unpushed (offline, frozen tab, or
         // taken by force): the cloud wins. Keep a backup, then adopt it.
         this.discardLocalChanges();
@@ -513,7 +521,7 @@ export class CloudSyncService {
 
     // Acquired.
     if (prev === 'holder') {
-      if (this.outbox.size()) this.scheduleFlush();
+      if (this.outbox.pendingCount()) this.scheduleFlush();
       return;
     }
     if (prev === 'reader') {
@@ -521,6 +529,10 @@ export class CloudSyncService {
       // instance shows (a missed pull, a setting tweaked while read-only) is
       // pushed as if it were a change.
       this.access.set({ kind: 'checking' });
+      // Still queued: changes of the tab of this browser that held the lock
+      // until now (taken by force, or it froze/died before pushing). They were
+      // written under its lock, not ours: the cloud wins, but keep a backup.
+      if (this.outbox.pendingCount()) this.discardLocalChanges();
       await this.resyncFromCloud(epoch);
       if (epoch !== this.epoch) return;
     }

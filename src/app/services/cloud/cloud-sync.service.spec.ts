@@ -38,7 +38,7 @@ class FakeClient {
   /** Answers upserts; `rows` is an array for a batch, an object for a single row. */
   upsert: (table: string, rows: unknown) => Promise<Result> = async () => ({ error: null });
   /** Answers claim_lock: this instance gets the lock unless a test says otherwise. */
-  claim: (force: boolean) => { acquired: boolean; device: unknown } = () => ({ acquired: true, device: null });
+  claim: (force: boolean) => { acquired: boolean; device: unknown; holder?: string } = () => ({ acquired: true, device: null });
   released = 0;
 
   from(table: string) {
@@ -225,6 +225,58 @@ describe('CloudSyncService', () => {
       expect(time.snapshot().entries.map(e => e.id)).toEqual(['r1']);
       expect(service.discardedAt()).not.toBeNull();
       expect(localStorage.getItem('tt.cloud.discarded')).toContain('offline-edit');
+    });
+
+    it('leaves the queue alone when the holder is another open tab of this browser', async () => {
+      // A sibling tab: same localStorage (and outbox), its own instance lock.
+      let closeSibling!: () => void;
+      void navigator.locks.request('tt.instance.sibling-tab', () => new Promise<void>(r => (closeSibling = r)));
+      await settle();
+      try {
+        fakeRemote('r1');
+        outbox.enqueueEntries([closedRow('sibling-edit')]);
+        time.applyRemoteState([entry('sibling-edit')], null);
+        client.claim = () => ({ acquired: false, holder: 'sibling-tab', device: OTHER_DEVICE });
+
+        await signIn();
+
+        expect(access.state().kind).toBe('reader');
+        expect(outbox.pendingEntryIds().has('sibling-edit')).toBeTrue();
+        expect(time.snapshot().entries.map(e => e.id)).toContain('sibling-edit');
+        expect(service.discardedAt()).toBeNull();
+      } finally {
+        closeSibling();
+      }
+    });
+
+    it('still discards the queue when the holder instance is not open in this browser', async () => {
+      fakeRemote('r1');
+      outbox.enqueueEntries([closedRow('stale-edit')]);
+      time.applyRemoteState([entry('stale-edit')], null);
+      client.claim = () => ({ acquired: false, holder: 'closed-tab', device: OTHER_DEVICE });
+
+      await signIn();
+
+      expect(outbox.size()).toBe(0);
+      expect(time.snapshot().entries.map(e => e.id)).toEqual(['r1']);
+      expect(localStorage.getItem('tt.cloud.discarded')).toContain('stale-edit');
+    });
+
+    it('keeps a backup of what the previous holder left queued when taking control', async () => {
+      fakeRemote('r1');
+      client.claim = force => (force ? { acquired: true, device: null } : { acquired: false, device: OTHER_DEVICE });
+      await signIn();
+      expect(access.state().kind).toBe('reader');
+      // Left by the tab that held the lock (same localStorage).
+      time.applyRemoteState([...time.snapshot().entries, entry('their-edit')], null);
+      outbox.enqueueEntries([closedRow('their-edit')]);
+
+      await service.takeControl();
+      await settle();
+
+      expect(access.state().kind).toBe('holder');
+      expect(localStorage.getItem('tt.cloud.discarded')).toContain('their-edit');
+      expect(outbox.size()).toBe(0);
     });
 
     it('turns read-only when the server refuses a write because the lock moved', async () => {
