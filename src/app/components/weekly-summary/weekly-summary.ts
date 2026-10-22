@@ -41,10 +41,10 @@ import { TranslationService } from '../../i18n';
         <div class="flex-1 flex flex-col justify-end mt-2">
           <div class="grid grid-cols-7 gap-1 items-end" style="height:48px;">
             @for (h of dailyHours(); track $index) {
+              <!-- Scaled, not resized: the bars re-render every second while a timer runs. -->
               <div
-                class="w-full bg-emerald-400 rounded-t-sm transition-all duration-500"
-                [style.height.px]="getBarHeightPx(h)"
-                style="min-height: 2px;"
+                class="w-full h-full bg-emerald-400 rounded-t-sm origin-bottom transition-transform duration-300 ease-out"
+                [style.transform]="'scaleY(' + getBarScale(h) + ')'"
               ></div>
             }
           </div>
@@ -135,9 +135,10 @@ export class WeeklySummaryComponent {
     return Math.min((hours / max) * 100, 100);
   }
 
-  getBarHeightPx(hours: number): number {
+  /** Bar height as a fraction of the 48px track, never below 2px. */
+  getBarScale(hours: number): number {
     const max = Math.max(...this.dailyHours(), 8);
-    return Math.min((hours / max) * 48, 48);
+    return Math.max(Math.min(hours / max, 1), 2 / 48);
   }
 
   getProgress(worked: number, target: number): number {
