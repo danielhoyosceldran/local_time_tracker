@@ -54,6 +54,12 @@ const SETTINGS_CURSOR_KEY = 'tt.cloud.cursor.settings';
 const SHADOW_KEY = 'tt.cloud.settingsShadow';
 /** Entry ops still unpushed when the user signed out, kept for that user's next login. */
 const PARKED_KEY = 'tt.cloud.parked';
+/**
+ * Account the local data belonged to when it was last signed out. OWNER_KEY
+ * is cleared on sign-out (the next login must go through the merge), so this
+ * is what lets a different account's login spot data that is not its own.
+ */
+const LAST_OWNER_KEY = 'tt.cloud.lastOwnerUserId';
 
 const ENTRY_COLUMNS = 'id,title,description,start_time,end_time,duration,started_by,deleted,updated_at';
 const PAGE_SIZE = 1000;
@@ -173,7 +179,10 @@ export class CloudSyncService {
       this.activate();
       return;
     }
-    if (owner) {
+    const { entries, running } = this.time.snapshot();
+    const localCount = entries.length + (running ? 1 : 0);
+    const lastOwner = localStorage.getItem(LAST_OWNER_KEY);
+    if (owner || (localCount > 0 && lastOwner && lastOwner !== uid)) {
       this.firstConnection.set({ kind: 'foreign' });
       this.state.set('setup');
       return;
@@ -192,8 +201,6 @@ export class CloudSyncService {
       return;
     }
     const remoteCount = count ?? 0;
-    const { entries, running } = this.time.snapshot();
-    const localCount = entries.length + (running ? 1 : 0);
 
     if (localCount === 0) {
       // Fresh device: everything comes from the cloud, settings included.
@@ -303,6 +310,9 @@ export class CloudSyncService {
     // merge of the next login re-applies them instead of letting the cloud
     // version win. Wiping the local copy discards them (the dialog warns).
     const pending = this.outbox.read().entries;
+    // Whose data stays on this device (not necessarily `uid`: signing out of
+    // the first-connection dialog leaves the previous owner's data in place).
+    const dataOwner = localStorage.getItem(OWNER_KEY) ?? localStorage.getItem(LAST_OWNER_KEY);
     if (opts.wipeLocal) {
       localStorage.removeItem(PARKED_KEY);
     } else if (uid && Object.keys(pending).length) {
@@ -318,6 +328,8 @@ export class CloudSyncService {
     if (opts.wipeLocal) {
       this.time.resetAll();
       await this.dataRefresh.refreshAll();
+    } else if (dataOwner) {
+      localStorage.setItem(LAST_OWNER_KEY, dataOwner);
     }
   }
 
@@ -382,6 +394,7 @@ export class CloudSyncService {
   private bindOwner(uid: string): void {
     localStorage.setItem(OWNER_KEY, uid);
     localStorage.removeItem(PARKED_KEY);
+    localStorage.removeItem(LAST_OWNER_KEY);
   }
 
   private readParked(uid: string): Outbox['entries'] {
@@ -410,7 +423,7 @@ export class CloudSyncService {
   }
 
   private clearBookkeeping(): void {
-    for (const key of [OWNER_KEY, ENTRIES_CURSOR_KEY, SETTINGS_CURSOR_KEY, SHADOW_KEY]) {
+    for (const key of [OWNER_KEY, LAST_OWNER_KEY, ENTRIES_CURSOR_KEY, SETTINGS_CURSOR_KEY, SHADOW_KEY]) {
       localStorage.removeItem(key);
     }
     this.outbox.clear();

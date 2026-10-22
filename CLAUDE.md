@@ -66,7 +66,8 @@ administración en [supabase/](supabase/README.md).
   parcial). Cualquier dispositivo puede pararlo. Si dos arrancan sin conexión, el
   más antiguo se cierra cuando empezó el otro (`resolveRunningConflict`).
 - **Primera conexión** de un dispositivo con datos: subir, fusionar o (si son de
-  otra cuenta, `tt.cloud.ownerUserId`) borrar. Logout limpia la vinculación, así
+  otra cuenta: `tt.cloud.ownerUserId`, o tras un logout
+  `tt.cloud.lastOwnerUserId`) borrar. Logout limpia la vinculación, así
   que volver a entrar pasa otra vez por la fusión. Lo que quedaba sin subir al
   cerrar sesión se aparca en `tt.cloud.parked` (por usuario) y la fusión del
   siguiente login de ese usuario lo reaplica con la versión local actual.

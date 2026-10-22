@@ -5,7 +5,7 @@ import { CloudAuthService } from './cloud-auth.service';
 import { CloudOutboxService } from './cloud-outbox.service';
 import { SupabaseClientService } from './supabase-client.service';
 import { DataRefreshService } from '../data-refresh.service';
-import { STORAGE_KEY } from '../time-entry';
+import { STORAGE_KEY, TimeEntryService } from '../time-entry';
 import { EntryRow, EntryRowPayload } from './cloud-sync.logic';
 
 type Result = { data?: unknown; error?: { code: string; message: string } | null; count?: number };
@@ -133,6 +133,45 @@ describe('CloudSyncService', () => {
 
       expect(outbox.size()).toBe(2);
       expect(outbox.readRejected()).toEqual([]);
+    });
+  });
+
+  describe('local data left by another account', () => {
+    const LAST_OWNER_KEY = 'tt.cloud.lastOwnerUserId';
+
+    function seedLocalEntry(): void {
+      TestBed.inject(TimeEntryService).applyRemoteState(
+        [{ id: 'e1', title: 'x', description: null, startTime: 1000, endTime: 2000, duration: 1000 }],
+        null,
+      );
+    }
+
+    it('remembers whose data it was when signing out without wiping', async () => {
+      await signIn();
+      await service.signOut({ wipeLocal: false });
+
+      expect(localStorage.getItem(OWNER_KEY)).toBeNull();
+      expect(localStorage.getItem(LAST_OWNER_KEY)).toBe(UID);
+    });
+
+    it('asks before mixing it into a different account', async () => {
+      localStorage.removeItem(OWNER_KEY);
+      localStorage.setItem(LAST_OWNER_KEY, 'someone-else');
+      seedLocalEntry();
+
+      await signIn();
+
+      expect(service.firstConnection()?.kind).toBe('foreign');
+    });
+
+    it('offers the normal merge when the same account signs in again', async () => {
+      localStorage.removeItem(OWNER_KEY);
+      localStorage.setItem(LAST_OWNER_KEY, UID);
+      seedLocalEntry();
+
+      await signIn();
+
+      expect(service.firstConnection()?.kind).toBe('upload');
     });
   });
 
