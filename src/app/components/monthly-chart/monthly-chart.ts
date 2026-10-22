@@ -1,5 +1,6 @@
 // src/app/components/monthly-chart/monthly-chart.ts
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, effect, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, DestroyRef, effect, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Subscription, interval } from 'rxjs';
 
@@ -90,6 +91,7 @@ export class MonthlyChartComponent implements OnInit, OnDestroy {
   private translation = inject(TranslationService);
   private theme = inject(ThemeService);
   private cdr = inject(ChangeDetectorRef);
+  private destroyRef = inject(DestroyRef);
 
   formatHoursToTime = formatHoursToTime;
 
@@ -239,7 +241,7 @@ export class MonthlyChartComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.timeEntryService.entries$.subscribe(entries => {
+    this.timeEntryService.entries$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(entries => {
       this.latestEntries = entries;
       this.refresh();
     });

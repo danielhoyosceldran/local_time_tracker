@@ -1,6 +1,7 @@
 // src/app/components/daily-summary/daily-summary.component.ts
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TimeEntryService } from '../../services/time-entry';
 import { ViewStateService } from '../../services/view-state.service';
 import { SettingsService } from '../../services/settings.service';
@@ -101,11 +102,11 @@ export class DailySummaryComponent {
   private globalBalanceHours = signal(0);
 
   constructor() {
-    this.timeEntryService.lunchEnabled$.subscribe(v => this.lunchEnabled.set(v));
-    this.timeEntryService.lunchHour$.subscribe(v => this.lunchHour.set(v));
-    this.timeEntryService.lunchDurationMin$.subscribe(v => this.lunchDurationMin.set(v));
-    this.timeEntryService.lunchBreakActive$.subscribe(v => this.lunchBreakActive.set(v));
-    this.timeEntryService.liveGlobalBalance$.subscribe(b => this.globalBalanceHours.set(b.balanceHours));
+    this.timeEntryService.lunchEnabled$.pipe(takeUntilDestroyed()).subscribe(v => this.lunchEnabled.set(v));
+    this.timeEntryService.lunchHour$.pipe(takeUntilDestroyed()).subscribe(v => this.lunchHour.set(v));
+    this.timeEntryService.lunchDurationMin$.pipe(takeUntilDestroyed()).subscribe(v => this.lunchDurationMin.set(v));
+    this.timeEntryService.lunchBreakActive$.pipe(takeUntilDestroyed()).subscribe(v => this.lunchBreakActive.set(v));
+    this.timeEntryService.liveGlobalBalance$.pipe(takeUntilDestroyed()).subscribe(b => this.globalBalanceHours.set(b.balanceHours));
   }
 
   formatDuration = formatDuration;

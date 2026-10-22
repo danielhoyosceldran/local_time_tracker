@@ -1,5 +1,6 @@
 // src/app/components/compact-holiday-calendar/compact-holiday-calendar.ts
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HolidayDatesService, HolidayType, PresetOption } from '../../services/holiday-dates.service';
@@ -193,6 +194,7 @@ function buildMonthData(year: number, month: number): MonthData {
 export class CompactHolidayCalendarComponent implements OnInit {
   private holidayDatesService = inject(HolidayDatesService);
   private holidayService = inject(HolidayService);
+  private destroyRef = inject(DestroyRef);
 
   currentYear = new Date().getFullYear();
   today = (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`; })();
@@ -214,7 +216,7 @@ export class CompactHolidayCalendarComponent implements OnInit {
   ngOnInit(): void {
     this.months = Array.from({ length: 12 }, (_, i) => buildMonthData(this.currentYear, i));
     this.presets = this.holidayDatesService.listPresets();
-    this.holidayDatesService.store$.subscribe(store => {
+    this.holidayDatesService.store$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(store => {
       this.personalSet.set(new Set(store.personal));
       this.publicSet.set(new Set(store.public));
     });

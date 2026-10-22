@@ -1,6 +1,7 @@
 // src/app/components/weekly-summary/weekly-summary.ts
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TimeEntryService } from '../../services/time-entry';
 import { ViewStateService } from '../../services/view-state.service';
 import { WeeklySummary, GlobalBalance } from '../../models/time-entry.model';
@@ -113,7 +114,7 @@ export class WeeklySummaryComponent {
       this.timeEntryService.entries$,
       this.timeEntryService.runningDuration$,
       this.timeEntryService.runningEntry$
-    ]).subscribe(([entries, runningMs, runningEntry]) => {
+    ]).pipe(takeUntilDestroyed()).subscribe(([entries, runningMs, runningEntry]) => {
       const hours = [0, 0, 0, 0, 0, 0, 0];
       entries
         .filter((e: any) => e.startTime >= monday.getTime() && e.startTime <= sunday.getTime())
