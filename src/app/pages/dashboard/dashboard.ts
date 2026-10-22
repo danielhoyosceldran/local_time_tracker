@@ -13,6 +13,7 @@ import { ReminderNotificationComponent } from '../../components/reminder-notific
 import { IntervalsViewComponent } from '../../components/intervals-view/intervals-view';
 import { CompanyTenureComponent } from '../../components/company-tenure/company-tenure';
 import { ViewStateService } from '../../services/view-state.service';
+import { EnterMotionDirective } from '../../shared/enter-motion.directive';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -30,6 +31,7 @@ import { ViewStateService } from '../../services/view-state.service';
     ReminderNotificationComponent,
     IntervalsViewComponent,
     CompanyTenureComponent,
+    EnterMotionDirective,
   ],
   template: `
     <div class="min-h-screen xl:h-screen bg-slate-100 xl:overflow-hidden p-4">
@@ -60,9 +62,9 @@ import { ViewStateService } from '../../services/view-state.service';
               }
             </button>
             @if (showTimer()) {
-              <app-compact-timer class="h-full" />
+              <app-compact-timer appEnter class="block h-full" />
             } @else {
-              <app-quick-interval-input class="h-full" />
+              <app-quick-interval-input appEnter class="block h-full" />
             }
           </div>
 

@@ -1,5 +1,5 @@
 // src/app/app.component.ts
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { afterNextRender, ChangeDetectionStrategy, Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -12,6 +12,7 @@ import { CloudSyncService } from './services/cloud/cloud-sync.service';
 import { CloudFirstConnectionComponent } from './components/cloud-first-connection/cloud-first-connection';
 import { StorageFullBannerComponent } from './components/storage-full-banner/storage-full-banner';
 import { EditLockBannerComponent } from './components/edit-lock-banner/edit-lock-banner';
+import { markMotionReady } from './shared/enter-motion.directive';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -33,6 +34,11 @@ export class AppComponent implements OnInit {
   private translation = inject(TranslationService);
   private theme = inject(ThemeService);
   private cloudSync = inject(CloudSyncService);
+
+  constructor() {
+    // Entrance motion is for state changes, not for the page appearing.
+    afterNextRender(() => setTimeout(markMotionReady));
+  }
 
   ngOnInit(): void {
     // The GitHub Gist sync was replaced by Supabase; drop its stale config (and token).

@@ -9,12 +9,13 @@ import { Observable, combineLatest, map } from 'rxjs';
 import { TranslatePipe } from '../../i18n/translate.pipe';
 import { TranslationService } from '../../i18n';
 import { CloudSyncIndicatorComponent } from '../cloud-sync-indicator/cloud-sync-indicator';
+import { EnterMotionDirective } from '../../shared/enter-motion.directive';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-compact-timer',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TranslatePipe, CloudSyncIndicatorComponent],
+  imports: [CommonModule, ReactiveFormsModule, TranslatePipe, CloudSyncIndicatorComponent, EnterMotionDirective],
   template: `
     <div
       class="backdrop-blur-xl rounded-2xl shadow-sm border p-4 h-full flex flex-col overflow-y-auto transition-colors duration-300"
@@ -24,14 +25,14 @@ import { CloudSyncIndicatorComponent } from '../cloud-sync-indicator/cloud-sync-
     >
       @if (lunchBreakActive$ | async) {
         <!-- Lunch Break State -->
-        <div class="flex items-center justify-between mb-3">
+        <div appEnter class="flex items-center justify-between mb-3">
           <h3 class="text-orange-700 font-bold">{{ 'timer.lunchBreakTitle' | t }}</h3>
           <span class="px-2 py-0.5 bg-orange-100 text-orange-600 text-xs font-bold rounded-full tracking-wider">
             {{ 'timer.lunchBreakBadge' | t }}
           </span>
         </div>
 
-        <div class="flex-1 flex flex-col items-center justify-center rounded-xl p-6 mb-4">
+        <div appEnter class="flex-1 flex flex-col items-center justify-center rounded-xl p-6 mb-4">
           <!-- Fork & knife icon -->
           <div class="text-orange-400 mb-3">
             <svg aria-hidden="true" class="w-8 h-8 mx-auto" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
@@ -58,7 +59,7 @@ import { CloudSyncIndicatorComponent } from '../cloud-sync-indicator/cloud-sync-
         </div>
 
         <!-- Resume Button -->
-        <button
+        <button appEnter
           (click)="resumeFromLunch()"
           class="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.97] text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 transition"
         >
@@ -66,7 +67,7 @@ import { CloudSyncIndicatorComponent } from '../cloud-sync-indicator/cloud-sync-
         </button>
       } @else if (runningView$ | async; as view) {
         <!-- Running State -->
-        <div class="flex items-center justify-between mb-3">
+        <div appEnter class="flex items-center justify-between mb-3">
           <h3 class="text-slate-800 font-bold flex items-center gap-1.5">{{ 'timer.compactTitle' | t }} <app-cloud-sync-indicator /></h3>
           <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full tracking-wider">
             {{ 'timer.active' | t }}
@@ -74,7 +75,7 @@ import { CloudSyncIndicatorComponent } from '../cloud-sync-indicator/cloud-sync-
         </div>
 
         <!-- Time Display -->
-        <div class="flex-1 flex flex-col items-center justify-center rounded-xl p-6 mb-4">
+        <div appEnter class="flex-1 flex flex-col items-center justify-center rounded-xl p-6 mb-4">
           <div class="text-5xl font-extrabold font-mono tracking-tighter text-indigo-600 mb-2">
             {{ runningTime$ | async }}
           </div>
@@ -99,7 +100,7 @@ import { CloudSyncIndicatorComponent } from '../cloud-sync-indicator/cloud-sync-
         </div>
 
         <!-- Stop + Lunch buttons -->
-        <div class="flex gap-2">
+        <div appEnter class="flex gap-2">
           <button
             (click)="stopTracking()"
             class="flex-1 py-4 px-4 bg-rose-500 hover:bg-rose-600 active:scale-[0.97] text-white font-bold rounded-2xl shadow-lg shadow-rose-200 transition"
@@ -122,11 +123,11 @@ import { CloudSyncIndicatorComponent } from '../cloud-sync-indicator/cloud-sync-
         </div>
       } @else {
         <!-- Start Form -->
-        <div class="flex items-center justify-between mb-3">
+        <div appEnter class="flex items-center justify-between mb-3">
           <h3 class="text-slate-800 font-bold flex items-center gap-1.5">{{ 'timer.compactTitle' | t }} <app-cloud-sync-indicator /></h3>
         </div>
 
-        <form [formGroup]="timerForm" (ngSubmit)="startTracking()" class="flex-1 justify-between flex flex-col space-y-3">
+        <form appEnter [formGroup]="timerForm" (ngSubmit)="startTracking()" class="flex-1 justify-between flex flex-col space-y-3">
           <div>
             <input
               id="title"
