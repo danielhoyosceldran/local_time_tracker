@@ -36,9 +36,13 @@ jobs:
             exit 1
           fi
 
-      - uses: supabase/setup-cli@v1
+      # Third-party code runs here next to SUPABASE_DB_URL (the database
+      # password): actions are pinned to a commit and the CLI to a release,
+      # so a hijacked tag or a bad release cannot reach the secret. To update,
+      # take the commit of the new tag (git ls-remote --tags <repo>).
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
         with:
-          version: latest
+          version: 2.120.0
 
       - name: Dump roles, schema and data
         env:
@@ -60,7 +64,7 @@ jobs:
           rm -rf backup
           echo "BACKUP_FILE=$name" >> "$GITHUB_ENV"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ env.BACKUP_FILE }}
           path: ${{ env.BACKUP_FILE }}
