@@ -9,12 +9,13 @@ import { formatDuration, formatClockTime } from '../../utils/format';
 import { DailySummary } from '../../models/time-entry.model';
 import { Observable } from 'rxjs';
 import { TranslatePipe } from '../../i18n/translate.pipe';
+import { EnterMotionDirective } from '../../shared/enter-motion.directive';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-daily-summary',
   standalone: true,
-  imports: [CommonModule, DecimalPipe, TranslatePipe],
+  imports: [CommonModule, DecimalPipe, TranslatePipe, EnterMotionDirective],
   template: `
     <div
       (click)="navigateToIntervals()"
@@ -25,9 +26,19 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
         <!-- Full-height layer slid down by the missing share: transform, not
              height, because this re-renders every second while the timer runs. -->
         <div
-          class="absolute inset-0 bg-gradient-to-t from-blue-500/20 to-indigo-500/30 transition-transform duration-700 ease-out"
+          class="absolute inset-0 transition-transform duration-700 ease-out"
           [style.transform]="'translateY(' + (100 - getProgress(summary.totalDurationMs)) + '%)'"
         >
+          <!-- Goal reached: the water turns emerald. Gradients can't transition,
+               so the two colours are separate layers that crossfade. -->
+          <div
+            class="absolute inset-0 bg-gradient-to-t from-blue-500/20 to-indigo-500/30 transition-opacity duration-500 ease-out"
+            [style.opacity]="getRemaining(summary.totalDurationMs) > 0 ? 1 : 0"
+          ></div>
+          <div
+            class="absolute inset-0 bg-gradient-to-t from-emerald-500/20 to-emerald-400/30 transition-opacity duration-500 ease-out"
+            [style.opacity]="getRemaining(summary.totalDurationMs) > 0 ? 0 : 1"
+          ></div>
           <!-- Water surface shimmer -->
           <div class="absolute top-0 left-0 right-0 h-1 bg-white/40 blur-sm animate-pulse"></div>
         </div>
@@ -66,7 +77,7 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
                 {{ 'daily.estFinish' | t }} <span class="font-mono">{{ getExpectedEndTime(getRemaining(summary.totalDurationMs)) }}</span>
               </div>
             } @else {
-              <div class="text-xs text-emerald-600 font-bold text-center mt-1">
+              <div appEnter="pop" class="text-xs text-emerald-600 font-bold text-center mt-1">
                 {{ 'daily.targetReached' | t }}
               </div>
             }
