@@ -130,7 +130,8 @@ export class QuickIntervalInputComponent {
       duration: duration,
     };
 
-    this.timeEntryService.addEntry(newEntry);
+    // Storage full: keep the form filled so nothing typed is lost.
+    if (!this.timeEntryService.addEntry(newEntry)) return;
 
     const now = new Date();
     this.manualForm.reset({

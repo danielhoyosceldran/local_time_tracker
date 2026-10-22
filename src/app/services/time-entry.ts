@@ -12,6 +12,7 @@ import { SettingsService } from './settings.service';
 import { DeviceIdentityService } from './device-identity.service';
 import { CloudOutboxService } from './cloud/cloud-outbox.service';
 import { diffEntries, toRow, tombstone } from './cloud/cloud-sync.logic';
+import { StorageHealthService } from './storage-health.service';
 
 export const STORAGE_KEY = 'timeTrackerEntries';
 export const RUNNING_KEY = 'timeTrackerRunningEntry';
@@ -69,6 +70,7 @@ export class TimeEntryService implements OnDestroy {
   private settings = inject(SettingsService);
   private outbox = inject(CloudOutboxService);
   private device = inject(DeviceIdentityService);
+  private storage = inject(StorageHealthService);
   // Single Source of Truth for the history
   private _entries$$ = new BehaviorSubject<TimeEntry[]>(this.loadEntries());
   public readonly entries$: Observable<TimeEntry[]> = this._entries$$.asObservable();
@@ -231,9 +233,14 @@ export class TimeEntryService implements OnDestroy {
     }
   }
 
-  private saveEntries(entries: TimeEntry[]): void {
+  /**
+   * Persist the entries list. Returns false (and changes nothing) if the
+   * browser refused the write, e.g. quota exceeded: callers must stop there so
+   * an operation never ends half-applied.
+   */
+  private saveEntries(entries: TimeEntry[]): boolean {
     const prev = this._entries$$.getValue();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    if (!this.storage.setItem(STORAGE_KEY, JSON.stringify(entries))) return false;
     this._entries$$.next(entries);
     // Every mutation (add/update/delete/stop) lands here, so this is the one
     // place that queues cloud changes. Remote/import/reload paths write the
@@ -242,6 +249,7 @@ export class TimeEntryService implements OnDestroy {
       const { upserts, deletes } = diffEntries(prev, entries);
       this.outbox.enqueueEntries([...upserts.map(toRow), ...deletes.map(e => tombstone(e.id, e))]);
     }
+    return true;
   }
 
   private loadRunningEntry(): RunningTimeEntry | null {
@@ -254,10 +262,11 @@ export class TimeEntryService implements OnDestroy {
     }
   }
 
-  private saveRunningEntry(entry: RunningTimeEntry | null): void {
+  /** Persist the running timer. Returns false (and changes nothing) if the write was refused. */
+  private saveRunningEntry(entry: RunningTimeEntry | null): boolean {
     const prev = this._runningEntry$$.getValue();
     if (entry) {
-      localStorage.setItem(RUNNING_KEY, JSON.stringify(entry));
+      if (!this.storage.setItem(RUNNING_KEY, JSON.stringify(entry))) return false;
     } else {
       localStorage.removeItem(RUNNING_KEY);
     }
@@ -268,16 +277,26 @@ export class TimeEntryService implements OnDestroy {
       // Cleared without becoming a completed entry: the timer was discarded.
       this.outbox.enqueueEntries([tombstone(prev.id, prev)]);
     }
+    return true;
   }
 
   /**
    * Adopt state that came from the cloud. Writes storage and the subjects but
    * queues nothing, so applying remote data never bounces back as a push.
+   * Throws if storage is full, so the pull fails without moving its cursor
+   * and retries later.
    */
   applyRemoteState(entries: TimeEntry[], running: RunningTimeEntry | null): void {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-    if (running) localStorage.setItem(RUNNING_KEY, JSON.stringify(running));
-    else localStorage.removeItem(RUNNING_KEY);
+    if (!this.storage.setItem(STORAGE_KEY, JSON.stringify(entries))) {
+      throw new Error('localStorage is full: could not apply remote entries');
+    }
+    if (running) {
+      if (!this.storage.setItem(RUNNING_KEY, JSON.stringify(running))) {
+        throw new Error('localStorage is full: could not apply the remote running timer');
+      }
+    } else {
+      localStorage.removeItem(RUNNING_KEY);
+    }
     this._entries$$.next(entries);
     this._runningEntry$$.next(running);
   }
@@ -298,13 +317,15 @@ export class TimeEntryService implements OnDestroy {
       const e = normalizeTimeEntry(raw);
       if (e && isValidTimeEntry(e)) byId.set(e.id, e);
     }
-    this.saveEntries(Array.from(byId.values()).sort((a, b) => b.startTime - a.startTime));
+    if (!this.saveEntries(Array.from(byId.values()).sort((a, b) => b.startTime - a.startTime))) {
+      throw new Error('localStorage is full: could not import the entries');
+    }
   }
 
   /** Close a running timer as a completed entry and adopt another as running. */
   replaceRunning(closed: TimeEntry, running: RunningTimeEntry): void {
     const others = this._entries$$.getValue().filter(e => e.id !== closed.id);
-    this.saveEntries([closed, ...others].sort((a, b) => b.startTime - a.startTime));
+    if (!this.saveEntries([closed, ...others].sort((a, b) => b.startTime - a.startTime))) return;
     this.saveRunningEntry(running);
   }
 
@@ -442,7 +463,8 @@ export class TimeEntryService implements OnDestroy {
   startLunchBreak(): void {
     const running = this._runningEntry$$.getValue();
     const prevTitle = running?.title ?? null;
-    this.stopTracking();
+    // The timer could not be stopped (storage full): do not start the break.
+    if (running && !this.stopTracking()) return;
     localStorage.setItem(LUNCH_BREAK_ACTIVE_KEY, 'true');
     localStorage.setItem(LUNCH_BREAK_START_KEY, String(Date.now()));
     if (prevTitle !== null) {
@@ -534,8 +556,9 @@ export class TimeEntryService implements OnDestroy {
       duration,
     };
 
-    // 1. Add to history
-    this.addEntry(completedEntry);
+    // 1. Add to history. If storage is full, keep the timer running rather than
+    // clearing it without its completed entry (that would lose the session).
+    if (!this.addEntry(completedEntry)) return null;
 
     // 2. Clear running state. The completed entry already carries the same id,
     // so the cloud row is updated in place rather than deleted.
@@ -546,11 +569,12 @@ export class TimeEntryService implements OnDestroy {
 
   // --- CRUD Operations for History ---
 
-  addEntry(entry: TimeEntry): void {
+  /** Returns false if the entry could not be saved (storage full). */
+  addEntry(entry: TimeEntry): boolean {
     const currentEntries = this._entries$$.getValue();
     // Prepend new entry and sort by newest first
-    const newEntries = [entry, ...currentEntries].sort((a, b) => b.startTime - a.startTime); 
-    this.saveEntries(newEntries);
+    const newEntries = [entry, ...currentEntries].sort((a, b) => b.startTime - a.startTime);
+    return this.saveEntries(newEntries);
   }
 
   updateEntry(id: string, newTitle: string | null, newDescription: string | null): boolean {
@@ -564,8 +588,7 @@ export class TimeEntryService implements OnDestroy {
         title: newTitle,
         description: newDescription,
       };
-      this.saveEntries(updatedEntries);
-      return true;
+      return this.saveEntries(updatedEntries);
     }
     return false;
   }
@@ -704,8 +727,7 @@ export class TimeEntryService implements OnDestroy {
         endTime,
         duration: endTime - startTime
       };
-      this.saveEntries(updatedEntries);
-      return true;
+      return this.saveEntries(updatedEntries);
     }
     return false;
   }

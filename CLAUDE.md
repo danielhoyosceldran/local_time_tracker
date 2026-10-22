@@ -154,8 +154,8 @@ la columna **Solucionado** y referencia el commit/PR.
 | 8 | Sin gist configurado, el navegador **vacía `localStorage`** (incógnito, "borrar al cerrar", presión de almacenamiento) → pérdida total | Backup opt-in más visible / aviso de respaldo; export automático periódico | 25% | 🟡 Mitigado (con sesión los datos están en la nube) |
 | 9 | `reset` deja `gistConfig` vivo → el siguiente play **pushea vacío y borra la nube** | Misma guardia anti-reducción del #1; o pedir confirmación de re-sync tras reset | 15% | ✅ Sí (reset deshabilitado con sesión; logout limpia vinculación) |
 | 7 | `localStorage` **corrupto/truncado** → `JSON.parse` sin try/catch en el arranque → app no bootea | Envolver los `JSON.parse` de carga ([time-entry.ts](src/app/services/time-entry.ts) `loadEntries`/`loadRunningEntry`) en **try/catch** (degradar a vacío + avisar) | 8% | ✅ Sí (try/catch en `loadEntries`/`loadRunningEntry`) |
-| 10 | **Cuota de `localStorage` excedida** → `setItem` lanza y un stop falla a medias | try/catch en `saveEntries` + aviso | 3% | ❌ No |
+| 10 | **Cuota de `localStorage` excedida** → `setItem` lanza y un stop falla a medias | try/catch en `saveEntries` + aviso | 3% | ✅ Sí (`StorageHealthService`: la escritura fallida no aplica nada, el timer sigue en marcha y se muestra un aviso; la outbox se queda en memoria) |
 
 **Nota:** #1, #2, #3 y #6 compartían núcleo y los resolvió el cambio a Supabase
-(**merge por `id` + pull incremental + outbox en todas las mutaciones**). Queda
-abierto #10 (cuota de `localStorage`).
+(**merge por `id` + pull incremental + outbox en todas las mutaciones**). #10 (cuota de
+`localStorage`) se resolvió aparte.

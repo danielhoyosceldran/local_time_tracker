@@ -10,16 +10,18 @@ import { TranslationService } from './i18n';
 import { ThemeService } from './services/theme.service';
 import { CloudSyncService } from './services/cloud/cloud-sync.service';
 import { CloudFirstConnectionComponent } from './components/cloud-first-connection/cloud-first-connection';
+import { StorageFullBannerComponent } from './components/storage-full-banner/storage-full-banner';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, SoundPickerHostComponent, CloudFirstConnectionComponent],
+  imports: [RouterOutlet, SoundPickerHostComponent, CloudFirstConnectionComponent, StorageFullBannerComponent],
   template: `
     <router-outlet />
     <app-sound-picker-host />
     <app-cloud-first-connection />
+    <app-storage-full-banner />
   `,
 })
 export class AppComponent implements OnInit {

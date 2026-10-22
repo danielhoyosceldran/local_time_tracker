@@ -1,6 +1,7 @@
 // src/app/services/cloud/cloud-outbox.service.ts
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { Subject } from 'rxjs';
+import { StorageHealthService } from '../storage-health.service';
 import {
   EntryRowPayload,
   Outbox,
@@ -33,8 +34,16 @@ export interface RejectedRow {
  */
 @Injectable({ providedIn: 'root' })
 export class CloudOutboxService {
+  private storage = inject(StorageHealthService);
+
   /** True while signed in; local changes are only queued when it is set. */
   private enabled = false;
+  /**
+   * The outbox when localStorage refused to store it (quota). Kept in memory
+   * so the change is still pushed while this tab is open; the next write that
+   * fits in storage drops it.
+   */
+  private unsaved: Outbox | null = null;
 
   private _size = signal(outboxSize(this.read()));
   readonly size = this._size.asReadonly();
@@ -56,6 +65,7 @@ export class CloudOutboxService {
   }
 
   read(): Outbox {
+    if (this.unsaved) return this.unsaved;
     try {
       const raw = localStorage.getItem(OUTBOX_KEY);
       const parsed = raw ? JSON.parse(raw) : null;
@@ -97,7 +107,11 @@ export class CloudOutboxService {
     this.write(ackOutbox(this.read(), { entries, settings: {} }), false);
     const at = Date.now();
     const list = [...this.readRejected(), ...rejected.map(r => ({ ...r, at }))].slice(-MAX_REJECTED);
-    localStorage.setItem(REJECTED_KEY, JSON.stringify(list));
+    try {
+      localStorage.setItem(REJECTED_KEY, JSON.stringify(list));
+    } catch {
+      // Diagnostic list only: losing it under quota pressure is acceptable.
+    }
     this._rejectedCount.set(list.length);
   }
 
@@ -120,13 +134,14 @@ export class CloudOutboxService {
   }
 
   clear(): void {
+    this.unsaved = null;
     localStorage.removeItem(OUTBOX_KEY);
     this._size.set(0);
     this.clearRejected();
   }
 
   private write(outbox: Outbox, notify = true): void {
-    localStorage.setItem(OUTBOX_KEY, JSON.stringify(outbox));
+    this.unsaved = this.storage.setItem(OUTBOX_KEY, JSON.stringify(outbox)) ? null : outbox;
     this._size.set(outboxSize(outbox));
     if (notify) this.changed$.next();
   }

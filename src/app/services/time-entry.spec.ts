@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 
-import { STORAGE_KEY, TimeEntryService, parseBackup, parseEntries, parseImportedEntries } from './time-entry';
+import { RUNNING_KEY, STORAGE_KEY, TimeEntryService, parseBackup, parseEntries, parseImportedEntries } from './time-entry';
+import { StorageHealthService } from './storage-health.service';
 import { normalizeRunningEntry, normalizeTimeEntry } from '../models/time-entry.model';
 
 describe('TimeEntryService', () => {
@@ -13,6 +14,40 @@ describe('TimeEntryService', () => {
 
   it('should be created', () => {
     expect(service).toBeTruthy();
+  });
+});
+
+describe('TimeEntryService with storage full', () => {
+  let service: TimeEntryService;
+
+  beforeEach(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(RUNNING_KEY);
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(TimeEntryService);
+  });
+
+  afterEach(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(RUNNING_KEY);
+  });
+
+  it('keeps the timer running and warns when the stop cannot be saved', () => {
+    service.startTracking('task', null);
+    const running = service.snapshot().running;
+    expect(running).not.toBeNull();
+
+    const realSetItem = Storage.prototype.setItem;
+    spyOn(Storage.prototype, 'setItem').and.callFake(function (this: Storage, key: string, value: string) {
+      if (key === STORAGE_KEY) throw new DOMException('full', 'QuotaExceededError');
+      realSetItem.call(this, key, value);
+    });
+
+    expect(service.stopTracking()).toBeNull();
+    expect(service.snapshot().running?.id).toBe(running!.id);
+    expect(service.snapshot().entries.length).toBe(0);
+    expect(localStorage.getItem(RUNNING_KEY)).not.toBeNull();
+    expect(TestBed.inject(StorageHealthService).full()).toBeTrue();
   });
 });
 
