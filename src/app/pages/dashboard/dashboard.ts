@@ -74,8 +74,10 @@ import { EnterMotionDirective } from '../../shared/enter-motion.directive';
             <app-daily-summary />
           </div>
 
-          <!-- Calendar / Intervals (tabs in nav) -->
-          <div class="tile min-h-[320px] xl:min-h-0 xl:h-full xl:row-span-4 xl:col-start-1 xl:row-start-2"
+          <!-- Calendar / Intervals (tabs in nav). From sm up it shares a grid row
+               with other tiles: a fixed height makes it scroll inside instead
+               of stretching the whole row to the full year. -->
+          <div class="tile min-h-[320px] sm:h-[28rem] xl:min-h-0 xl:h-full xl:row-span-4 xl:col-start-1 xl:row-start-2"
                [class.tile--active]="viewState.mobileView() === 'calendar' || viewState.mobileView() === 'intervals'">
             @if (viewState.activeTab() === 'calendar') {
               <app-compact-holiday-calendar />
