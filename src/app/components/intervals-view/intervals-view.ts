@@ -12,6 +12,7 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
 import { ClockTimePipe } from '../../pipes/clock-time.pipe';
 import { TranslationService } from '../../i18n';
 import { EnterMotionDirective } from '../../shared/enter-motion.directive';
+import { WriteActionDirective } from '../../shared/write-action.directive';
 
 interface WeekGroup {
   weekKey: string;
@@ -28,7 +29,7 @@ interface WeekGroup {
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-intervals-view',
   standalone: true,
-  imports: [CommonModule, FormsModule, KENDO_DATETIMEPICKER, TranslatePipe, ClockTimePipe, EnterMotionDirective],
+  imports: [CommonModule, FormsModule, KENDO_DATETIMEPICKER, TranslatePipe, ClockTimePipe, EnterMotionDirective, WriteActionDirective],
   template: `
     <div class="h-full flex flex-col bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm shadow-slate-200/50 border border-white overflow-hidden">
       <!-- Toolbar -->
@@ -164,7 +165,7 @@ interface WeekGroup {
                                       >
                                         {{ 'intervals.cancelBtn' | t }}
                                       </button>
-                                      <button
+                                      <button appWriteAction
                                         (click)="saveEdit(entry.id)"
                                         class="px-2 py-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded transition"
                                       >
@@ -194,7 +195,7 @@ interface WeekGroup {
                                         {{ formatDuration(entry.duration) }}
                                       </div>
                                       <div class="flex gap-0.5">
-                                        <button [attr.aria-label]="'intervals.editTitle' | t"
+                                        <button appWriteAction [attr.aria-label]="'intervals.editTitle' | t"
                                           (click)="startEdit(entry)"
                                           class="hit-area p-1 text-indigo-600 hover:bg-indigo-50 rounded transition"
                                           [attr.title]="'intervals.editTitle' | t"
@@ -203,7 +204,7 @@ interface WeekGroup {
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                           </svg>
                                         </button>
-                                        <button [attr.aria-label]="'intervals.deleteTitle' | t"
+                                        <button appWriteAction [attr.aria-label]="'intervals.deleteTitle' | t"
                                           (click)="deleteEntry(entry.id)"
                                           class="hit-area p-1 text-red-600 hover:bg-red-50 rounded transition"
                                           [attr.title]="'intervals.deleteTitle' | t"

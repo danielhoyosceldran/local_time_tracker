@@ -7,6 +7,7 @@ import { HolidayDatesService, HolidayType, PresetOption } from '../../services/h
 import { HolidayService, HolidayData } from '../../services/holiday.service';
 import { Observable } from 'rxjs';
 import { TranslatePipe } from '../../i18n/translate.pipe';
+import { WriteActionDirective } from '../../shared/write-action.directive';
 
 interface DayCell {
   date: string | null; // 'YYYY-MM-DD' or null for padding
@@ -56,7 +57,7 @@ function buildMonthData(year: number, month: number): MonthData {
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-compact-holiday-calendar',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe],
+  imports: [CommonModule, FormsModule, TranslatePipe, WriteActionDirective],
   styles: [`
     .month-cell {
       flex: 1 1 250px;
@@ -94,7 +95,7 @@ function buildMonthData(year: number, month: number): MonthData {
 
           <!-- Preset loader -->
           @if (presets.length > 0) {
-            <select
+            <select appWriteAction
               [ngModel]="''"
               (ngModelChange)="onPresetChange($event)"
               class="text-xs border border-slate-200 rounded-md px-1.5 py-0.5 bg-white text-slate-600 hover:border-slate-300"
@@ -141,7 +142,7 @@ function buildMonthData(year: number, month: number): MonthData {
             </button>
           } @else {
             <span class="font-semibold text-slate-700">{{ h.total }}</span>
-            <button [attr.aria-label]="'holiday.editTotal' | t" (click)="startEdit(h.total)" class="hit-area p-1 -m-1 text-slate-500 hover:text-indigo-500" [attr.title]="'holiday.editTotal' | t">
+            <button appWriteAction [attr.aria-label]="'holiday.editTotal' | t" (click)="startEdit(h.total)" class="hit-area p-1 -m-1 text-slate-500 hover:text-indigo-500" [attr.title]="'holiday.editTotal' | t">
               <svg aria-hidden="true" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
               </svg>
@@ -160,7 +161,7 @@ function buildMonthData(year: number, month: number): MonthData {
 
       <!-- Year grid -->
       <div class="flex-1 overflow-y-auto">
-        <div class="flex flex-wrap gap-2 justify-center">
+        <div appWriteAction class="flex flex-wrap gap-2 justify-center">
           @for (month of months; track month.name) {
             <div class="month-cell">
               <!-- Month name -->

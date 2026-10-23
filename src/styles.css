@@ -221,6 +221,12 @@ html, body {
   .tt-leave.tt-banner-top, .tt-leave.tt-banner-bottom { animation: tt-fade-out 150ms ease-out forwards !important; }
 }
 
+/* Read-only instance (WriteActionDirective): data-changing controls look
+   disabled but still take the click, so the read-only banner can say why. */
+.tt-readonly, .tt-readonly * { cursor: not-allowed !important; }
+button.tt-readonly, select.tt-readonly, input.tt-readonly { opacity: 0.45; }
+.tt-readonly:active { --tw-scale-x: 1; --tw-scale-y: 1; }
+
 /* Discrete scrollbars */
 * {
   scrollbar-width: thin;

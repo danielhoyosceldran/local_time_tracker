@@ -474,6 +474,8 @@ export const es: Record<TranslationKey, string> = {
   'lock.readOnlyUnknown': 'Esta cuenta se está usando en otro dispositivo.',
   'lock.takeControl': 'Tomar el control',
   'lock.takeControlConfirm': 'El otro dispositivo pasará a solo lectura. Los cambios que aún no haya subido se descartarán allí (guarda una copia de seguridad). ¿Continuar?',
+  'lock.hide': 'Ocultar aviso',
+  'lock.showDetails': 'Solo lectura: ver detalles',
   'lock.settingsReadOnly': 'Solo lectura: otro dispositivo está usando la cuenta.',
   'lock.discardedTitle': 'Se descartaron cambios de este dispositivo',
   'lock.discardedBody': 'El control de edición cambió de manos (otro dispositivo o pestaña) antes de que estos cambios llegaran a la nube, así que se conservó la copia de la nube. Tienes una copia de seguridad de este dispositivo del {date}.',

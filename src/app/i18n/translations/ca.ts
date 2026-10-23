@@ -474,6 +474,8 @@ export const ca: Record<TranslationKey, string> = {
   'lock.readOnlyUnknown': 'Aquest compte s\'està fent servir en un altre dispositiu.',
   'lock.takeControl': 'Prendre el control',
   'lock.takeControlConfirm': 'L\'altre dispositiu passarà a només lectura. Els canvis que encara no hagi pujat es descartaran allà (en desa una còpia de seguretat). Continuar?',
+  'lock.hide': 'Amagar l\'avís',
+  'lock.showDetails': 'Només lectura: veure detalls',
   'lock.settingsReadOnly': 'Només lectura: un altre dispositiu està fent servir el compte.',
   'lock.discardedTitle': 'S\'han descartat canvis d\'aquest dispositiu',
   'lock.discardedBody': 'El control d\'edició va canviar de mans (un altre dispositiu o pestanya) abans que aquests canvis arribessin al núvol, així que s\'ha conservat la còpia del núvol. Tens una còpia de seguretat d\'aquest dispositiu del {date}.',

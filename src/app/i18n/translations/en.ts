@@ -472,6 +472,8 @@ export const en = {
   'lock.readOnlyUnknown': 'This account is being used on another device.',
   'lock.takeControl': 'Take control',
   'lock.takeControlConfirm': 'The other device becomes read-only. Changes it has not uploaded yet will be discarded there (it keeps a backup). Continue?',
+  'lock.hide': 'Hide notice',
+  'lock.showDetails': 'Read-only: show details',
   'lock.settingsReadOnly': 'Read-only: another device is using this account.',
   'lock.discardedTitle': 'Changes on this device were discarded',
   'lock.discardedBody': 'The edit lock changed hands (another device or tab) before these changes reached the cloud, so the cloud copy was kept. A backup of this device from {date} is available.',

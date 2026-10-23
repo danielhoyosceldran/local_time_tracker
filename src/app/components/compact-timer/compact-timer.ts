@@ -10,12 +10,13 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
 import { TranslationService } from '../../i18n';
 import { CloudSyncIndicatorComponent } from '../cloud-sync-indicator/cloud-sync-indicator';
 import { EnterMotionDirective } from '../../shared/enter-motion.directive';
+import { WriteActionDirective } from '../../shared/write-action.directive';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-compact-timer',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TranslatePipe, CloudSyncIndicatorComponent, EnterMotionDirective],
+  imports: [CommonModule, ReactiveFormsModule, TranslatePipe, CloudSyncIndicatorComponent, EnterMotionDirective, WriteActionDirective],
   template: `
     <div
       class="backdrop-blur-xl rounded-2xl shadow-sm border p-4 h-full flex flex-col overflow-y-auto transition-colors duration-300"
@@ -59,7 +60,7 @@ import { EnterMotionDirective } from '../../shared/enter-motion.directive';
         </div>
 
         <!-- Resume Button -->
-        <button appEnter
+        <button appEnter appWriteAction
           (click)="resumeFromLunch()"
           class="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.97] text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 transition"
         >
@@ -101,14 +102,14 @@ import { EnterMotionDirective } from '../../shared/enter-motion.directive';
 
         <!-- Stop + Lunch buttons -->
         <div appEnter class="flex gap-2">
-          <button
+          <button appWriteAction
             (click)="stopTracking()"
             class="flex-1 py-4 px-4 bg-rose-500 hover:bg-rose-600 active:scale-[0.97] text-white font-bold rounded-2xl shadow-lg shadow-rose-200 transition"
           >
             {{ 'timer.stopBtn' | t }}
           </button>
           @if (lunchButtonEnabled$ | async) {
-            <button [attr.aria-label]="'timer.lunchBtn' | t"
+            <button appWriteAction [attr.aria-label]="'timer.lunchBtn' | t"
               (click)="startLunch()"
               class="py-4 px-4 bg-orange-100 hover:bg-orange-200 active:scale-[0.97] text-orange-600 font-bold rounded-2xl transition"
               [title]="'timer.lunchBtn' | t"
@@ -139,7 +140,7 @@ import { EnterMotionDirective } from '../../shared/enter-motion.directive';
             />
           </div>
 
-          <button
+          <button appWriteAction
             type="submit"
             class="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.97] text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 transition mt-auto"
           >

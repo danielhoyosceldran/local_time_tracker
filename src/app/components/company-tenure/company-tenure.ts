@@ -8,6 +8,7 @@ import {
   TenureMilestone,
 } from '../../services/tenure-celebration.service';
 import { TenureCelebrationModalComponent } from '../tenure-celebration-modal/tenure-celebration-modal';
+import { WriteActionDirective } from '../../shared/write-action.directive';
 
 interface Tenure {
   years: number;
@@ -21,7 +22,7 @@ interface Tenure {
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-company-tenure',
   standalone: true,
-  imports: [CommonModule, TranslatePipe, TenureCelebrationModalComponent],
+  imports: [CommonModule, TranslatePipe, TenureCelebrationModalComponent, WriteActionDirective],
   template: `
     <div class="bg-white/80 backdrop-blur-xl border border-white rounded-2xl shadow-sm shadow-slate-200/50 p-4 h-full flex flex-col overflow-hidden">
       <!-- Header -->
@@ -33,7 +34,7 @@ interface Tenure {
         <h3 class="text-slate-800 font-bold text-sm">{{ 'tenure.title' | t }}</h3>
 
         @if (startDate() && !editing()) {
-          <button [attr.aria-label]="'common.edit' | t"
+          <button appWriteAction [attr.aria-label]="'common.edit' | t"
             (click)="startEdit()"
             class="hit-area ml-auto p-1 rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
             [title]="'common.edit' | t"
@@ -105,7 +106,7 @@ interface Tenure {
             class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-800 focus:border-violet-400"
           />
           <div class="flex gap-2 mt-1">
-            <button
+            <button appWriteAction
               (click)="save()"
               [disabled]="!draft()"
               class="flex-1 px-3 py-2 rounded-lg bg-tenure text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"

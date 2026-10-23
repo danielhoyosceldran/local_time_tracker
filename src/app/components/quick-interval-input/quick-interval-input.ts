@@ -9,12 +9,13 @@ import { kendoDateTimeFormat } from '../../utils/format';
 import { v4 as uuidv4 } from 'uuid';
 import { TimeEntry } from '../../models/time-entry.model';
 import { TranslatePipe } from '../../i18n/translate.pipe';
+import { WriteActionDirective } from '../../shared/write-action.directive';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-quick-interval-input',
   standalone: true,
-  imports: [ReactiveFormsModule, KENDO_DATETIMEPICKER, TranslatePipe],
+  imports: [ReactiveFormsModule, KENDO_DATETIMEPICKER, TranslatePipe, WriteActionDirective],
   template: `
     <div class="bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm shadow-slate-200/50 border border-white p-4 h-full flex flex-col overflow-y-auto">
       <div class="flex items-center justify-between mb-3">
@@ -66,7 +67,7 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
           }
         </div>
 
-        <button
+        <button appWriteAction
           type="submit"
           [disabled]="manualForm.invalid"
           class="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.97] text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 mt-auto"
